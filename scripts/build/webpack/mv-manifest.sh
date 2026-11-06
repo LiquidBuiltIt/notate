@@ -3,6 +3,7 @@
 SRC=$(dirname $BASH_SOURCE)
 ROOT=$HOME/Projects/Web-Extensions/Quick-Notes/current
 STATIC=$ROOT/src/Static
+ASSETS=$ROOT/src/Assets
 BROWSER_TARGET=$1
 BUILD_TARGET=$2
 MANIFEST=manifest.$BROWSER_TARGET.json
@@ -21,6 +22,7 @@ BUILD_DIR=$ROOT/$BUILD_TARGET/$BROWSER_TARGET
 #	echo $CMD
 #}
 
+cp -r $ASSETS/. $BUILD_DIR
 cp $STATIC/$MANIFEST $BUILD_DIR/manifest.json
 
 #if [ $BROWSER_TARGET = 'chrome' ]; then 

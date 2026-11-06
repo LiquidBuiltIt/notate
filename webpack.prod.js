@@ -2,7 +2,6 @@ const path = require('path');
 const { merge } = require('webpack-merge');
 const TerserPlugin = require('terser-webpack-plugin');
 const { DefinePlugin } = require('webpack');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ScriptingWebpackPlugin = require('scripting-webpack-plugin')
 const BaseConfiguration = require('./webpack.base.js');
 
@@ -32,12 +31,6 @@ module.exports = (env) => {
     		},
     		plugins: [
       			...BaseConfiguration.plugins,
-	    		new CopyWebpackPlugin({
-      				patterns: [{
-        	  			from: path.resolve(__dirname, 'src', 'Assets'),
-        	  			to: outputPath 
-        			}]
-    			}),
 			new ScriptingWebpackPlugin({
 				scripts: {
 					onAfterEmit: [{
