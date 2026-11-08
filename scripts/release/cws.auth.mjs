@@ -3,8 +3,8 @@
  * One-time OAuth setup for the Chrome Web Store API. Captures Google consent
  * through a local server and saves the refresh token to the gitignored .cws-token.
  *
- * Prerequisite: gitignored client_secret_*.json in the main checkout (Google
- * OAuth Desktop credentials), with the Chrome Web Store API enabled.
+ * Prerequisite: the Google OAuth Desktop client in the SuperSurf repo
+ * (CLIENT_SECRET_DIR), with the Chrome Web Store API enabled.
  *
  * Usage: npm run cws.auth
  */
@@ -18,7 +18,7 @@ import { CWS_TOKEN_FILE, credentialRoot, readClientSecret } from './helpers.mjs'
 
 const root = credentialRoot(resolve(dirname(fileURLToPath(import.meta.url)), '..', '..'));
 const tokenPath = join(root, CWS_TOKEN_FILE);
-const { client_id, client_secret } = readClientSecret(root);
+const { client_id, client_secret } = readClientSecret();
 const REDIRECT_URI = 'http://localhost:8085';
 
 const authUrl = 'https://accounts.google.com/o/oauth2/auth?' + new URLSearchParams({

@@ -11,9 +11,9 @@
  * This script never builds. It ships the committed dist/chrome, which must come
  * from a sealed production build, because dependency code is not trusted on the host.
  *
- * Store credentials live in the main checkout, both ignored by git: client_secret_*.json
- * and .cws-token (from `npm run cws.auth`). ~/.config/notate/ holds CWS_PUBLISHER_ID
- * and GITHUB_TOKEN.
+ * The OAuth client stays in the SuperSurf repo (CLIENT_SECRET_DIR). .cws-token (from
+ * `npm run cws.auth`) lives in the main checkout, ignored by git. ~/.config/notate/
+ * holds CWS_PUBLISHER_ID and GITHUB_TOKEN.
  */
 
 import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
@@ -108,7 +108,7 @@ async function preflight() {
   }
   let clientId, clientSecret;
   try {
-    ({ client_id: clientId, client_secret: clientSecret } = readClientSecret(credRoot));
+    ({ client_id: clientId, client_secret: clientSecret } = readClientSecret());
   } catch (err) {
     die(err.message);
   }

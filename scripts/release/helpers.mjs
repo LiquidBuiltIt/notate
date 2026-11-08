@@ -13,14 +13,16 @@ export const VERSION_SOURCE = 'src/Static/manifest.chrome.json';
 export const VERSION_TARGETS = ['package.json', VERSION_SOURCE];
 export const CONFIG_DIR = join(homedir(), '.config', 'notate');
 export const CWS_TOKEN_FILE = '.cws-token';
+// One OAuth client serves both extensions, so it stays in the SuperSurf repo.
+export const CLIENT_SECRET_DIR = join(homedir(), 'Projects', 'Github', 'supersurf');
 
 // Worktrees come and go, so store credentials always live in the main checkout.
 export const credentialRoot = (cwd) => dirname(git(cwd, 'rev-parse', '--path-format=absolute', '--git-common-dir'));
 
-export function readClientSecret(root) {
-  const file = readdirSync(root).find((name) => /^client_secret_.*\.json$/.test(name));
-  if (!file) throw new Error('No client_secret_*.json in the main project folder. Download Desktop OAuth credentials from Google Cloud.');
-  return JSON.parse(readFileSync(join(root, file), 'utf8')).installed;
+export function readClientSecret() {
+  const file = readdirSync(CLIENT_SECRET_DIR).find((name) => /^client_secret_.*\.json$/.test(name));
+  if (!file) throw new Error(`No client_secret_*.json in ${CLIENT_SECRET_DIR}.`);
+  return JSON.parse(readFileSync(join(CLIENT_SECRET_DIR, file), 'utf8')).installed;
 }
 
 export const git = (cwd, ...args) =>
