@@ -1,22 +1,24 @@
 #!/usr/bin/env node
 /**
  * One-time OAuth setup for the Chrome Web Store API. Captures Google consent
- * through a local server and saves the refresh token outside the repo.
+ * through a local server and saves the refresh token to the gitignored .cws-token.
  *
- * Prerequisite: Google OAuth Desktop credentials at
- * ~/.config/notate/cws-client-secret.json, with the Chrome Web Store API enabled.
+ * Prerequisite: gitignored client_secret_*.json in the project root (Google
+ * OAuth Desktop credentials), with the Chrome Web Store API enabled.
  *
  * Usage: npm run cws.auth
  */
 
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { writeFileSync } from 'node:fs';
+import { resolve, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
-import { CONFIG_DIR } from './helpers.mjs';
+import { CWS_TOKEN_FILE, readClientSecret } from './helpers.mjs';
 
-const tokenPath = join(CONFIG_DIR, 'cws-token.json');
-const { client_id, client_secret } = JSON.parse(readFileSync(join(CONFIG_DIR, 'cws-client-secret.json'), 'utf8')).installed;
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const tokenPath = join(root, CWS_TOKEN_FILE);
+const { client_id, client_secret } = readClientSecret(root);
 const REDIRECT_URI = 'http://localhost:8085';
 
 const authUrl = 'https://accounts.google.com/o/oauth2/auth?' + new URLSearchParams({

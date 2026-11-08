@@ -11,8 +11,9 @@
  * This script never builds. It ships the committed dist/chrome, which must come
  * from a sealed production build, because dependency code is not trusted on the host.
  *
- * Credentials live in ~/.config/notate/: cws-client-secret.json, cws-token.json
- * (from `npm run cws.auth`), CWS_PUBLISHER_ID and GITHUB_TOKEN.
+ * Store credentials live in the project root, both gitignored: client_secret_*.json
+ * and .cws-token (from `npm run cws.auth`). ~/.config/notate/ holds CWS_PUBLISHER_ID
+ * and GITHUB_TOKEN.
  */
 
 import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
@@ -20,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { CONFIG_DIR, PUBLISH_OK_STATES, VERSION_SOURCE, git, versionOf, uploadOutcome } from './helpers.mjs';
+import { CONFIG_DIR, CWS_TOKEN_FILE, PUBLISH_OK_STATES, VERSION_SOURCE, git, readClientSecret, versionOf, uploadOutcome } from './helpers.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const distDir = join(root, 'dist', 'chrome');
@@ -101,11 +102,16 @@ async function submitToStore(token, itemName) {
 async function preflight() {
   console.log('\nPre-flight checks\n');
 
-  for (const name of ['cws-client-secret.json', 'cws-token.json', 'CWS_PUBLISHER_ID']) {
-    if (!existsSync(join(CONFIG_DIR, name))) die(`${join(CONFIG_DIR, name)} not found. See the header of this script.`);
+  for (const path of [join(root, CWS_TOKEN_FILE), join(CONFIG_DIR, 'CWS_PUBLISHER_ID')]) {
+    if (!existsSync(path)) die(`${path} not found. See the header of this script.`);
   }
-  const { client_id: clientId, client_secret: clientSecret } = JSON.parse(read(join(CONFIG_DIR, 'cws-client-secret.json'))).installed;
-  const { refresh_token: refreshToken } = JSON.parse(read(join(CONFIG_DIR, 'cws-token.json')));
+  let clientId, clientSecret;
+  try {
+    ({ client_id: clientId, client_secret: clientSecret } = readClientSecret(root));
+  } catch (err) {
+    die(err.message);
+  }
+  const { refresh_token: refreshToken } = JSON.parse(read(join(root, CWS_TOKEN_FILE)));
   const publisherId = read(join(CONFIG_DIR, 'CWS_PUBLISHER_ID')).trim();
   const token = await getAccessToken({ clientId, clientSecret, refreshToken }).catch((err) => die(err.message));
   ok('Store credentials valid');

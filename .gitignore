@@ -17,6 +17,10 @@ node_modules/
 # env file
 .env
 
+# Chrome Web Store credentials
+.cws-token
+client_secret_*.json
+
 # misc
 agent/
 .cursor/

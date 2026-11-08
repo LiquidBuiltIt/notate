@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { nextVersion, setVersion, bumpLockfile, uploadOutcome } from './helpers.mjs';
 
 test('nextVersion treats a two-part store version as patch 0', () => {
@@ -26,6 +27,11 @@ test('bumpLockfile moves the root entries only', () => {
   assert.equal(out.version, '2.0.0');
   assert.equal(out.packages[''].version, '2.0.0');
   assert.equal(out.packages['node_modules/a'].version, '7');
+});
+
+test('store credentials stay gitignored', () => {
+  const lines = readFileSync(new URL('../../.gitignore', import.meta.url), 'utf8').split('\n');
+  for (const rule of ['.cws-token', 'client_secret_*.json']) assert.ok(lines.includes(rule), rule);
 });
 
 test('uploadOutcome fails closed', () => {

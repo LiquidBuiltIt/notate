@@ -4,6 +4,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -11,6 +12,13 @@ import { join } from 'node:path';
 export const VERSION_SOURCE = 'src/Static/manifest.chrome.json';
 export const VERSION_TARGETS = ['package.json', VERSION_SOURCE];
 export const CONFIG_DIR = join(homedir(), '.config', 'notate');
+export const CWS_TOKEN_FILE = '.cws-token';
+
+export function readClientSecret(root) {
+  const file = readdirSync(root).find((name) => /^client_secret_.*\.json$/.test(name));
+  if (!file) throw new Error('No client_secret_*.json in the project root. Download Desktop OAuth credentials from Google Cloud.');
+  return JSON.parse(readFileSync(join(root, file), 'utf8')).installed;
+}
 
 export const git = (cwd, ...args) =>
   execFileSync('git', ['-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false', ...args], { cwd, encoding: 'utf8' }).trim();
