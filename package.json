@@ -6,7 +6,11 @@
     "wipe": "rm -rf ./prod & rm -rf ./dist",
     "dev": "./scripts/build/dev/build.sh",
     "prod": "scripts/build/prod/build.sh",
-    "test": "echo $1"
+    "test": "echo $1",
+    "test.release": "node --test scripts/release/*.test.mjs",
+    "version.bump": "node scripts/release/version.bump.mjs",
+    "cws.auth": "node scripts/release/cws.auth.mjs",
+    "publish": "node scripts/release/publish.mjs"
   },
   "keywords": [],
   "author": "",
