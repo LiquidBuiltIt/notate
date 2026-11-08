@@ -20,3 +20,15 @@ node_modules/
 # misc
 agent/
 .cursor/
+
+# macOS metadata
+.DS_Store
+
+# npm cache
+.npm-cache/
+
+# git worktrees
+.worktrees/
+
+# packed extensions
+*.crx
