@@ -6,7 +6,7 @@
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 // The Chrome manifest holds the version users have; package.json has lagged behind it.
 export const VERSION_SOURCE = 'src/Static/manifest.chrome.json';
@@ -14,9 +14,12 @@ export const VERSION_TARGETS = ['package.json', VERSION_SOURCE];
 export const CONFIG_DIR = join(homedir(), '.config', 'notate');
 export const CWS_TOKEN_FILE = '.cws-token';
 
+// Worktrees come and go, so store credentials always live in the main checkout.
+export const credentialRoot = (cwd) => dirname(git(cwd, 'rev-parse', '--path-format=absolute', '--git-common-dir'));
+
 export function readClientSecret(root) {
   const file = readdirSync(root).find((name) => /^client_secret_.*\.json$/.test(name));
-  if (!file) throw new Error('No client_secret_*.json in the project root. Download Desktop OAuth credentials from Google Cloud.');
+  if (!file) throw new Error('No client_secret_*.json in the main project folder. Download Desktop OAuth credentials from Google Cloud.');
   return JSON.parse(readFileSync(join(root, file), 'utf8')).installed;
 }
 
