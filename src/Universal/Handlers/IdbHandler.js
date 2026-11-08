@@ -68,10 +68,9 @@ export default class DatabaseAdapter {
 			await this.workermessage()
 		     }
 
-		     this.inventory = await this.getInventory()
+		     // onsuccess builds the inventory and resolves once the upgrade transaction is done
 
 		     if (databaseName === 'userConfiguration') handleConfigurationDb(this, 'setup') 
-   		     resolve(this.connection);
    		   };
    		 });
   }
