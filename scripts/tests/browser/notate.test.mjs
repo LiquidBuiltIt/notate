@@ -366,3 +366,101 @@ test('scripted clicks cannot save the add-to-notebook modal', async () => {
 	await c.click('#add-to-notebook-bottombar #save-btn')
 	await waitFor(async () => (await notebooks())[0].collection.length === 1, 'real click saves')
 })
+
+// ---- Stored note HTML is sanitized when the editor opens a note ----
+
+async function openPlantedEditor(content, beforeOpen = '0') {
+	await b.openPage(NEWTAB)
+	await waitFor(config, 'seeded config')
+	await plantNote(content)
+	const page = await b.openPage(NEWTAB)
+	await ui(page).appear('#note-card-1')
+	await page.eval(beforeOpen)
+	await ui(page).click('#note-card-1')
+	await waitFor(() => page.eval(`document.querySelector('#input-text-display')?.childNodes.length > 0`), 'editor filled with the note')
+	return page
+}
+const editorState = (page) => page.eval(`(() => {
+	const ed = document.querySelector('#input-text-display')
+	const all = [...ed.querySelectorAll('*')]
+	return { html: ed.innerHTML, text: ed.textContent,
+		tags: all.map((e) => e.localName), attrs: all.flatMap((e) => e.getAttributeNames().map((a) => e.localName + '.' + a)),
+		hrefs: [...ed.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+		srcs: [...ed.querySelectorAll('img')].map((i) => i.getAttribute('src')),
+		pwn: window.__pwn ?? null, beacons: performance.getEntriesByType('resource').filter((r) => r.name.includes('/beacon')).length }
+})()`)
+
+test('a stored note is rebuilt from an allowlist when the editor opens it', async () => {
+	const page = await openPlantedEditor('<p>keep</p><img src="x" onerror="window.__pwn=1"><img src="http://127.0.0.1:1/beacon"><iframe src="http://127.0.0.1:1/beacon">iframetext</iframe>'
+		+ '<style>body{display:none}</style><svg><a href="javascript:1">svgtext</a></svg><script>window.__pwn=2</script><a href="javascript:alert(1)" onclick="x">js link</a><a href="ok.html">rel</a>'
+		+ '<a href="https://example.com/p?a=1&amp;b=2" target="_blank">good link</a><span style="background:url(http://127.0.0.1:1/beacon);color:red;width:50%" onclick="1">styled</span>'
+		+ '<blah>unwrapped</blah><template><b>tpl</b></template><form action="http://evil"><input name="x">formtext</form><font size="9" face="x">big</font><font size="5">ok</font>')
+	await sleep(500)
+	const s = await editorState(page)
+	for (const gone of ['iframe', 'style', 'script', 'svg', 'form', 'input', 'template', 'blah']) assert.ok(!s.tags.includes(gone), `${gone} removed: ${s.html}`)
+	assert.deepEqual(s.attrs.filter((a) => /\.on/.test(a)), [], s.html)
+	assert.ok(s.srcs.every((v) => v === null), 'no remote or non-data image source')
+	assert.deepEqual(s.hrefs, [null, null, 'https://example.com/p?a=1&b=2'], s.html)
+	assert.doesNotMatch(s.html, /url\(|background/, s.html)
+	assert.match(s.html, /width: 50%/)
+	assert.doesNotMatch(s.html, /size="9"|face=|target=/)
+	assert.match(s.html, /size="5"/)
+	for (const t of ['keep', 'js link', 'rel', 'good link', 'styled', 'unwrapped', 'big']) assert.ok(s.text.includes(t), `kept text ${t}`)
+	for (const t of ['iframetext', 'svgtext', 'tpl', 'formtext', 'body{display']) assert.ok(!s.text.includes(t), `dropped content ${t}`)
+	assert.equal(s.pwn, null)
+	assert.equal(s.beacons, 0, 'nothing was requested')
+})
+
+test('DOM clobbering names in a stored note do not stop the sanitizer', async () => {
+	const page = await openPlantedEditor('<img name="body"><form id="f"><input name="attributes"><input name="childNodes"><input name="localName"><input name="nodeType">formtext</form>'
+		+ '<iframe name="body"></iframe><embed name="childNodes"><div><b>bold</b> after</div>')
+	const s = await editorState(page)
+	assert.ok(!s.tags.includes('form') && !s.tags.includes('input'), s.html)
+	assert.ok(s.tags.includes('b') && s.text.includes('bold after'), s.html)
+	assert.ok(!s.text.includes('<'), 'not rendered as the plain text fallback')
+	assert.ok(!s.text.includes('formtext'))
+})
+
+test('if the sanitizer fails, the editor shows the raw note as plain text and keeps working', async () => {
+	const raw = '<b>FALLBACKMARK</b> and <i>text</i>'
+	const page = await openPlantedEditor(raw, `(() => { const p = DOMParser.prototype.parseFromString; DOMParser.prototype.parseFromString = function (h, t) { if (String(h).includes('FALLBACKMARK')) throw new Error('forced'); return p.call(this, h, t) } })()`)
+	const s = await editorState(page)
+	assert.equal(s.text.trim(), raw)
+	assert.equal(s.tags.length, 0, 'plain text, no elements')
+	assert.deepEqual(b.errors, [], 'the error did not escape')
+	assert.equal(await ui(page).exists('#save-btn'), true, 'the app is still mounted')
+})
+
+test('bold, italic, underline, strike, size, alignment, links and sized images survive save and reopen', async () => {
+	const gif = 'data:image/gif;base64,R0lGODlhAQABAAAAACw='
+	const content = await openPlantedNote('<b>b1</b><i>i1</i><u>u1</u><strike>s1</strike><font size="5">big</font>'
+		+ '<div style="text-align: center;">mid</div><div style="text-align: right;">right</div><a href="https://example.com/x">link</a>'
+		+ `<img id="img-1-abc" src="${gif}" draggable="true" data-natural-width="40" data-natural-height="30" style="max-width: 100%; width: 40px; height: 30px;">`)
+	const r = await b.reader().then((rd) => rd.eval(`(() => {
+		const d = new DOMParser().parseFromString(${JSON.stringify(content)}, 'text/html')
+		const q = (s) => d.querySelector(s)
+		const img = q('img')
+		return { b: !!q('b'), i: !!q('i'), u: !!q('u'), strike: !!q('strike'), size: q('font')?.getAttribute('size'),
+			center: q('div[style*="text-align: center"]')?.textContent, right: q('div[style*="text-align: right"]')?.textContent, href: q('a')?.getAttribute('href'),
+			img: img && { id: img.id, src: img.getAttribute('src'), drag: img.getAttribute('draggable'), w: img.getAttribute('data-natural-width'), h: img.getAttribute('data-natural-height'), width: img.style.width, height: img.style.height, max: img.style.maxWidth } }
+	})()`))
+	assert.deepEqual(r, { b: true, i: true, u: true, strike: true, size: '5', center: 'mid', right: 'right', href: 'https://example.com/x',
+		img: { id: 'img-1-abc', src: gif, drag: 'true', w: '40', h: '30', width: '40px', height: '30px', max: '100%' } }, content)
+})
+
+test('an iframe inserted by a page script cannot reach the closed shadow root before the editor undoes it', async () => {
+	const { page, c } = await openPageEditor()
+	// Control: the same payload does run when the page edits its own contenteditable.
+	await page.eval(`(() => { const d = document.createElement('div'); d.contentEditable = true; document.body.append(d); d.focus(); document.execCommand('insertHTML', false, '<iframe src="javascript:window.top.__ctrl=1"></iframe>') })()`)
+	await waitFor(() => page.eval('window.__ctrl === 1'), 'control payload to run')
+	await c.fill('#input-text-display', 'x')
+	for (const payload of [
+		'<iframe src="javascript:window.top.__root=frameElement.getRootNode()"></iframe>',
+		'<iframe srcdoc="<script>parent.__root=frameElement.getRootNode()</script>"></iframe>',
+		'<iframe src="javascript:window.top.__root2=frameElement.parentNode"></iframe>',
+	]) await page.eval(`document.execCommand('insertHTML', false, ${JSON.stringify(payload)})`)
+	await sleep(700)
+	assert.equal(await page.eval(`window.__root instanceof ShadowRoot || !!window.__root`), false, 'getRootNode did not reach the shadow root')
+	assert.equal(await page.eval(`!!window.__root2`), false, 'parentNode did not reach the editor')
+	assert.doesNotMatch(await page.eval(`${EDITOR}.innerHTML`, 'content'), /iframe/)
+})

@@ -169,7 +169,7 @@ export default function TextInput() {
 		const INPUT = root.getElementById(TEXT_EDITOR_ID)
 
 		if (INPUT instanceof Node) {
-			INPUT.innerHTML = text || ''
+			Format.sanitizeInto(INPUT, text || '')
 			Format.textContent(INPUT)
 		}
 	}, [root])
