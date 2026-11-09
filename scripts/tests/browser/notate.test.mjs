@@ -564,7 +564,7 @@ async function saveNow(c) {
 test('a huge inserted subtree does not stop the guard: the markup behind it is removed and later inserts are cleaned too', async () => {
 	const { page, c } = await openPageEditor()
 	await page.eval(`document.execCommand('insertHTML', false, '<section>' + '<br>'.repeat(200000) + '</section>${ROOT_IMG}')`)
-	await waitFor(async () => !(await page.eval(`!!${EDITOR}.querySelector('section, img')`, 'content')), 'huge insert cleaned') // a 5 MB innerHTML is not sent over CDP
+	await waitFor(async () => !(await page.eval(`!!${EDITOR}.querySelector('section, img[onerror]')`, 'content')), 'huge insert cleaned') // a 5 MB innerHTML is not sent over CDP
 	await page.eval(`for (const br of ${EDITOR}.querySelectorAll('br')) br.remove()`, 'content') // keep the saved note small
 	await sleep(700)
 	await page.eval(`window.__root = null; document.execCommand('insertHTML', false, ${JSON.stringify(ROOT_IFRAME + ROOT_IMG)})`)

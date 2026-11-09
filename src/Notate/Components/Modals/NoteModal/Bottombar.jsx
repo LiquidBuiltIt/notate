@@ -5,6 +5,7 @@ import ConfirmationMsgHandler from '../ConfirmationModal/ConfimrationMsgHandler.
 import ConfirmationMsg, { ConfirmationMsgContext } from '../ConfirmationModal/ConfirmationMsg.jsx';
 import { NotateContext  } from '@notate/Notate.jsx';
 
+import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextInput/InputFormatters.js'
 import TrashLogo from '@assets/Designs/trash-logo.svg';
 import { NoteModalContext } from './NoteModal.jsx'
 
@@ -38,7 +39,7 @@ export default function NoteModalBottombar({onExit}) {
   	const handleSaveClick = async () => {
   	  try {
   	      note.title = title;
-  	      note.content = content;	
+  	      note.content = sanitizeHtml(content);	
 
   	      await onExit();
   	      await makeRequest({ 

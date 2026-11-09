@@ -2,6 +2,7 @@ import React from 'react';
 //import { NOTATE_DB, ERROR_LOGGING_DB, USER_CONFIGURATION_DB } from '@background/background.js'
 import NoteHandler from '@universal/Handlers/NoteHandler.js'
 import { TextInputContext } from '@universal/Components/TextEditor/TextEditor.jsx';
+import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextInput/InputFormatters.js'
 import { NoteEditorTitleContext } from '../NoteEditorTopbar/Components/NoteEditorTitle.jsx' 
 import { NotificationContext } from '@universal/Components/NotificationMessenger.jsx';
 import { WebContentContext } from '@content/content.jsx';
@@ -27,7 +28,7 @@ export default function SaveNoteButton() {
 
 		try {
 			note.title = title
-			note.content = content
+			note.content = sanitizeHtml(content)
 
 			await makeRequest({ 
 				type: 'POST_DATABASE', 

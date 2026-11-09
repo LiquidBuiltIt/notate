@@ -22,6 +22,8 @@ export default function TextInput() {
 	const handleChange = (event) => {
 		const target = event.target
 
+		// If the walker throws, the observer fails closed and sets the text; nothing unchecked is read here.
+		try { Format.sanitizeTree(target) } catch { return }
 		Format.textContent(target)
 
 		const content = target.innerHTML;
@@ -116,7 +118,7 @@ export default function TextInput() {
 			event.stopPropagation()
     		}
 
-    		setText(event.target.innerHTML);
+    		try { setText(Format.readClean(event.target)) } catch {}
 	};
 
 	const handlePaste = (event) => {
@@ -143,8 +145,20 @@ export default function TextInput() {
 	// Every DOM change in the editor is checked against the allowlist, whoever made it.
 	React.useEffect(()=>{
 		const editor = textDisplayRef.current
-		const observer = new MutationObserver(() => {
-			if (Format.sanitizeTree(editor)) setText(Format.links(editor.innerHTML))
+		const observer = new MutationObserver((records) => {
+			try {
+				Format.sanitizeTree(editor)
+			} catch {
+				// Fail closed: drop what these changes added or set, keep the rest of the note, stay subscribed.
+				for (const record of records) {
+					try {
+						for (const node of record.addedNodes) Format.detach(node)
+						if (record.attributeName) Element.prototype.removeAttribute.call(record.target, record.attributeName)
+					} catch {}
+				}
+			}
+			// The stored value follows the DOM after every change, even when the change left the DOM clean.
+			try { setText(Format.links(editor.innerHTML)) } catch {}
 		})
 		observer.observe(editor, { childList: true, subtree: true, attributes: true })
 		return () => observer.disconnect()

@@ -9,10 +9,12 @@ export const uniqueId = (prefix) => {
 // Stored note HTML is parsed in an inert document and cleaned in place; the output is never a string.
 // Properties are read through prototype getters and methods: a node named "attributes" or "remove" can clobber the own property.
 const getter = (type, name) => Object.getOwnPropertyDescriptor(type.prototype, name).get
-const [bodyOf, childNodesOf, nodeTypeOf, dataOf, localNameOf, namespaceOf, ownerDocumentOf] = [
+const [bodyOf, childNodesOf, nodeTypeOf, dataOf, localNameOf, namespaceOf, ownerDocumentOf, parentNodeOf, firstChildOf, outerHTMLOf] = [
 	getter(Document, 'body'), getter(Node, 'childNodes'), getter(Node, 'nodeType'), getter(CharacterData, 'data'),
 	getter(Element, 'localName'), getter(Element, 'namespaceURI'), getter(Node, 'ownerDocument'),
+	getter(Node, 'parentNode'), getter(Node, 'firstChild'), getter(Element, 'outerHTML'),
 ]
+const IS_VALUE = /^<[^\s>]+ is=/
 const KEEP_TAGS = new Set(['b', 'i', 'u', 'strike', 's', 'p', 'span', 'font', 'div', 'br', 'a', 'img'])
 const DROP_TAGS = new Set(['script', 'style', 'template', 'iframe', 'object', 'embed', 'svg', 'math', 'form'])
 const KEEP_STYLES = ['text-align', 'width', 'height', 'max-width', 'white-space', 'color', 'font-weight', 'font-style', 'text-decoration', 'font-size']
@@ -35,24 +37,24 @@ const cleanStyle = (value, doc) => {
 
 // Removes what is off the list from `parent`, in place, and returns true if it changed anything.
 // A bad node is removed, or unwrapped with its text kept; a bad attribute is removed. Valid content is not touched.
-// Children are cleaned before an unwrap, so no dropped node is ever moved (moving an iframe reloads it).
+// No recursion and no argument spreading: a subtree of any size or width is walked with a stack and moved with insertBefore.
+// Unknown tags and tags with a leftover "is" value are unwrapped or rebuilt after their children are clean, so no dropped node is ever moved (moving an iframe reloads it).
 export const sanitizeTree = (parent) => {
 	let changed = false
 	const doc = ownerDocumentOf.call(parent)
 	const remove = (parent, node) => { Node.prototype.removeChild.call(parent, node); changed = true }
-	const clean = (parent) => {
-		for (const node of Array.from(childNodesOf.call(parent))) {
+	const later = []
+	const stack = [parent]
+	while (stack.length) {
+		const current = stack.pop()
+		for (const node of Array.from(childNodesOf.call(current))) {
 			const type = nodeTypeOf.call(node)
 			if (type === Node.TEXT_NODE) continue
-			if (type !== Node.ELEMENT_NODE) { remove(parent, node); continue }
+			if (type !== Node.ELEMENT_NODE) { remove(current, node); continue }
 			const tag = localNameOf.call(node)
-			if (namespaceOf.call(node) !== 'http://www.w3.org/1999/xhtml' || DROP_TAGS.has(tag)) { remove(parent, node); continue }
-			if (!KEEP_TAGS.has(tag)) {
-				clean(node)
-				Element.prototype.replaceWith.call(node, ...Array.from(childNodesOf.call(node)))
-				changed = true
-				continue
-			}
+			if (namespaceOf.call(node) !== 'http://www.w3.org/1999/xhtml' || DROP_TAGS.has(tag)) { remove(current, node); continue }
+			// A parent is queued before its children, so the reverse order handles children first.
+			if (!KEEP_TAGS.has(tag)) { later.push(node); stack.push(node); continue }
 			for (const name of Element.prototype.getAttributeNames.call(node)) {
 				const value = Element.prototype.getAttribute.call(node, name)
 				if (name === 'style') {
@@ -64,10 +66,23 @@ export const sanitizeTree = (parent) => {
 				else Element.prototype.removeAttribute.call(node, name)
 				changed = true
 			}
-			clean(node)
+			// The parser keeps the "is" value apart from the attribute: removing the attribute leaves it, and the serializer writes it back.
+			if (IS_VALUE.test(outerHTMLOf.call(Node.prototype.cloneNode.call(node, false)))) later.push(node)
+			stack.push(node)
 		}
 	}
-	clean(parent)
+	for (const node of later.reverse()) {
+		const parent = parentNodeOf.call(node)
+		let dest = parent, before = node
+		if (KEEP_TAGS.has(localNameOf.call(node))) {
+			dest = doc.createElement(localNameOf.call(node))
+			before = null
+			for (const name of Element.prototype.getAttributeNames.call(node)) Element.prototype.setAttribute.call(dest, name, Element.prototype.getAttribute.call(node, name))
+			Node.prototype.insertBefore.call(parent, dest, node)
+		}
+		for (let child = firstChildOf.call(node); child; child = firstChildOf.call(node)) Node.prototype.insertBefore.call(dest, child, before)
+		remove(parent, node)
+	}
 	return changed
 }
 
@@ -76,10 +91,30 @@ export const sanitizeInto = (target, html) => {
 	try {
 		const body = bodyOf.call(new DOMParser().parseFromString(html, 'text/html'))
 		sanitizeTree(body)
-		target.replaceChildren(...Array.from(childNodesOf.call(body)))
+		target.replaceChildren()
+		for (let child = firstChildOf.call(body); child; child = firstChildOf.call(body)) Node.prototype.appendChild.call(target, child)
 	} catch {
 		target.textContent = html
 	}
+}
+
+// For the fail-closed path: detaches a node without trusting any property the page could have clobbered.
+export const detach = (node) => {
+	const parent = parentNodeOf.call(node)
+	if (parent) Node.prototype.removeChild.call(parent, node)
+}
+
+// The editor's HTML, read only after the walker has run on it.
+export const readClean = (editor) => {
+	sanitizeTree(editor)
+	return editor.innerHTML
+}
+
+// Last gate before a note is stored: the HTML string is cleaned again in an inert document. Throws on failure, so nothing is stored.
+export const sanitizeHtml = (html) => {
+	const body = bodyOf.call(new DOMParser().parseFromString(html, 'text/html'))
+	sanitizeTree(body)
+	return body.innerHTML
 }
 
 
@@ -153,5 +188,5 @@ export const imageAtCursor = (imgElement, root, ref, setText, dropTarget) => {
         	}
     	}
 
-    	setText(ref.current.innerHTML);
+    	setText(readClean(ref.current));
 };
