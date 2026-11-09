@@ -1,3 +1,6 @@
+import { writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { launch, startFixture, openFixture, openContextMenu, ui, waitFor, sleep, EXT_ID } from './helper.mjs'
@@ -257,6 +260,8 @@ async function openPlantedNote(content) {
 	const page = await b.openPage(NEWTAB)
 	const n = ui(page)
 	await n.click('#note-card-1')
+	// The editor is filled from the note after it mounts: typing earlier is wiped out by that fill.
+	await waitFor(() => page.eval(`document.querySelector('#input-text-display')?.textContent.trim().length > 0`), 'editor filled with the note')
 	await n.fill('#input-text-display', 'typed ')
 	await n.click('#save-btn')
 	const saved = await waitFor(async () => (await notes()).find((x) => x.id === 1 && x.content.includes('typed')), 'saved edit')
@@ -281,4 +286,83 @@ test('a quote in a typed URL cannot break out of href', async () => {
 	const r = await parse(content)
 	assert.deepEqual(r.onAttrs, [], content)
 	assert.ok(r.hrefs.some((h) => h.includes('"onmouseover="')), content)
+})
+
+// ---- Page-initiated editing ----
+
+const EDITOR = `${'chrome.dom.openOrClosedShadowRoot(document.querySelector("#content-script-entry-point"))'}.querySelector('#input-text-display')`
+async function openPageEditor() {
+	const { page, c } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.click('#new-note-btn')
+	await c.fill('#edit-title', 'Injected')
+	await c.fill('#input-text-display', 'before ')
+	return { page, c }
+}
+
+test('a page script cannot inject HTML into the page editor with execCommand, and normal editing still works', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`document.execCommand('insertHTML', false, '<img src=x onerror="window.__root = this.getRootNode()">injected')`)
+	await page.eval(`document.execCommand('insertImage', false, 'data:image/gif;base64,R0lGODlhAQABAAAAACw=')`)
+	await sleep(700) // an onerror handler would have run by now
+	assert.equal(await page.eval(`window.__root instanceof ShadowRoot`), false, 'the page script did not reach the closed shadow root')
+	const html = await page.eval(`${EDITOR}.innerHTML`, 'content')
+	assert.doesNotMatch(html, /<img|injected/, html)
+	// Real typing, paste and bold keep working afterwards.
+	await page.type('typed ')
+	await page.eval(`(() => {
+		const dt = new DataTransfer(); dt.setData('text/plain', 'pasted ')
+		${EDITOR}.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }))
+	})()`, 'content')
+	await page.eval(`document.execCommand('selectAll')`, 'content')
+	await c.click('#bold-btn')
+	await c.click('#save-note-btn')
+	const [saved] = await waitFor(async () => { const n = await notes(); return n.length && n }, 'note in IndexedDB')
+	assert.match(saved.content, /before typed pasted/)
+	assert.match(saved.content, /<b[ >]/)
+	assert.doesNotMatch(saved.content, /<img|injected/)
+	assert.deepEqual(b.errors, [])
+})
+
+test('"Insert Image" from the editor context menu still inserts the picked image', async () => {
+	const { page, c } = await openPageEditor()
+	const gif = join(tmpdir(), 'notate-test.gif')
+	writeFileSync(gif, Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'))
+	await page.send('Page.setInterceptFileChooserDialog', { enabled: true })
+	const opened = new Promise((res) => b.cdp.on((m) => { if (m.method === 'Page.fileChooserOpened') res(m.params) }))
+	const { x, y } = await c.center('#input-text-display')
+	await page.rightClick(x, y)
+	await c.click('#insertImg')
+	await page.send('DOM.setFileInputFiles', { files: [gif], backendNodeId: (await opened).backendNodeId })
+	await waitFor(() => page.eval(`!!${EDITOR}.querySelector('img[src^="data:image/gif"]')`, 'content'), 'picked image in the editor')
+})
+
+test('scripted clicks cannot close the page editor window', async () => {
+	const { page, c } = await openPageEditor()
+	const closeBtn = '#editor-window-ctrl-center > svg:last-child'
+	await page.eval(`(() => { const el = chrome.dom.openOrClosedShadowRoot(document.querySelector('#content-script-entry-point')).querySelector(${JSON.stringify(closeBtn)}); el.dispatchEvent(new MouseEvent('click', { bubbles: true })) })()`, 'content')
+	await sleep(700)
+	assert.equal(await c.exists('#edit-title'), true, 'scripted click did not close the editor')
+	await c.click(closeBtn)
+	await c.gone('#edit-title')
+})
+
+test('scripted clicks cannot save the add-to-notebook modal', async () => {
+	await b.openPage(NEWTAB)
+	await waitFor(config, 'seeded config')
+	const note = await plantNote('body')
+	await b.post('notate', 'NOTEBOOKS', { id: 1, title: 'Book', description: 'd', collection: [], created: new Date().toISOString(), modified: new Date().toISOString() })
+	const { c, page } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.click('#context-item-add-to-notebook')
+	await c.appear('#notebook-card-1')
+	await page.eval(`(() => {
+		const dt = new DataTransfer(); dt.setData('text/plain', ${JSON.stringify(JSON.stringify(note))})
+		${'chrome.dom.openOrClosedShadowRoot(document.querySelector("#content-script-entry-point"))'}.querySelector('#notebook-card-1').dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }))
+	})()`, 'content')
+	await c.scriptedClick('#add-to-notebook-bottombar #save-btn')
+	await sleep(1000)
+	assert.deepEqual((await notebooks())[0].collection, [], 'scripted click saved nothing')
+	await c.click('#add-to-notebook-bottombar #save-btn')
+	await waitFor(async () => (await notebooks())[0].collection.length === 1, 'real click saves')
 })

@@ -19,15 +19,18 @@ export default function EditorWindowController() {
 
 	const [ displayState, updateDisplayState ] = React.useContext(NoteEditorWindowDisplayContext)
 
-	const runCloseWindow = () => {
+	const runCloseWindow = (event) => {
+		if (!event.isTrusted) return
 		updateNoteWindowState(false)
 	}
 
-	const runMaximizeWindow = () => {
+	const runMaximizeWindow = (event) => {
+		if (!event.isTrusted) return
 		updateDisplayState(MAXIMIZED)
 	}
 
-	const runMinimizeWindow = () => {
+	const runMinimizeWindow = (event) => {
+		if (!event.isTrusted) return
 		updateDisplayState(MINIMIZED)
 	}
 

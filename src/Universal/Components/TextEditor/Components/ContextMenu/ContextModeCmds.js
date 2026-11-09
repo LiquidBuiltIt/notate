@@ -1,3 +1,5 @@
+import { insertOwnHTML } from '../TextInput/InputFormatters.js'
+
 
 export const NormalModeCmds = [
 	{
@@ -53,7 +55,7 @@ export const NormalModeCmds = [
           					const img = document.createElement('img');
           					img.src = e.target.result;
           					img.style.maxWidth = '100%';
-          					document.execCommand('insertHTML', false, img.outerHTML);
+          					insertOwnHTML(img.outerHTML);
         				};
 
         				reader.readAsDataURL(file);

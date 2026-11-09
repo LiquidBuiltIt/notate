@@ -16,7 +16,8 @@ export default function Bottombar() {
 
 	const [ isEnabled, setIsEnabled ] = React.useState(false)
 
-	const handleSave = async () => {
+	const handleSave = async (event) => {
+		if (!event.isTrusted) return
 		if (queue.length > 0) {
 			queue.forEach( async tx => {
 				await makeRequest({

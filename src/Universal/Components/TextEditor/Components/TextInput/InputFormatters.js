@@ -1,5 +1,14 @@
 import { TEXT_EDITOR_ID } from './TextInput.jsx'
 
+// execCommand('insertHTML') and ('insertImage') fire an input event with an empty inputType and no beforeinput, so
+// the editor cannot tell the page's calls from its own. The editor marks its own calls and undoes the rest.
+let ownInsert = false
+export const insertOwnHTML = (html) => {
+	ownInsert = true
+	try { document.execCommand('insertHTML', false, html) } finally { ownInsert = false }
+}
+export const isForeignInsert = (event) => event.inputType === '' && !ownInsert
+
 export const uniqueId = (prefix) => {
      	return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };

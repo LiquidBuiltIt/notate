@@ -19,10 +19,22 @@ export default function TextInput() {
 
 	const textDisplayRef = React.useRef(null);
 	const ghostEditorRef = React.useRef(null)
+	const lastGoodRef = React.useRef([])
 
 
 	const handleChange = (event) => {
 		const target = event.target
+
+		// A page script inserted markup into the editor. execCommand('undo') fails inside an input event, so put back the last snapshot.
+		if (Format.isForeignInsert(event.nativeEvent)) {
+			target.replaceChildren(...lastGoodRef.current.map((node) => node.cloneNode(true)))
+			const range = document.createRange()
+			range.selectNodeContents(target)
+			range.collapse(false)
+			window.getSelection().removeAllRanges()
+			window.getSelection().addRange(range)
+			return
+		}
 
 		Format.textContent(target)
 
@@ -161,6 +173,17 @@ export default function TextInput() {
 			Format.textContent(INPUT)
 		}
 	}, [root])
+
+
+	// Keep a copy of the editor content, refreshed after every change made by the user or the extension.
+	React.useEffect(()=>{
+		const editor = textDisplayRef.current
+		const snapshot = () => { lastGoodRef.current = [...editor.childNodes].map((node) => node.cloneNode(true)) }
+		snapshot()
+		const observer = new MutationObserver(snapshot)
+		observer.observe(editor, { childList: true, subtree: true, characterData: true, attributes: true })
+		return () => observer.disconnect()
+	},[])
 
 
 	React.useEffect(()=>{
