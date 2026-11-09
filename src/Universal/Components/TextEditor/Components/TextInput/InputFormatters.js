@@ -6,9 +6,36 @@ export const uniqueId = (prefix) => {
 
 
 export const links = (text) => {
- 	const urlRegex = /(https?:\/\/[^\s<]+)/g;
-    	const product = text.replace(urlRegex, '<a href="$1">$1</a>');
-    	return product
+	const urlRegex = /https?:\/\/\S+/g
+	// DOMParser documents are inert; text nodes outside an anchor get their URLs wrapped through the DOM API.
+	const doc = new DOMParser().parseFromString(text, 'text/html')
+	const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
+	const textNodes = []
+
+	while (walker.nextNode()) {
+		if (!walker.currentNode.parentElement.closest('a') && urlRegex.test(walker.currentNode.data)) {
+			textNodes.push(walker.currentNode)
+		}
+		urlRegex.lastIndex = 0
+	}
+
+	textNodes.forEach( node => {
+		const fragment = doc.createDocumentFragment()
+		let last = 0
+
+		for (const match of node.data.matchAll(urlRegex)) {
+			const anchor = doc.createElement('a')
+			anchor.setAttribute('href', match[0])
+			anchor.textContent = match[0]
+			fragment.append(node.data.slice(last, match.index), anchor)
+			last = match.index + match[0].length
+		}
+
+		fragment.append(node.data.slice(last))
+		node.replaceWith(fragment)
+	})
+
+	return doc.body.innerHTML
 };
 
 

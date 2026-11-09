@@ -52,7 +52,7 @@ export default function SaveNoteButton() {
 			${ permittedToSave ? "bg-black bg-opacity-25 hover:bg-green-400 hover:bg-opacity-100" : "backdrop-filter backdrop-brightness-[.80]" } 
 			text-white items-center justify-center 
 		`}
-		onClick={()=>{handleSave(title, content)}}
+		onClick={(e)=>{ if (e.isTrusted) handleSave(title, content) }}
 		disabled={!permittedToSave}>
 			<SaveNoteLogo className="size-4"/>
 		</button>

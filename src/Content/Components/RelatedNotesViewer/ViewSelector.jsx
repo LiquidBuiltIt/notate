@@ -17,7 +17,9 @@ export default function ViewSelector() {
 	const [ hoverState, setHoverState ] = HOVER_STATE
 	
 
-	const handleViewCycle = (directive) => {
+	const handleViewCycle = (event, directive) => {
+		if (!event.isTrusted) return
+
 		const current = views.indexOf(view)
 
 		
@@ -42,7 +44,7 @@ export default function ViewSelector() {
 		`}>
 			<button 
 			 id="cycle-backwards-btn" 
-			 onClick={()=>{handleViewCycle('backward')}}
+			 onClick={(e)=>{handleViewCycle(e, 'backward')}}
 			 className={`
 				w-[15%] text-zinc-300
 				hover:bg-zinc-600 trans-ease
@@ -60,7 +62,7 @@ export default function ViewSelector() {
 
 			<button 
 			 id="cycle-forwards-btn" 
-			 onClick={()=>{handleViewCycle('forward')}}
+			 onClick={(e)=>{handleViewCycle(e, 'forward')}}
 			 className={`
 				w-[15%] text-zinc-300
 				hover:bg-zinc-600 trans-ease
@@ -72,7 +74,7 @@ export default function ViewSelector() {
 
 		<button 
 		 id="reveal-related-notes-btn"
-		 onClick={()=>{setHeaderState(true)}}
+		 onClick={(e)=>{ if (e.isTrusted) setHeaderState(true) }}
 		 className={`
 			 trans-ease flex w-[3rem] h-[1.5rem] rounded-b-2xl
 			 ${ headerState ? "-translate-y-[100%] pointer-events-none" : "bg-zinc-500" }  

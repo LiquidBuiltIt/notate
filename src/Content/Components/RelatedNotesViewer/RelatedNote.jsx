@@ -6,7 +6,9 @@ export default function RelatedNote({note, tagId}) {
 	const [ noteWindowState, setNoteWindowState ] = NOTE_WINDOW_CONTEXT 
 	const [ targetNote, setTargetNote ] = NOTE_CONTEXT
 
-	const handleNoteClick = () => {
+	const handleNoteClick = (event) => {
+		if (!event.isTrusted) return
+
 		setNoteWindowState(false)
 		setTimeout( () => setNoteWindowState(true), 50 )
 		

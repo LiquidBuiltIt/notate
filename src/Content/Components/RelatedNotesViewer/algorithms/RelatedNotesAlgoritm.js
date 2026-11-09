@@ -11,15 +11,17 @@ export const getNoteURLComparison = (database) => {
 
 		const URL = {
 			full: window.location.hostname + window.location.pathname,
-domain: window.location.hostname,
+			domain: window.location.hostname,
 			path: window.location.pathname === "/" ? false : window.location.pathname
 		}
 
 	
 		inventory.forEach((item) => {
-			if (item.origin.includes(URL.full)) relatedNotes.fullMatchList.push(item)
-			else if (item.origin.includes(URL.domain)) relatedNotes.domainMatchList.push(item)
-			else if (URL.path && item.origin.includes(URL.path)) relatedNotes.partialMatchList.push(item)
+			// origin is "hostname/pathname": compare the host exactly, never as a substring
+			const origin = item.origin || ''
+
+			if (origin === URL.full) relatedNotes.fullMatchList.push(item)
+			else if (origin.split('/')[0] === URL.domain) relatedNotes.domainMatchList.push(item)
 			else relatedNotes.noMatchList.push(item) 
 		})
 

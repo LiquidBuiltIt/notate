@@ -139,3 +139,146 @@ test('dismiss "For This Site" stores the site in config', { todo: 'dismissForSit
 	await dismiss(c, 'For This Site')
 	await waitFor(async () => (await config()).WebContent.dismissedSites?.includes('127.0.0.1'), 'site in config.WebContent.dismissedSites', 3000)
 })
+
+// ---- Security hardening ----
+
+test('the content script shadow root is closed to page scripts, and the UI still works', async () => {
+	const { page, c } = await openFixture(b, fx)
+	assert.equal(await page.eval(`document.getElementById('content-script-entry-point').shadowRoot`), null)
+	assert.equal(await page.eval(`document.getElementById('content-script-entry-point').shadowRoot === null`), true)
+	await openContextMenu(c)
+	await c.appear('#new-note-btn')
+	assert.deepEqual(b.errors, [])
+})
+
+test('"Select All" in the page editor still selects the note text', async () => {
+	const { page, c } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.click('#new-note-btn')
+	await c.fill('#input-text-display', 'select me please')
+	const { x, y } = await c.center('#input-text-display')
+	await page.rightClick(x, y)
+	await c.click('#selectAll')
+	assert.match(await page.eval(`window.getSelection().toString()`, 'content'), /select me please/)
+	assert.deepEqual(b.errors, [])
+})
+
+test('scripted clicks cannot save a note from the page editor', async () => {
+	const { c } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.click('#new-note-btn')
+	await c.fill('#edit-title', 'Scripted')
+	await c.fill('#input-text-display', 'body')
+	await c.scriptedClick('#save-note-btn')
+	await sleep(1000)
+	assert.equal((await notes()).length, 0, 'scripted click saved nothing')
+	await c.click('#save-note-btn')
+	await waitFor(async () => (await notes()).length === 1, 'real click saves')
+})
+
+test('scripted clicks cannot reveal the related notes, pick a view, or open a note', async () => {
+	const { c } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.click('#new-note-btn')
+	await c.fill('#edit-title', 'Related')
+	await c.fill('#input-text-display', 'body')
+	await c.click('#save-note-btn')
+	await waitFor(async () => (await notes()).length === 1, 'note saved')
+	// A fresh tab: the related notes are loaded from the saved note.
+	const { c: c2 } = await openFixture(b, fx)
+	await c2.appear('#reveal-related-notes-btn')
+
+	await c2.scriptedClick('#reveal-related-notes-btn')
+	await sleep(500)
+	assert.equal(await c2.exists('#related-notes-navigation'), false, 'scripted click did not reveal')
+	await c2.hover('#related-notes-hover-region')
+	await c2.click('#reveal-related-notes-btn')
+	await c2.appear('#related-notes-navigation')
+
+	await c2.scriptedClick('#cycle-forwards-btn')
+	await sleep(500)
+	assert.match(await c2.text(), /Related By URL View/, 'scripted click did not change the view')
+	await c2.click('#cycle-forwards-btn')
+	await waitFor(async () => (await c2.text()).includes("Suggestion View"), 'real click changes the view')
+	await c2.click('#cycle-backwards-btn')
+	await waitFor(async () => (await c2.text()).includes('Related By URL View'), 'back to URL view')
+
+	await c2.appear('#related-note-title')
+	await c2.scriptedClick('[id^="related-note-heading-"]')
+	await sleep(800)
+	assert.equal(await c2.exists('#edit-title'), false, 'scripted click did not open the note')
+	await c2.hover('#related-note-title')
+	await c2.click('#related-note-title')
+	await c2.appear('#edit-title')
+})
+
+// Notes whose content is attacker-shaped HTML must show as inert text.
+async function plantNote(content, extra = {}) {
+	await b.serviceWorker()
+	await waitFor(config, 'seeded config')
+	const note = { id: 1, title: 'Planted', content, origin: 'example.com/', color: { name: 'yellow', styles: { card: 'bg-yellow-200', top: 'bg-yellow-400' } }, ...extra }
+	await b.post('notate', 'NOTES', note)
+	return note
+}
+
+for (const [name, content] of [
+	['raw html', '<img src=x onerror="window.__pwn=1">hello <b>bold</b>'],
+	['escaped html', '&lt;img src=x onerror="window.__pwn=1"&gt;hello'],
+]) {
+	test(`note previews render ${name} as inert text on the new tab page and in the notebook modal`, async () => {
+		await b.openPage(NEWTAB) // creates the databases
+		await waitFor(config, 'seeded config')
+		await plantNote(content)
+		await b.post('notate', 'NOTEBOOKS', { id: 1, title: 'Book', description: 'd', collection: [1], created: new Date().toISOString(), modified: new Date().toISOString() })
+		const page = await b.openPage(NEWTAB)
+		const n = ui(page)
+		await n.appear('[id$="-content"]')
+		await sleep(500)
+		const inert = () => page.eval(`({ imgs: document.querySelectorAll('[id$="-content"] img').length, pwn: window.__pwn ?? null, text: [...document.querySelectorAll('[id$="-content"]')].map((e) => e.textContent).join('|') })`)
+		let r = await inert()
+		assert.equal(r.imgs, 0, 'no element created in a note card')
+		assert.equal(r.pwn, null)
+		assert.match(r.text, /hello/)
+		assert.doesNotMatch(r.text, /boldbold/, 'formatted text is not repeated')
+		assert.equal((r.text.match(/hello/g) || []).length, (await page.eval(`document.querySelectorAll('[id$="-content"]').length`)), 'formatted text is not repeated')
+		await n.click('#notebook-card-container')
+		await n.appear('#notebook-modal')
+		await sleep(500)
+		r = await inert()
+		assert.equal(r.imgs, 0, 'no element created in the notebook modal')
+		assert.equal(r.pwn, null)
+	})
+}
+
+async function openPlantedNote(content) {
+	await b.openPage(NEWTAB)
+	await waitFor(config, 'seeded config')
+	await plantNote(content)
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.click('#note-card-1')
+	await n.fill('#input-text-display', 'typed ')
+	await n.click('#save-btn')
+	const saved = await waitFor(async () => (await notes()).find((x) => x.id === 1 && x.content.includes('typed')), 'saved edit')
+	return saved.content
+}
+const parse = (html) => b.reader().then((r) => r.eval(`(() => {
+	const d = new DOMParser().parseFromString(${JSON.stringify(html)}, 'text/html')
+	return { anchors: d.querySelectorAll('a').length, nested: d.querySelectorAll('a a').length, hrefs: [...d.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+		onAttrs: [...d.querySelectorAll('*')].flatMap((e) => e.getAttributeNames()).filter((a) => a.startsWith('on')) }
+})()`))
+
+test('re-saving a note does not wrap a link that is already an anchor', async () => {
+	const content = await openPlantedNote('<a href="http://example.com/x?a=1&amp;b=2">http://example.com/x?a=1&amp;b=2</a> and http://other.example/y')
+	const r = await parse(content)
+	assert.equal(r.anchors, 2, content)
+	assert.equal(r.nested, 0, content)
+	assert.deepEqual(r.hrefs, ['http://example.com/x?a=1&b=2', 'http://other.example/y'])
+})
+
+test('a quote in a typed URL cannot break out of href', async () => {
+	const content = await openPlantedNote('http://example.com/"onmouseover="alert(1) end')
+	const r = await parse(content)
+	assert.deepEqual(r.onAttrs, [], content)
+	assert.ok(r.hrefs.some((h) => h.includes('"onmouseover="')), content)
+})

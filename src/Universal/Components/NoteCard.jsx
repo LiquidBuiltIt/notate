@@ -13,27 +13,6 @@ export default function NoteCard({ note, stackClass=false, onClick, onDragStart 
 		event.dataTransfer.setData('text/plain', JSONified);
 	}
 
-	const cleanContent = () => {
-		const content = document.getElementById(NOTE_CONTENT_ELEMENT)
-		if (content) {
-			let text = ''
-
-			const innerText = content.innerText
-			content.innerHTML = innerText 
-
-			text += content.innerText
-
-			Array.from(content.children).forEach( child => {
-				text += child.innerText
-			})
-
-
-			content.innerHTML = text
-		} 
-	}
-	
-
-
 	React.useEffect(()=>{
 	//	if (note?.content) {
 	//		setContent(note.content)
@@ -42,9 +21,10 @@ export default function NoteCard({ note, stackClass=false, onClick, onDragStart 
 		const ref = noteContentRef.current
 
 		if (ref) {
-			ref.textContent = note.content
-			cleanContent()
-			 
+			// DOMParser documents are inert: nothing in note.content loads or runs.
+			const doc = new DOMParser().parseFromString(note.content ?? '', 'text/html')
+			doc.body.querySelectorAll('br, div, p, li').forEach( el => el.append(' ') )
+			ref.textContent = doc.body.textContent
 		}
 	},[note, noteContentRef.current])
 

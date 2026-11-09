@@ -54,10 +54,16 @@ export async function startFixture() {
 
 // A target session: evaluate JS and collect errors.
 class Session {
-	constructor(cdp, sessionId, info, errors) { Object.assign(this, { cdp, sessionId, info, errors }) }
+	constructor(cdp, sessionId, info, errors) { Object.assign(this, { cdp, sessionId, info, errors, contexts: new Map() }) }
 	send(method, params) { return this.cdp.send(method, params, this.sessionId) }
-	async eval(expression) {
-		const r = await this.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })
+	// world 'content' runs in the extension's content script isolated world, where closed shadow roots can be opened.
+	async eval(expression, world = 'main') {
+		const params = { expression, awaitPromise: true, returnByValue: true }
+		if (world === 'content') {
+			const ctx = await waitFor(() => [...this.contexts.values()].filter((c) => c.origin === `chrome-extension://${EXT_ID}`).pop(), 'content script world')
+			params.contextId = ctx.id
+		}
+		const r = await this.send('Runtime.evaluate', params)
 		if (r.exceptionDetails) throw new Error(`eval failed: ${r.exceptionDetails.exception?.description || r.exceptionDetails.text}`)
 		return r.result.value
 	}
@@ -68,6 +74,11 @@ class Session {
 		await this.mouse('mouseMoved', x, y)
 		await this.mouse('mousePressed', x, y)
 		await this.mouse('mouseReleased', x, y)
+	}
+	async rightClick(x, y) {
+		await this.mouse('mouseMoved', x, y)
+		await this.mouse('mousePressed', x, y, { button: 'right', buttons: 2 })
+		await this.mouse('mouseReleased', x, y, { button: 'right', buttons: 0 })
 	}
 	async type(text) { await this.send('Input.insertText', { text }) }
 }
@@ -92,6 +103,12 @@ export async function launch() {
 		const { sessionId } = await cdp.send('Target.attachToTarget', { targetId: targetInfo.targetId, flatten: true })
 		const s = new Session(cdp, sessionId, targetInfo, errors)
 		sessions.set(targetInfo.targetId, s)
+		cdp.on((m) => {
+			if (m.sessionId !== sessionId) return
+			if (m.method === 'Runtime.executionContextCreated') s.contexts.set(m.params.context.id, m.params.context)
+			else if (m.method === 'Runtime.executionContextDestroyed') s.contexts.delete(m.params.executionContextId)
+			else if (m.method === 'Runtime.executionContextsCleared') s.contexts.clear()
+		})
 		await s.send('Runtime.enable'); await s.send('Log.enable'); await s.send('Page.enable').catch(() => {})
 		return s
 	}
@@ -144,6 +161,16 @@ export async function launch() {
 				return out
 			})()`)
 		},
+		// Store a record through the extension's own data protocol, so the service worker's cached inventory sees it.
+		async post(database, store, data) {
+			const r = await api.reader()
+			return r.eval(`new Promise((res, rej) => {
+				const port = chrome.runtime.connect({ name: 'DATABASE_CONNECTION' })
+				port.onMessage.addListener((m) => res(m.type))
+				setTimeout(() => rej(new Error('no reply to POST_DATABASE')), 8000)
+				port.postMessage({ type: 'POST_DATABASE', content: { database: ${JSON.stringify(database)}, store: ${JSON.stringify(store)}, data: ${JSON.stringify(data)} } })
+			})`)
+		},
 		async close() {
 			try { ws.close() } catch {}
 			proc.kill('SIGKILL')
@@ -155,7 +182,8 @@ export async function launch() {
 }
 
 // UI driver for one document root. `rootExpr` is a JS expression yielding a Document or ShadowRoot.
-export const CONTENT_ROOT = `document.querySelector('#content-script-entry-point').shadowRoot`
+// The shadow root is closed: only the content script world can reach it.
+export const CONTENT_ROOT = `chrome.dom.openOrClosedShadowRoot(document.querySelector('#content-script-entry-point'))`
 async function stable(read, what) {
 	let prev = ''
 	return waitFor(async () => {
@@ -168,26 +196,29 @@ async function stable(read, what) {
 	}, what)
 }
 
-export function ui(page, rootExpr = 'document') {
+export function ui(page, rootExpr = 'document', world = 'main') {
+	const ev = (e) => page.eval(e, world)
 	const find = (sel) => `(${rootExpr}).querySelector(${JSON.stringify(sel)})`
 	const api = {
-		exists: (sel) => page.eval(`!!${find(sel)}`),
-		text: () => page.eval(`(${rootExpr}).body?.innerText ?? (${rootExpr}).textContent`),
+		exists: (sel) => ev(`!!${find(sel)}`),
+		text: () => ev(`(${rootExpr}).body?.innerText ?? (${rootExpr}).textContent`),
 		appear: (sel, t) => waitFor(() => api.exists(sel), `element ${sel}`, t),
 		gone: (sel, t) => waitFor(async () => !(await api.exists(sel)), `${sel} to disappear`, t),
 		// Centre of the element, once it is enabled, on screen, not covered, and no longer moving (CSS transitions).
-		center: (sel) => stable(() => page.eval(`(() => {
+		center: (sel) => stable(() => ev(`(() => {
 			const el = ${find(sel)}; if (!el || el.disabled) return null
 			const r = el.getBoundingClientRect(), x = r.x + r.width / 2, y = r.y + r.height / 2
 			const hit = (${rootExpr}).elementFromPoint(x, y)
 			return hit && (hit === el || el.contains(hit)) ? { x, y } : null
 		})()`), `${sel} to be clickable`),
+		// A page-script style click: dispatched from script, so event.isTrusted is false.
+		scriptedClick: (sel) => ev(`${find(sel)}.click()`),
 		async hover(sel) { const { x, y } = await api.center(sel); await page.mouse('mouseMoved', x, y) },
 		async click(sel) { const { x, y } = await api.center(sel); await page.click(x, y) },
 		// Focus a text field or contenteditable and type into it with real input events.
 		async fill(sel, text) {
 			await api.appear(sel)
-			await page.eval(`${find(sel)}.focus()`)
+			await ev(`${find(sel)}.focus()`)
 			await page.type(text)
 		},
 	}
@@ -197,7 +228,7 @@ export function ui(page, rootExpr = 'document') {
 // Page with the content script loaded and mounted.
 export async function openFixture(b, fx) {
 	const page = await b.openPage(fx.url)
-	const c = ui(page, CONTENT_ROOT)
+	const c = ui(page, CONTENT_ROOT, 'content')
 	await waitFor(() => page.eval(`!!document.querySelector('#content-script-entry-point')`), 'content script root')
 	await c.appear('#context-menu-hover-region')
 	return { page, c }

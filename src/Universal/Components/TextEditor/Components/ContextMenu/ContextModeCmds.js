@@ -11,9 +11,10 @@ export const NormalModeCmds = [
 		name: 'Select All',
     		action: () => {
 			const range = document.createRange()
-			const fallback = document.getElementById('content-script-entry-point')
-				?.shadowRoot?.getElementById('input-text-display')
-			const target = document.getElementById('input-text-display') || fallback
+			// The content script shadow root is closed: reach it through the extension API.
+			const host = document.getElementById('content-script-entry-point')
+			const shadow = host && (globalThis.chrome?.dom?.openOrClosedShadowRoot(host) ?? host.openOrClosedShadowRoot)
+			const target = document.getElementById('input-text-display') || shadow?.getElementById('input-text-display')
 
 			range.selectNodeContents(target)
 

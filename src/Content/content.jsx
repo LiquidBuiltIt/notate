@@ -34,7 +34,7 @@ const root = document.createElement('div')
 root.id = 'content-script-entry-point'
 
 
-const shadow = root.attachShadow({ mode: "open" })
+const shadow = root.attachShadow({ mode: "closed" })
 
 
 const style = document.createElement('style')
