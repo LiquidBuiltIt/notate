@@ -300,14 +300,37 @@ async function openPageEditor() {
 	return { page, c }
 }
 
-test('a page script cannot inject HTML into the page editor with execCommand, and normal editing still works', async () => {
+const ROOT_IMG = '<img src=x onerror="window.__root=this.getRootNode()">injected'
+const ROOT_IFRAME = '<iframe src="javascript:window.top.__root=frameElement.getRootNode()"></iframe>'
+const MARKUP = /<img[^>]*src="(?!data:image)|<iframe|onerror|javascript:/
+const editorHtml = (page) => page.eval(`${EDITOR}.innerHTML`, 'content')
+// Real key presses: one keydown with text per character, so every key fires its own input event.
+async function pressKeys(page, text) {
+	for (const ch of text) {
+		const key = { key: ch, text: ch, code: `Key${ch.toUpperCase()}`, windowsVirtualKeyCode: ch.toUpperCase().charCodeAt(0) }
+		await page.send('Input.dispatchKeyEvent', { type: 'keyDown', ...key })
+		await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...key })
+	}
+}
+async function assertHeld(page, c, what) {
+	await sleep(700) // an onerror handler or a javascript: frame would have run by now
+	assert.equal(await page.eval(`window.__root instanceof ShadowRoot`), false, `${what}: the page script did not reach the closed shadow root`)
+	assert.doesNotMatch(await editorHtml(page), MARKUP, what)
+	await c.click('#save-note-btn')
+	const [saved] = await waitFor(async () => { const n = await notes(); return n.length && n }, 'note in IndexedDB')
+	assert.doesNotMatch(saved.content, MARKUP, `${what}: saved note`)
+	assert.deepEqual(b.errors, [])
+	return saved
+}
+
+test('a page capture listener that stops input events cannot keep markup in the editor, and normal editing still works', async () => {
 	const { page, c } = await openPageEditor()
-	await page.eval(`document.execCommand('insertHTML', false, '<img src=x onerror="window.__root = this.getRootNode()">injected')`)
+	await page.eval(`window.__stop = (e) => e.stopImmediatePropagation(); window.addEventListener('input', window.__stop, true)`)
+	await page.eval(`document.execCommand('insertHTML', false, ${JSON.stringify(ROOT_IFRAME + ROOT_IMG)})`)
 	await page.eval(`document.execCommand('insertImage', false, 'data:image/gif;base64,R0lGODlhAQABAAAAACw=')`)
-	await sleep(700) // an onerror handler would have run by now
-	assert.equal(await page.eval(`window.__root instanceof ShadowRoot`), false, 'the page script did not reach the closed shadow root')
-	const html = await page.eval(`${EDITOR}.innerHTML`, 'content')
-	assert.doesNotMatch(html, /<img|injected/, html)
+	await sleep(700)
+	assert.doesNotMatch(await editorHtml(page), MARKUP)
+	await page.eval(`window.removeEventListener('input', window.__stop, true)`)
 	// Real typing, paste and bold keep working afterwards.
 	await page.type('typed ')
 	await page.eval(`(() => {
@@ -316,11 +339,65 @@ test('a page script cannot inject HTML into the page editor with execCommand, an
 	})()`, 'content')
 	await page.eval(`document.execCommand('selectAll')`, 'content')
 	await c.click('#bold-btn')
+	const saved = await assertHeld(page, c, 'capture-stop')
+	assert.match(saved.content.replace(/<[^>]*>|&nbsp;/g, ' '), /before\s+injected\s*typed pasted/)
+	assert.match(saved.content, /<b[ >]/)
+})
+
+test('a page script cannot bring its markup back with undo and redo', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`document.execCommand('insertHTML', false, ${JSON.stringify(ROOT_IMG + ROOT_IFRAME)})`)
+	await sleep(300)
+	await page.eval(`document.execCommand('undo')`)
+	await sleep(300)
+	await page.eval(`document.execCommand('redo')`)
+	await page.eval(`document.execCommand('insertHTML', false, ${JSON.stringify(ROOT_IMG)}); document.execCommand('undo'); document.execCommand('redo')`)
+	await assertHeld(page, c, 'undo/redo')
+})
+
+test('a page script cannot save a javascript: link in the editor', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`document.execCommand('selectAll')`, 'content')
+	await page.eval(`document.execCommand('createLink', false, 'javascript:window.__root=1')`)
+	await assertHeld(page, c, 'createLink')
+})
+
+test('a page script that inserts markup on every input event cannot drop or reorder typed keys', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`(() => { let busy = false
+		window.addEventListener('input', () => { if (busy) return; busy = true
+			try { document.execCommand('insertHTML', false, ${JSON.stringify(ROOT_IMG + ROOT_IFRAME)}) } finally { busy = false } }, true) })()`)
+	await pressKeys(page, 'abcdef')
+	await sleep(500)
+	const saved = await assertHeld(page, c, 'nested insert')
+	assert.match(saved.content.replace(/<[^>]*>/g, '').replace(/injected/g, ''), /before abcdef/, saved.content)
+})
+
+test('real Backspace deletes a character in the page editor', async () => {
+	const { page, c } = await openPageEditor()
+	await page.type('xyz')
+	const key = { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 }
+	await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...key })
+	await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...key })
+	await waitFor(async () => (await editorHtml(page)).includes('before xy') && !(await editorHtml(page)).includes('xyz'), 'one character deleted')
 	await c.click('#save-note-btn')
 	const [saved] = await waitFor(async () => { const n = await notes(); return n.length && n }, 'note in IndexedDB')
-	assert.match(saved.content, /before typed pasted/)
-	assert.match(saved.content, /<b[ >]/)
-	assert.doesNotMatch(saved.content, /<img|injected/)
+	assert.match(saved.content, /before xy(?!z)/)
+	assert.deepEqual(b.errors, [])
+})
+
+test('the font size select changes the size of the selected text', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`document.execCommand('selectAll')`, 'content')
+	const select = '#font-size-controls select'
+	await page.eval(`chrome.dom.openOrClosedShadowRoot(document.querySelector('#content-script-entry-point')).querySelector(${JSON.stringify(select)}).focus()`, 'content')
+	const key = { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 }
+	await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...key })
+	await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...key })
+	await waitFor(async () => /<font [^>]*size="6"[^>]*>before/.test(await editorHtml(page)), 'text resized to 6')
+	await c.click('#save-note-btn')
+	const [saved] = await waitFor(async () => { const n = await notes(); return n.length && n }, 'note in IndexedDB')
+	assert.match(saved.content, /<font [^>]*size="6"[^>]*>before/)
 	assert.deepEqual(b.errors, [])
 })
 
@@ -448,19 +525,29 @@ test('bold, italic, underline, strike, size, alignment, links and sized images s
 		img: { id: 'img-1-abc', src: gif, drag: 'true', w: '40', h: '30', width: '40px', height: '30px', max: '100%' } }, content)
 })
 
-test('an iframe inserted by a page script cannot reach the closed shadow root before the editor undoes it', async () => {
+// Handlers on inserted markup. Chromium runs them in a later task, after the editor's observer has removed the node; this test holds that.
+test('handlers on markup inserted by a page script cannot reach the closed shadow root', async () => {
 	const { page, c } = await openPageEditor()
-	// Control: the same payload does run when the page edits its own contenteditable.
-	await page.eval(`(() => { const d = document.createElement('div'); d.contentEditable = true; document.body.append(d); d.focus(); document.execCommand('insertHTML', false, '<iframe src="javascript:window.top.__ctrl=1"></iframe>') })()`)
-	await waitFor(() => page.eval('window.__ctrl === 1'), 'control payload to run')
+	const grab = 'window.__root = this.getRootNode()'
+	const payloads = {
+		iframeNoSrc: `<iframe onload="${grab}"></iframe>`,
+		iframeBlank: `<iframe src="about:blank" onload="${grab}"></iframe>`,
+		img: `<img src=x onerror="${grab}">`,
+		video: `<video src=x onerror="${grab}" onloadstart="${grab}"></video>`,
+		audio: `<audio src=x onerror="${grab}" onloadstart="${grab}"></audio>`,
+		details: `<details open ontoggle="${grab}"><summary>s</summary></details>`,
+	}
+	// Control: the same payloads do run when the page edits its own contenteditable.
+	await page.eval(`(() => { const d = document.createElement('div'); d.contentEditable = true; document.body.append(d); d.focus()
+		document.execCommand('insertHTML', false, ${JSON.stringify(payloads.iframeNoSrc.replace(grab, 'window.__ctrl = this.getRootNode() === document'))}) })()`)
+	await waitFor(() => page.eval('window.__ctrl === true'), 'control payload to run')
 	await c.fill('#input-text-display', 'x')
-	for (const payload of [
-		'<iframe src="javascript:window.top.__root=frameElement.getRootNode()"></iframe>',
-		'<iframe srcdoc="<script>parent.__root=frameElement.getRootNode()</script>"></iframe>',
-		'<iframe src="javascript:window.top.__root2=frameElement.parentNode"></iframe>',
-	]) await page.eval(`document.execCommand('insertHTML', false, ${JSON.stringify(payload)})`)
-	await sleep(700)
-	assert.equal(await page.eval(`window.__root instanceof ShadowRoot || !!window.__root`), false, 'getRootNode did not reach the shadow root')
-	assert.equal(await page.eval(`!!window.__root2`), false, 'parentNode did not reach the editor')
-	assert.doesNotMatch(await page.eval(`${EDITOR}.innerHTML`, 'content'), /iframe/)
+	const reached = {}
+	for (const [name, html] of Object.entries(payloads)) {
+		await page.eval(`window.__root = null; document.execCommand('insertHTML', false, ${JSON.stringify(html)})`)
+		await sleep(400)
+		reached[name] = await page.eval(`window.__root instanceof ShadowRoot`)
+	}
+	assert.deepEqual(reached, Object.fromEntries(Object.keys(payloads).map((k) => [k, false])))
+	await assertHeld(page, c, 'handlers')
 })

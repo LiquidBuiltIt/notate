@@ -1,25 +1,17 @@
 import { TEXT_EDITOR_ID } from './TextInput.jsx'
 
-// execCommand('insertHTML') and ('insertImage') fire an input event with an empty inputType and no beforeinput, so
-// the editor cannot tell the page's calls from its own. The editor marks its own calls and undoes the rest.
-let ownInsert = false
-export const insertOwnHTML = (html) => {
-	ownInsert = true
-	try { document.execCommand('insertHTML', false, html) } finally { ownInsert = false }
-}
-export const isForeignInsert = (event) => event.inputType === '' && !ownInsert
-
 export const uniqueId = (prefix) => {
      	return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
 
-// Stored note HTML is parsed in an inert document and rebuilt node by node from an allowlist; the output is never a string.
-// Properties are read through prototype getters: a node named "attributes" or "childNodes" can clobber the own property.
+// One allowlist guards stored note HTML (sanitizeInto) and the live editor (sanitizeTree, run by a MutationObserver).
+// Stored note HTML is parsed in an inert document and cleaned in place; the output is never a string.
+// Properties are read through prototype getters and methods: a node named "attributes" or "remove" can clobber the own property.
 const getter = (type, name) => Object.getOwnPropertyDescriptor(type.prototype, name).get
-const [bodyOf, childNodesOf, nodeTypeOf, dataOf, localNameOf, namespaceOf] = [
+const [bodyOf, childNodesOf, nodeTypeOf, dataOf, localNameOf, namespaceOf, ownerDocumentOf] = [
 	getter(Document, 'body'), getter(Node, 'childNodes'), getter(Node, 'nodeType'), getter(CharacterData, 'data'),
-	getter(Element, 'localName'), getter(Element, 'namespaceURI'),
+	getter(Element, 'localName'), getter(Element, 'namespaceURI'), getter(Node, 'ownerDocument'),
 ]
 const KEEP_TAGS = new Set(['b', 'i', 'u', 'strike', 's', 'p', 'span', 'font', 'div', 'br', 'a', 'img'])
 const DROP_TAGS = new Set(['script', 'style', 'template', 'iframe', 'object', 'embed', 'svg', 'math', 'form'])
@@ -30,41 +22,61 @@ const KEEP_ATTRS = {
 	font: { size: (v) => /^[1-7]$/.test(v) },
 }
 
-const copyStyle = (from, to, doc) => {
+const cleanStyle = (value, doc) => {
 	const parsed = doc.createElement('span').style
-	parsed.cssText = from
+	const kept = doc.createElement('span').style
+	parsed.cssText = value
 	for (const name of KEEP_STYLES) {
-		const value = parsed.getPropertyValue(name)
-		if (/^[\w.% -]+$/.test(value)) to.style.setProperty(name, value)
+		const v = parsed.getPropertyValue(name)
+		if (/^[\w.% -]+$/.test(v)) kept.setProperty(name, v)
 	}
+	return kept.cssText
 }
 
-const copyChildren = (from, into, doc) => {
-	for (const node of Array.from(childNodesOf.call(from))) {
-		const type = nodeTypeOf.call(node)
-		if (type === Node.TEXT_NODE) { into.append(doc.createTextNode(dataOf.call(node))); continue }
-		if (type !== Node.ELEMENT_NODE) continue
-		const tag = localNameOf.call(node)
-		if (namespaceOf.call(node) !== 'http://www.w3.org/1999/xhtml' || DROP_TAGS.has(tag)) continue
-		if (!KEEP_TAGS.has(tag)) { copyChildren(node, into, doc); continue }
-		const copy = doc.createElement(tag)
-		for (const name of Element.prototype.getAttributeNames.call(node)) {
-			const value = Element.prototype.getAttribute.call(node, name)
-			if (name === 'style') copyStyle(value, copy, doc)
-			else if (KEEP_ATTRS[tag]?.[name]?.(value)) copy.setAttribute(name, value)
+// Removes what is off the list from `parent`, in place, and returns true if it changed anything.
+// A bad node is removed, or unwrapped with its text kept; a bad attribute is removed. Valid content is not touched.
+// Children are cleaned before an unwrap, so no dropped node is ever moved (moving an iframe reloads it).
+export const sanitizeTree = (parent) => {
+	let changed = false
+	const doc = ownerDocumentOf.call(parent)
+	const remove = (parent, node) => { Node.prototype.removeChild.call(parent, node); changed = true }
+	const clean = (parent) => {
+		for (const node of Array.from(childNodesOf.call(parent))) {
+			const type = nodeTypeOf.call(node)
+			if (type === Node.TEXT_NODE) continue
+			if (type !== Node.ELEMENT_NODE) { remove(parent, node); continue }
+			const tag = localNameOf.call(node)
+			if (namespaceOf.call(node) !== 'http://www.w3.org/1999/xhtml' || DROP_TAGS.has(tag)) { remove(parent, node); continue }
+			if (!KEEP_TAGS.has(tag)) {
+				clean(node)
+				Element.prototype.replaceWith.call(node, ...Array.from(childNodesOf.call(node)))
+				changed = true
+				continue
+			}
+			for (const name of Element.prototype.getAttributeNames.call(node)) {
+				const value = Element.prototype.getAttribute.call(node, name)
+				if (name === 'style') {
+					const css = cleanStyle(value, doc)
+					if (css === value) continue
+					if (css) Element.prototype.setAttribute.call(node, name, css)
+					else Element.prototype.removeAttribute.call(node, name)
+				} else if (KEEP_ATTRS[tag]?.[name]?.(value)) continue
+				else Element.prototype.removeAttribute.call(node, name)
+				changed = true
+			}
+			clean(node)
 		}
-		copyChildren(node, copy, doc)
-		into.append(copy)
 	}
+	clean(parent)
+	return changed
 }
 
 // On any failure the raw HTML shows as text: the editor must not go blank, and the error must not unmount the app.
 export const sanitizeInto = (target, html) => {
 	try {
-		const doc = target.ownerDocument
-		const fragment = doc.createDocumentFragment()
-		copyChildren(bodyOf.call(new DOMParser().parseFromString(html, 'text/html')), fragment, doc)
-		target.replaceChildren(fragment)
+		const body = bodyOf.call(new DOMParser().parseFromString(html, 'text/html'))
+		sanitizeTree(body)
+		target.replaceChildren(...Array.from(childNodesOf.call(body)))
 	} catch {
 		target.textContent = html
 	}

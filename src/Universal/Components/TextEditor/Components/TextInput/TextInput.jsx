@@ -1,7 +1,6 @@
 import React from 'react';
 import * as Format from './InputFormatters.js'
 import { TextInputContext, ShadowRootContext } from '../../TextEditor.jsx';
-import { BROWSER_TYPE } from '@background/Utils/browserType.js'
 import GhostEditor from './firefox.jsx';
 
 
@@ -18,23 +17,10 @@ export default function TextInput() {
 
 
 	const textDisplayRef = React.useRef(null);
-	const ghostEditorRef = React.useRef(null)
-	const lastGoodRef = React.useRef([])
 
 
 	const handleChange = (event) => {
 		const target = event.target
-
-		// A page script inserted markup into the editor. execCommand('undo') fails inside an input event, so put back the last snapshot.
-		if (Format.isForeignInsert(event.nativeEvent)) {
-			target.replaceChildren(...lastGoodRef.current.map((node) => node.cloneNode(true)))
-			const range = document.createRange()
-			range.selectNodeContents(target)
-			range.collapse(false)
-			window.getSelection().removeAllRanges()
-			window.getSelection().addRange(range)
-			return
-		}
 
 		Format.textContent(target)
 
@@ -126,28 +112,6 @@ export default function TextInput() {
     		} else if (event.ctrlKey && event.key === 'y') {
       			event.preventDefault();
  			document.execCommand('redo', false, null);
-    		} else if (event.key === 'Backspace' 
-			&& BROWSER_TYPE === 'firefox' 
-			&& root == shadowRootElement ) {
-     			 event.preventDefault();
-     			 
-    		   // Get cursor position from current editor
- 		   const selection = window.getSelection();
- 		   const cursorInfo = {
- 		     node: selection.anchorNode,
- 		     offset: selection.anchorOffset
- 		   };
- 		   
- 		   // Send content and cursor info to ghost editor
- 		   ghostEditorRef.current.setContent(textDisplayRef.current.innerHTML);
- 		   const newContent = ghostEditorRef.current.performDelete(cursorInfo);
- 		   
- 		   if (newContent) {
- 		     textDisplayRef.current.innerHTML = newContent;
- 		     setText(newContent);
- 		   }
-		   textDisplayRef.current.focus()
-
 		} else {
 			event.stopPropagation()
     		}
@@ -175,13 +139,14 @@ export default function TextInput() {
 	}, [root])
 
 
-	// Keep a copy of the editor content, refreshed after every change made by the user or the extension.
+
+	// Every DOM change in the editor is checked against the allowlist, whoever made it.
 	React.useEffect(()=>{
 		const editor = textDisplayRef.current
-		const snapshot = () => { lastGoodRef.current = [...editor.childNodes].map((node) => node.cloneNode(true)) }
-		snapshot()
-		const observer = new MutationObserver(snapshot)
-		observer.observe(editor, { childList: true, subtree: true, characterData: true, attributes: true })
+		const observer = new MutationObserver(() => {
+			if (Format.sanitizeTree(editor)) setText(Format.links(editor.innerHTML))
+		})
+		observer.observe(editor, { childList: true, subtree: true, attributes: true })
 		return () => observer.disconnect()
 	},[])
 
