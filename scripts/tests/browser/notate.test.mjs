@@ -551,3 +551,81 @@ test('handlers on markup inserted by a page script cannot reach the closed shado
 	assert.deepEqual(reached, Object.fromEntries(Object.keys(payloads).map((k) => [k, false])))
 	await assertHeld(page, c, 'handlers')
 })
+
+// ---- Guard failure modes: overflow, state desync, is= ----
+
+// What the page stored for a Save, as the content script's world sees it.
+async function saveNow(c) {
+	await c.click('#save-note-btn')
+	const [saved] = await waitFor(async () => { const n = await notes(); return n.length && n }, 'note in IndexedDB')
+	return saved
+}
+
+test('a huge inserted subtree does not stop the guard: the markup behind it is removed and later inserts are cleaned too', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`document.execCommand('insertHTML', false, '<section>' + '<br>'.repeat(200000) + '</section>${ROOT_IMG}')`)
+	await waitFor(async () => !(await page.eval(`!!${EDITOR}.querySelector('section, img')`, 'content')), 'huge insert cleaned') // a 5 MB innerHTML is not sent over CDP
+	await page.eval(`for (const br of ${EDITOR}.querySelectorAll('br')) br.remove()`, 'content') // keep the saved note small
+	await sleep(700)
+	await page.eval(`window.__root = null; document.execCommand('insertHTML', false, ${JSON.stringify(ROOT_IFRAME + ROOT_IMG)})`)
+	await sleep(700)
+	const saved = await assertHeld(page, c, 'huge insert')
+	assert.match(saved.content, /before/)
+	assert.match(saved.content, /injected/)
+})
+
+test('if the guard throws, it removes what the failing change added, keeps the rest, and works on the next change', async () => {
+	const { page, c } = await openPageEditor()
+	const inEditor = (code) => page.eval(`(() => { const ed = ${EDITOR}; ${code} })()`, 'content')
+	// Content script world: make the walker fail on any element that carries data-boom.
+	await inEditor(`window.__orig = Element.prototype.getAttributeNames
+		Element.prototype.getAttributeNames = function () { if (Element.prototype.hasAttribute.call(this, 'data-boom')) throw new Error('boom'); return window.__orig.call(this) }`)
+	await page.eval(`document.execCommand('insertHTML', false, '<b data-boom="1">gone</b>')`)
+	await sleep(500)
+	assert.doesNotMatch(await editorHtml(page), /gone|data-boom/, 'added node removed')
+	assert.match(await editorHtml(page), /before/, 'user content kept')
+	// A changed attribute is dropped, the element stays.
+	await inEditor(`ed.append(Object.assign(document.createElement('b'), { textContent: 'kept' }))`)
+	await sleep(300)
+	await inEditor(`ed.querySelector('b').setAttribute('onclick', 'window.__pwn=1'); ed.querySelector('b').setAttribute('data-boom', '1')`)
+	await sleep(500)
+	assert.match(await editorHtml(page), /<b[^>]*>kept<\/b>/)
+	assert.doesNotMatch(await editorHtml(page), /onclick|data-boom/)
+	await inEditor(`Element.prototype.getAttributeNames = window.__orig`)
+	// The observer is still alive.
+	await page.eval(`window.__root = null; document.execCommand('insertHTML', false, ${JSON.stringify(ROOT_IMG)})`)
+	await sleep(700)
+	const saved = await assertHeld(page, c, 'after a failed guard run')
+	assert.match(saved.content, /before/)
+})
+
+test('markup the page undoes with input events stopped does not reach the saved note', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`(() => { let stop = false; window.addEventListener('input', (e) => { if (stop) e.stopImmediatePropagation() }, true)
+		document.execCommand('insertHTML', false, '<img src=x onerror="window.__pwn=1"><a href="javascript:alert(1)">JS</a><iframe src="https://example.invalid/"></iframe>')
+		stop = true; document.execCommand('undo'); stop = false })()`)
+	await sleep(800)
+	const saved = await saveNow(c)
+	assert.doesNotMatch(saved.content, MARKUP, saved.content)
+	assert.match(saved.content, /before/)
+})
+
+test('markup a page plants and undoes while the user presses Save does not reach the saved note', async () => {
+	const { page, c } = await openPageEditor()
+	await page.type('typed ')
+	await page.eval(`(() => { let stop = false; window.addEventListener('input', (e) => { if (stop) e.stopImmediatePropagation() }, true)
+		window.addEventListener('mousedown', () => { document.execCommand('insertHTML', false, '<img src=x onerror="window.__pwn=1">MD'); stop = true; document.execCommand('undo'); stop = false }, true) })()`)
+	const saved = await saveNow(c)
+	assert.doesNotMatch(saved.content, MARKUP, saved.content)
+	assert.match(saved.content, /before typed/)
+})
+
+test('an is= value does not stay in the editor or in the saved note', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`document.execCommand('insertHTML', false, '<span is="x-span">IS</span>')`)
+	await sleep(500)
+	assert.doesNotMatch(await editorHtml(page), /\bis=/)
+	const saved = await saveNow(c)
+	assert.doesNotMatch(saved.content, /\bis=/, saved.content)
+	assert.match(saved.content, />IS</)
+})
