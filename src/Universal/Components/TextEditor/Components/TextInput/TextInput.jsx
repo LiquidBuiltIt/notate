@@ -160,7 +160,7 @@ export default function TextInput() {
 			// The stored value follows the DOM after every change, even when the change left the DOM clean.
 			try { setText(Format.links(editor.innerHTML)) } catch {}
 		})
-		observer.observe(editor, { childList: true, subtree: true, attributes: true })
+		observer.observe(editor, { childList: true, subtree: true, attributes: true, characterData: true })
 		return () => observer.disconnect()
 	},[])
 

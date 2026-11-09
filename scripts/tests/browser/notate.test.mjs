@@ -544,6 +544,7 @@ test('handlers on markup inserted by a page script cannot reach the closed shado
 	await c.fill('#input-text-display', 'x')
 	const reached = {}
 	for (const [name, html] of Object.entries(payloads)) {
+		assert.equal(await page.eval(`window.__root instanceof ShadowRoot`), false, `${name}: the previous payload did not reach the root`)
 		await page.eval(`window.__root = null; document.execCommand('insertHTML', false, ${JSON.stringify(html)})`)
 		await sleep(400)
 		reached[name] = await page.eval(`window.__root instanceof ShadowRoot`)
@@ -628,4 +629,24 @@ test('an is= value does not stay in the editor or in the saved note', async () =
 	const saved = await saveNow(c)
 	assert.doesNotMatch(saved.content, /\bis=/, saved.content)
 	assert.match(saved.content, />IS</)
+})
+
+test('typing that only changes existing text is saved even when the page stops keydown and input', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`for (const type of ['keydown', 'input']) window.addEventListener(type, (e) => e.stopImmediatePropagation(), true)`)
+	await page.type('TYPED')
+	assert.match(await editorHtml(page), /before TYPED/)
+	const saved = await saveNow(c)
+	assert.match(saved.content, /before(&nbsp;| )TYPED/, saved.content)
+})
+
+test('attributes named like Object.prototype members are dropped without a throw, in the live editor and in a stored note', async () => {
+	const html = '<a href="https://example.com/" constructor="x" __proto__="y" toString="z">L</a>'
+	const { page } = await openPageEditor()
+	await page.eval(`document.execCommand('insertHTML', false, ${JSON.stringify(html)})`)
+	await sleep(500)
+	assert.deepEqual(await page.eval(`[...${EDITOR}.querySelectorAll('a')].map((a) => a.getAttribute('href') + ' ' + a.getAttributeNames().filter((n) => n !== 'href' && n !== 'style'))`, 'content'), ['https://example.com/ '])
+	const stored = await editorState(await openPlantedEditor(html))
+	assert.deepEqual(stored.attrs.filter((a) => a !== 'a.style'), ['a.href'], stored.html)
+	assert.deepEqual(stored.tags, ['a'])
 })

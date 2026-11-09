@@ -62,7 +62,7 @@ export const sanitizeTree = (parent) => {
 					if (css === value) continue
 					if (css) Element.prototype.setAttribute.call(node, name, css)
 					else Element.prototype.removeAttribute.call(node, name)
-				} else if (KEEP_ATTRS[tag]?.[name]?.(value)) continue
+				} else if (Object.hasOwn(KEEP_ATTRS[tag] ?? {}, name) && KEEP_ATTRS[tag][name](value)) continue
 				else Element.prototype.removeAttribute.call(node, name)
 				changed = true
 			}
