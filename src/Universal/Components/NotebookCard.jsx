@@ -2,6 +2,8 @@ import React from 'react';
 import noteSwatch from '@universal/Utils/noteSwatch.js';
 
 const ROMAN = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+// Set while a notebook (not a note) is dragged, so rows can refuse it before the drop.
+const NOTEBOOK_DRAG_TYPE = 'application/x-notate-notebook'
 const toRoman = (n) => ROMAN.reduce((out, [v, s]) => { while (n >= v) { out += s; n -= v } return out }, '')
 
 /* One volume in the table of contents: a ruled row.
@@ -19,12 +21,15 @@ export default function NotebookCard({ notebook, volume = 1, onNotebookClick, up
 	const count = inventory ? notes.length : (notebook.collection?.length ?? 0)
 
 	const handleNoteDrop = async (event) => {
+		if (event.dataTransfer.types.includes(NOTEBOOK_DRAG_TYPE)) return
 		event.preventDefault()
 		setOver(false)
 		try {
 			const note = JSON.parse(event.dataTransfer.getData('text/plain'))
 			// A dragged notebook carries a collection: it is not a note, so it cannot be filed.
-			if (!note || note.id === undefined || Array.isArray(note.collection)) return
+			// A page can start a drag with any payload: only real note ids are accepted.
+			if (!note || Array.isArray(note.collection) || !Number.isInteger(note.id)) return
+			if (inventory && !inventory.some(n => n.id === note.id)) return
 			delete note.hits
 			await updatesDispatcher(notebook, note)
 		} catch (error) {
@@ -35,10 +40,12 @@ export default function NotebookCard({ notebook, volume = 1, onNotebookClick, up
 	const dragHandler = (event) => {
 		if (event.target.id === 'notebook-card-container') {
 			event.dataTransfer.setData('text/plain', JSON.stringify(notebook))
+			event.dataTransfer.setData(NOTEBOOK_DRAG_TYPE, '1')
 		}
 	}
 
 	const handleDragOver = (event) => {
+		if (event.dataTransfer.types.includes(NOTEBOOK_DRAG_TYPE)) return
 		// Needed for the onDrop event to fire
 		event.preventDefault()
 		setOver(true)

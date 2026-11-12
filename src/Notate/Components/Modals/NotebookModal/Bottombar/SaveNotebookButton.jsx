@@ -60,10 +60,13 @@ export default function SaveNotebookButton() {
 	const isExistingNotebook = !!notebook.id;
 	const permittedToSave = (isExistingNotebook ? notebookChanged : valuesNotEmpty);
 
+	// Removals are staged with the x buttons: show how many Save will apply.
+	const removed = (notebook.collection ?? []).filter(id => !collection.includes(id)).length
+
 	return (
 		<button id="save-notebook-button"
 		className={`smallcaps focus-ink trans-ease h-12 px-10 ${ permittedToSave ? "bg-ink text-paper hover:bg-vermilion" : "bg-transparent hairline text-ink-faint cursor-not-allowed" }`}
 		onClick={handleSaveClick}
-		disabled={!permittedToSave}>Save</button>
+		disabled={!permittedToSave}>Save{ removed > 0 && ` · ${removed} removed` }</button>
 	)
 }

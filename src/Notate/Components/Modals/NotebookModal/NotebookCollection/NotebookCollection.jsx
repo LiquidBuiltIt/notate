@@ -48,8 +48,9 @@ export default function NotebookCollection() {
 		const data = e.dataTransfer.getData('text/plain')
 		const note = JSON.parse(data)
 
-		const target = note.id
-		setCollection(prev => [...prev, target])
+		// A dragged notebook is not a note; a note already in the notebook is not added twice.
+		if (Array.isArray(note.collection) || !Number.isInteger(note.id)) return
+		setCollection(prev => prev.includes(note.id) ? prev : [...prev, note.id])
 	}
 
 	React.useEffect(()=>{

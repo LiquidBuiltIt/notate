@@ -1,11 +1,8 @@
 import React from 'react';
-import NotebookInfoSection from './NotebookInfoSection.jsx'
 import NotebookCollection from './NotebookCollection/NotebookCollection.jsx'
-import Topbar from './Topbar/Topbar.jsx'
+import Header from './Header/Header.jsx'
 import Bottombar from './Bottombar/Bottombar.jsx'
 import { NotateContext } from '@notate/Notate.jsx'
-import RightSection from './RightSection/RightSection.jsx';
-import { data } from 'autoprefixer';
 
 export const ExitModalContext = React.createContext()
 export const NotebookModalContext = React.createContext()
@@ -94,7 +91,7 @@ export default function NotebookModal() {
 		<div 
 		 id="notebook-modal" 
 	  	 className={`
-			pointer-events-auto trans-ease flex w-[95%] max-w-[76rem] h-[85%] paper-grain border-x border-t border-ink shadow-print-lg overflow-hidden
+			pointer-events-auto trans-ease flex flex-col w-[95%] max-w-[64rem] h-[85%] py-6 px-8 sm:px-10 box-border paper-grain border-x border-t border-ink shadow-print-lg overflow-hidden
 			${ status ? "translate-y-[0%]" : "translate-y-full" }
 		 `}
 	  	 onClick={handlePreventingEventPropagation}
@@ -103,15 +100,9 @@ export default function NotebookModal() {
 	  	<NotebookModalContext.Provider value={NOTEBOOK_MODAL_STATE}>
 	  		<ExitModalContext.Provider value={[exitModal]}>
 
-	  			<NotebookInfoSection/>	
-	  			<main id="notebook-modal-main-section"
-	  			className="flex flex-col flex-grow min-w-0 h-full overflow-hidden py-5 px-8 gap-3">
-	  				<Topbar/>	
- 					<NotebookCollection/>
-	  				<Bottombar/>
-	  			</main>
-
-				<RightSection/>
+	  			<Header/>
+	  			<NotebookCollection/>
+	  			<Bottombar/>
 	  		</ExitModalContext.Provider>
 	  	</NotebookModalContext.Provider>
 	  	</div>

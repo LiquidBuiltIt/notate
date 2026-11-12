@@ -9,11 +9,11 @@ export default function Toolbar({ControllerComponents}) {
 
 
   return (
-    <div id="toolbar" className="flex items-center px-3 py-[6px] gap-4 border-b border-ink font-serif text-ink"
+    <div id="toolbar" className="flex flex-wrap items-center px-2 py-[6px] gap-x-3 gap-y-1 border-b border-ink font-serif text-ink"
 	 // Keep the editor's selection when a toolbar button is pressed (the font size select still opens).
 	 onMouseDown={(e) => { if (e.target instanceof Element && e.target.closest('button')) e.preventDefault() }}>
 	  <div id="default-toolbar-items"
-	  	className="flex flex-grow gap-3 items-center">
+	  	className="flex flex-grow gap-2 items-center">
 		  <FontStylingCtrls/>
 		  <FontSizeCtrls/>
 		  <AlignmentCtrls/>

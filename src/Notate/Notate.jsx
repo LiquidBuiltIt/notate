@@ -179,7 +179,7 @@ export default function Notate(){
 					<ShadeComponent direction={"top"}/>
 		  			<main 
 		  			 id="notate" 
-		  			 className="w-full flex-grow pb-28 px-6 sm:px-12 xl:px-16 xl:grid xl:grid-cols-12 xl:gap-x-14"
+		  			 className="w-full flex-grow pb-28 px-6 sm:px-12 xl:px-16 flex flex-col xl:grid xl:grid-cols-12 xl:gap-x-14"
 		  			>
 						<NotificationContext.Provider value={[ notification, setNotification ]}>
 					  	<ConfirmationMsgContext.Provider value={[confMsgState, setConfMsgState]}>

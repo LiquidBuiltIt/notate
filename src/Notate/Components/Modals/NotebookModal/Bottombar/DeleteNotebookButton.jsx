@@ -21,8 +21,6 @@ export default function DeleteNotebookButton() {
 	const [ confMsgState, setConfMsgState ] = React.useContext(ConfirmationMsgContext)
 	const [ notification, setNotification ] = React.useContext(NotificationContext)
 
-	const [ disabledState, setDisabledState ] = React.useState(false)
-
 	const confirmDeleteAction = async () => {
 		const title = "WARNING: Notebook Contains Notes"
 		const message = "If there were notes created within this notebook, " + 
@@ -67,15 +65,10 @@ export default function DeleteNotebookButton() {
 
 	}
 
-	React.useEffect(()=>{
-		if (!notebook.id) setDisabledState(true)
-	},[])
-
 	return (
 		<button id="delete-notebook-btn"
-		className={`smallcaps focus-ink trans-ease whitespace-nowrap pb-1 border-b ${ disabledState ? "border-paper-edge text-ink-faint cursor-not-allowed" : "border-ink text-ink hover:text-vermilion-ink hover:border-vermilion" }`}
-		onClick={handleDeleteClick}
-		disabled={disabledState}>
+		className="smallcaps focus-ink trans-ease ml-auto whitespace-nowrap pb-1 border-b border-ink text-ink hover:text-vermilion-ink hover:border-vermilion"
+		onClick={handleDeleteClick}>
 			Delete notebook
 		</button>
 	)

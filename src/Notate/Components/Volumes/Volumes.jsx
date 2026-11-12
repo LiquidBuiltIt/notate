@@ -34,10 +34,9 @@ export default function Volumes() {
 	const handleDrop = async (notebook, note) => {
 		if (notebook.collection.includes(note.id)) return
 		try {
-			notebook.collection.push(note.id)
 			await makeRequest({
 				type: 'POST_DATABASE',
-				data: notebook,
+				data: { ...notebook, collection: [...notebook.collection, note.id] },
 				store: 'NOTEBOOKS',
 				database: NOTATE_DB
 			})
@@ -49,7 +48,7 @@ export default function Volumes() {
 	}
 
 	return (
-		<section id="volumes" className="mt-10 xl:mt-12 flex flex-col min-h-0 xl:flex-1 animate-rise" style={{ animationDelay: '800ms' }}>
+		<section id="volumes" className="mt-10 xl:mt-12 flex flex-col min-h-0 xl:flex-1 max-xl:order-last animate-rise" style={{ animationDelay: '800ms' }}>
 			<header className="flex items-baseline justify-between gap-4 pb-2 border-b border-ink">
 				<h2 className="smallcaps">Volumes</h2>
 				<span className={`text-[14px] italic ${theme.text.sub || ""}`}>Drag a note onto a volume to file it.</span>

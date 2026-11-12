@@ -26,7 +26,7 @@ export default function FontSizeCtrls() {
 	defaultValue={3}
 	aria-label="Font size"
 	title="Font size"
-        className="focus-ink appearance-none pl-2 pr-6 h-7 w-[5.75rem] text-[15px] rounded-none border border-ink bg-paper-deep font-serif text-ink cursor-pointer"
+        className="focus-ink appearance-none pl-1.5 pr-5 h-7 w-[5rem] text-[15px] rounded-none border border-ink bg-paper-deep font-serif text-ink cursor-pointer"
         onChange={(e) => handleFontSizeChange(e.target.value)}
         >
           {fontSizes.map(({ value, label }) => (
@@ -35,7 +35,7 @@ export default function FontSizeCtrls() {
             </option>
           ))}
         </select>
-        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[12px] leading-none" aria-hidden="true">&#9662;</span>
+        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[12px] leading-none" aria-hidden="true">&#9662;</span>
       </div>
     </div>
   );
