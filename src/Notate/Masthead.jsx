@@ -8,7 +8,8 @@ export default function Masthead({ theme, noteCount, notebookCount, children }) 
 	return (
 		<header id="page-header" className="max-xl:contents xl:col-span-5 xl:sticky xl:top-0 xl:self-start xl:max-h-screen xl:flex xl:flex-col pt-10 xl:pt-16 xl:pb-8">
 			<p id="page-wordmark" className="max-xl:pt-10 smallcaps flex items-center gap-2 animate-rise">
-				<span className="block size-[7px] rounded-full bg-vermilion" aria-hidden="true"></span>
+				{/* the paper backing gives multiply something to blend with inside the animated layer */}
+				<span className="paper-grain block"><img src="./Designs/notate-logo.svg" alt="" className="block h-9 w-auto mix-blend-multiply"/></span>
 				Notate
 			</p>
 

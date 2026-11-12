@@ -2,7 +2,7 @@ import React from 'react';
 import { ContextMenuHoverRegionContext } from '@content/Components/HoverRegions/ContextMenuHoverRegion.jsx'
 
 
-// The vermilion seal: a round stamp with an italic N and a paper-coloured inner ring.
+// The seal: the hand-drawn Notate logo on a paper disc with an ink ring.
 export default function ContextMenuButton () {
 	const { CONTEXT_MENU_CONTEXT, HOVER_CONTEXT } = React.useContext(ContextMenuHoverRegionContext)
 	const [ contextMenuState, setContextMenuState ] = CONTEXT_MENU_CONTEXT 
@@ -31,20 +31,19 @@ export default function ContextMenuButton () {
 				<span 
 				 id="glow-effect" 
 				 className={`
-					pointer-events-none absolute -inset-[7px] rounded-full border border-ink
-					opacity-0 scale-90 transition duration-200 group-hover:opacity-60 group-hover:scale-100
+					pointer-events-none absolute -inset-[7px] rounded-full border border-vermilion
+					opacity-0 scale-90 transition duration-200 group-hover:opacity-100 group-hover:scale-100
 				`}/>
 				<span 
 				 className={`
 					relative flex size-full items-center justify-center rounded-full
-					bg-vermilion shadow-print-sm rotate-[-6deg]
+					paper-grain border border-ink shadow-print-sm rotate-[-6deg]
 					transition-transform duration-150 group-hover:rotate-[-2deg] group-active:scale-95
 					${ shown ? 'animate-stamp' : '' }
 				`}>
-					<span className="pointer-events-none absolute inset-[4px] rounded-full border border-paper opacity-70"/>
-					<span className="font-display italic font-semibold text-[27px] leading-none text-paper pr-[2px] pb-[2px]">
-						N
-					</span>
+					{/* multiply turns the logo's white scroll into the paper colour */}
+					<img src={chrome.runtime.getURL('Designs/notate-logo.svg')} alt=""
+					 className="pointer-events-none w-[118%] max-w-none h-auto mix-blend-multiply"/>
 				</span>
 			</button>
 	)
