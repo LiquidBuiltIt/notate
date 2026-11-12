@@ -45,3 +45,103 @@
 	font-style: normal;
 }
 
+
+/**
+ * Marginalia families: real weight and style mapping, used by the 2.0 design.
+ **/
+
+@font-face {
+	font-family: 'notate-garamond';
+	src: url("./Fonts/EBGaramond/EBGaramond-Regular.ttf") format('truetype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-garamond';
+	src: url("./Fonts/EBGaramond/EBGaramond-Italic.ttf") format('truetype');
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-garamond';
+	src: url("./Fonts/EBGaramond/EBGaramond-Medium.ttf") format('truetype');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-garamond';
+	src: url("./Fonts/EBGaramond/EBGaramond-MediumItalic.ttf") format('truetype');
+	font-weight: 500;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-garamond';
+	src: url("./Fonts/EBGaramond/EBGaramond-SemiBold.ttf") format('truetype');
+	font-weight: 600;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-garamond';
+	src: url("./Fonts/EBGaramond/EBGaramond-SemiBoldItalic.ttf") format('truetype');
+	font-weight: 600;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-garamond';
+	src: url("./Fonts/EBGaramond/EBGaramond-Bold.ttf") format('truetype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-garamond';
+	src: url("./Fonts/EBGaramond/EBGaramond-BoldItalic.ttf") format('truetype');
+	font-weight: 700;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-playfair';
+	src: url("./Fonts/Playfair/PlayfairDisplay-Regular.ttf") format('truetype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-playfair';
+	src: url("./Fonts/Playfair/PlayfairDisplay-Italic.ttf") format('truetype');
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-playfair';
+	src: url("./Fonts/Playfair/PlayfairDisplay-SemiBoldItalic.ttf") format('truetype');
+	font-weight: 600;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'notate-playfair';
+	src: url("./Fonts/Playfair/PlayfairDisplay-BlackItalic.ttf") format('truetype');
+	font-weight: 900;
+	font-style: italic;
+	font-display: swap;
+}

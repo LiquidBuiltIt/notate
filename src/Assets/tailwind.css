@@ -7,6 +7,30 @@
 
 
 @layer components {
+
+	/* Marginalia primitives. Tokens live in tailwind.config.js. */
+	.paper-grain {
+		background-color: #F2ECE0;
+		background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .1  0 0 0 0 .09  0 0 0 0 .07  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+	}
+
+	.smallcaps {
+		@apply font-serif uppercase tracking-caps text-[11px] leading-none;
+		font-variant-numeric: oldstyle-nums;
+	}
+
+	.hairline {
+		@apply border-ink border-solid;
+		border-width: 1px;
+	}
+
+	.focus-ink {
+		@apply outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vermilion;
+	}
+
+	.oldstyle {
+		font-variant-numeric: oldstyle-nums proportional-nums;
+	}
 	.trans-ease {
 		@apply transition duration-300 ease-in-out; 
 	}
