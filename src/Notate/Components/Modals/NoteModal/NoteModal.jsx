@@ -5,6 +5,7 @@ import useError from '@universal/Hooks/useError/useError.jsx';
 import NoteModalTopbar from './Topbar.jsx'
 import NoteModalBottombar from './Bottombar.jsx'
 import NoteModalInput from './Input.jsx'
+import noteSwatch from '@universal/Utils/noteSwatch.js'
 
 
 
@@ -92,12 +93,14 @@ export default function NoteModal() {
 	}, [note])
 
 
+	const swatch = noteSwatch(NOTE_MODAL_CONTEXT.COLOR_CONTEXT[0])
+
 	return (
 		<div 
 		 id="note-modal-container" 
     		 className={`
-			 trans-ease fixed flex justify-center z-modal left-0 top-0 w-full h-full 
-			 ${transition ? "bg-black bg-opacity-40" : "bg-transparent" }
+			 trans-ease fixed flex items-center justify-center z-modal left-0 top-0 w-full h-full p-4 sm:p-8
+			 ${transition ? "bg-paper/75" : "bg-transparent" }
 		 `}
     		 onMouseDown={handleMouseDown}
     		 onMouseUp={handleMouseUp}
@@ -106,13 +109,13 @@ export default function NoteModal() {
 			 id="modal" 
       			 ref={modalRef}
       			 className={`
-				 trans-ease flex flex-col mt-[100vh] 
-				 ${ transition ? "-translate-y-[100%]" : "" } 
-				 bg-[#2f2f2f] max-h-[45rem] h-full max-w-[50rem] 
-				 p-5 rounded-lg w-full relative box-border
+				 trans-ease flex flex-col animate-unfold
+				 paper-grain hairline shadow-print-lg max-h-[46rem] h-full max-w-[52rem] 
+				 py-6 pr-8 pl-10 w-full relative box-border
 			 `}
       			 onClick={handlePreventingEventPropagation}
 			>
+				<span id="modal-spine" className={`absolute left-0 top-0 bottom-0 w-[6px] ${swatch.bg}`} aria-hidden="true"></span>
 	  			<NoteModalContext.Provider value={NOTE_MODAL_CONTEXT}>
 					<NoteModalTopbar onExit={exitModal} />
 					<NoteModalInput onExit={exitModal}/>

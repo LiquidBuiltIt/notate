@@ -6,7 +6,10 @@ export default function CloseModalButton() {
 
 	return (
 		<button id="close-modal-button"
-		className="trans-ease w-8 text-gray-500  text-3xl font-bold hover:text-red-300"
+		type="button"
+		aria-label="Close notebook"
+		title="Close"
+		className="focus-ink trans-ease font-serif text-[34px] leading-none text-ink-soft hover:text-vermilion-ink"
 		onClick={EXIT_MODAL}>
 			&times;	
 		</button>

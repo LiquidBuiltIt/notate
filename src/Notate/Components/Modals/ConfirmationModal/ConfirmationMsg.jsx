@@ -30,27 +30,34 @@ export default function ConfirmationMsg() {
 
 	return (
 		<div id="confirmation-modal-wrapper"
-			className="fixed z-modal left-0 top-0 w-full h-screen  bg-black bg-opacity-50 flex items-center justify-center">
+			className="fixed z-modal left-0 top-0 w-full h-screen bg-paper/75 flex items-center justify-center p-6">
 
 			<div id="confirmation-modal"
-				className="flex flex-col h-[10rem] w-[35rem] bg-[#2f2f2f] rounded-lg inset-0 p-3">
+				role="alertdialog"
+				aria-labelledby="title"
+				aria-describedby="message"
+				className="paper-grain hairline shadow-print-lg flex flex-col w-[32rem] max-w-full p-8 -rotate-[.6deg] animate-unfold">
+
+				<p className="smallcaps text-vermilion-ink flex items-center gap-3 mb-4">
+					Erratum <span className="flex-grow h-px bg-ink" aria-hidden="true"></span> Please confirm
+				</p>
 
 				<div id="msg-content"
-					className="w-full p-1 space-y-3 flex-grow">
+					className="w-full space-y-3">
 					<h2 id="title"
-						className="text-white font-medium text-xl">{confMsgState?.title}</h2>
+						className="font-display italic text-[30px] leading-tight text-ink">{confMsgState?.title}</h2>
 					<h3 id="message"
-						className="text-white font-normal text-sm text-center p-1">{confMsgState?.message}</h3>
+						className="font-serif font-normal text-[17px] leading-relaxed text-ink-soft">{confMsgState?.message}</h3>
 				</div>
 
 				<div id="btn-ctrl-center"
-					className="flex space-x-3 w-full justify-end p-1 h-auto">
+					className="flex gap-6 w-full justify-end items-center pt-8">
 					<button id="cancel-btn"
-						className="h-10 w-20 bg-gray-400 rounded text-white"
+						className="smallcaps focus-ink pb-1 border-b border-ink text-ink trans-ease hover:text-vermilion-ink hover:border-vermilion"
 						onClick={performCancel}>Cancel</button>
 
 					<button id="action-btn"
-						className="btn-sm-text bg-yellow-400 text-white"
+						className="smallcaps focus-ink px-6 py-4 bg-ink text-paper trans-ease hover:bg-vermilion"
 						onClick={performAction}>{confMsgState?.action?.title}</button>
 				</div>
 			</div>

@@ -1,5 +1,4 @@
 import React from 'react';
-import Trash from '@assets/Designs/Trash/trash-2-logo.svg'
 import { NOTATE_DB, ERROR_LOGGING_DB, USER_CONFIGURATION_DB } from '@background/background.js'
 
 import ConfirmationMsg, { ConfirmationMsgContext } from '../Modals/ConfirmationModal/ConfirmationMsg.jsx'
@@ -99,21 +98,25 @@ export default function DragToTrashHandler() {
 			{
 				hoverState && (
 					<div id="drag-to-trash-hover-region" 
-						className={`fixed bottom-0 flex items-center justify-center size-[20rem]`}
+						className="fixed bottom-0 flex items-end justify-center w-[34rem] max-w-full h-[14rem] pb-8"
 						onDragOver={ () => setSelfState(true) }
 						onDragLeave={ () => setSelfState(false) }>
 
 						<div id="drag-to-trash-handler" 
-							className="relative"
+							className="relative w-full"
 							onDragOver={(e) => {e.preventDefault() ;setDeleteHoverState(true)}}
 							onDragLeave={() => setDeleteHoverState(false)}
 							onDrop={handleDeleteAction}
 					>
 							<div id="external" 
-								className={`trans-ease-all absolute mt-[8rem] inset-0 blur-xl rounded-full ${ deleteHoverState ? "bg-red-400 scale-150" : "bg-transparent scale-100" } `}></div>
+								className={`trans-ease-all absolute inset-0 translate-x-2 translate-y-2 bg-ink ${ deleteHoverState ? "opacity-100" : "opacity-0" } `}></div>
 							<div id="internal" 
-								className={`trans-ease-all relative mt-[8rem] ${ selfState ? ( deleteHoverState ? "bg-red-400" : "bg-gray-600" ) : "bg-transparent" } rounded-full ${  deleteHoverState ? "scale-150" : "scale-100" } size-20`}>
-								<Trash className={`trans-ease ${ selfState ? "opacity-100" : "opacity-0" } max-h-[20rem] max-w-[20rem]`}/>
+								className={`
+									trans-ease-all relative flex items-center justify-center gap-3 h-24 hairline animate-rise
+									${ deleteHoverState ? "bg-vermilion text-paper" : ( selfState ? "paper-grain text-ink" : "paper-grain text-ink-soft opacity-80" ) }
+								`}>
+								<span className="font-display italic text-[28px] leading-none" aria-hidden="true">&times;</span>
+								<span className="smallcaps">{ deleteHoverState ? "Release to delete" : "Drag here to delete" }</span>
 							</div>
 						</div>
 

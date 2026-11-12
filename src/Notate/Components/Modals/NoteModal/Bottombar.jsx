@@ -6,7 +6,6 @@ import ConfirmationMsg, { ConfirmationMsgContext } from '../ConfirmationModal/Co
 import { NotateContext  } from '@notate/Notate.jsx';
 
 import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextInput/InputFormatters.js'
-import TrashLogo from '@assets/Designs/trash-logo.svg';
 import { NoteModalContext } from './NoteModal.jsx'
 
 export default function NoteModalBottombar({onExit}) {
@@ -97,19 +96,19 @@ export default function NoteModalBottombar({onExit}) {
 
 	return (
 		<div id="btn-ctrl-center"
-			className="flex mt-2 space-x-3">
+			className="flex items-center gap-6 mt-4 pt-4 border-t border-ink">
 	
 		        <button id="save-btn" 
-		  	className={`${ permittedToSave ? "bg-green-600" : "bg-gray-500"  } h-12 text-white py-3 px-4 border-none rounded cursor-pointer w-full text-base ${permittedToSave ? "hover:bg-green-700" : ""} trans-ease`}
+		  	className={`smallcaps focus-ink h-12 px-10 trans-ease ${ permittedToSave ? "bg-ink text-paper hover:bg-vermilion" : "bg-transparent hairline text-ink-faint cursor-not-allowed" }`}
 		  	disabled={permittedToSave ? false : true}
 		  	onClick={handleSaveClick}>Save
 			</button>
 
 			<button id="delete-btn"
-			className={`size-12 ${ disabledState ? "bg-gray-500" : " bg-red-400" } rounded flex items-center justify-center`}
+			className={`smallcaps focus-ink ml-auto pb-1 border-b trans-ease ${ disabledState ? "border-paper-edge text-ink-faint cursor-not-allowed" : "border-ink text-ink hover:text-vermilion-ink hover:border-vermilion" }`}
 			onClick={handleDeleteClick}
 			disabled={disabledState}>
-				<TrashLogo className="size-10 fill-transparent stroke-gray-50 stroke-[1.5]"/>
+				Delete note
 			</button>
 	
 		</div>

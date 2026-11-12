@@ -1,6 +1,5 @@
 import React from 'react';
 import Settings from '@universal/Components/Settings/Settings.jsx'
-import SettingsCogWheel from '@assets/Designs/settings-cog-wheel.svg'
 import { NotateContext } from '@notate/Notate.jsx';
 
 export default function SettingsWidget() {
@@ -20,13 +19,14 @@ export default function SettingsWidget() {
 
 	return (
 		<>
-			<span id="settings-widget"
-			className="trans-ease hover:animate-spin-slow absolute group flex items-center justify-center top-0 right-0 size-[3rem] bg-[#2f2f2f] rounded-full mr-[2rem] mt-[3.5rem] cursor-pointer hover:bg-[#4f4f4f]"
+			<button id="settings-widget"
+			type="button"
+			aria-label="Settings"
+			title="Settings"
+			className="smallcaps focus-ink absolute top-5 right-6 sm:right-12 xl:right-16 z-button flex items-center gap-2 pb-1 border-b border-ink text-ink trans-ease hover:text-vermilion-ink hover:border-vermilion"
 			onClick={handleSettingsWidgetClick}>
-				<SettingsCogWheel 
-				className="trans-ease size-[2rem] fill-[#888] group-hover:fill-[#999]"/>
-
-			</span>
+				<span aria-hidden="true" className="text-[15px] leading-none">&sect;</span>Settings
+			</button>
 			{
 				widgetState && 
 					<Settings

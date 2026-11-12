@@ -2,26 +2,25 @@ import React from 'react';
 
 export default function NoteModalTopbar({onExit}) {
 	return (
-	
 		<>
 	  		<div 
 			 id="modal-topbar" 
-			 className="flex mb-5 garamond-bold"
+			 className="flex items-baseline justify-between pb-3 mb-4 border-b border-ink"
 			>
-
-          			<span id="close" 
-				className="trans-ease text-gray-500 absolute top-3 right-5 text-3xl  font-bold cursor-pointer hover:text-red-300" 
-				onClick={onExit}>
-					&times;
-				</span>
-
-
           			<h2 
 				 id="modal-title" 
-				 className="text-lg font-extrabold ml-2 "
+				 className="font-display italic text-[28px] leading-none text-ink"
 				> Edit Note </h2>
+
+          			<button id="close" 
+				type="button"
+				aria-label="Close" 
+				title="Close"
+				className="focus-ink trans-ease font-serif text-[34px] leading-none text-ink-soft hover:text-vermilion-ink cursor-pointer" 
+				onClick={onExit}>
+					&times;
+				</button>
 	  		</div>
 		</>
-
 	)
 }

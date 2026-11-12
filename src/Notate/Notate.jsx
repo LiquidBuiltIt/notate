@@ -4,6 +4,7 @@ import useRequest from '@universal/Hooks/useRequest/useRequest.jsx'
 
 import Helper from './helper.js'
 import { NOTATE_DB, ERROR_LOGGING_DB, USER_CONFIGURATION_DB } from '@background/background.js'
+import Masthead from './Masthead.jsx';
 import SearchBar from './Components/Search/SearchBar.jsx';
 import RecentNotes from './Components/Recents/RecentNotes.jsx';
 import NewItemButton from './Components/Recents/NewItemBtn.jsx';
@@ -165,48 +166,40 @@ export default function Notate(){
 	  return (
 		<div 
 		  id="app" 
-		  className="w-full h-screen flex  flex-col flex-grow"
+		  className="w-full min-h-screen flex flex-col flex-grow"
 		>
 		  	<NotateContext.Provider value={NOTATE_CONTEXT}>
 		  	<div 
 		  	 id="wallpaper-theme" 
 		  	 className={`
-				 min-w-full flex flex-col flex-grow top-0 left-0 
+				 relative min-w-full min-h-screen flex flex-col flex-grow top-0 left-0 trans-ease
 				 ${ theme.background || "" }
 			`}>
 					<ShadeComponent direction={"top"}/>
 		  			<main 
 		  			 id="notate" 
-		  			 className="w-full h-full flex flex-col flex-grow mb-32 py-10 px-24"
+		  			 className="w-full flex-grow pb-28 px-6 sm:px-12 xl:px-16 xl:grid xl:grid-cols-12 xl:gap-x-14"
 		  			>
-						<header 
-		  				 id="page-header" 
-		  				 className="text-center my-[1rem]"
-		  				>
-						        <h1 
-		  					 id="page-title" 
-		  					 className={`
-								 text-[3rem]  garamond-bold mb-2 
-								 ${theme.text.h1 || ""} 
-							`}>Notate</h1>
-							        <p 
-		  						 id="page-subtitle" 
-		  						 className={`
-									 text-lg playfair-bold ${theme.text.sub || ""}
-								`}>Combining The Worlds of Searches &amp; Note Taking
-		  						</p>
-						</header>
+						<Masthead 
+						 theme={theme} 
+						 noteCount={notatedb?.inventory?.NOTES?.length ?? 0} 
+						 notebookCount={notatedb?.inventory?.NOTEBOOKS?.length ?? 0}
+						/>
 					  	
 						<NotificationContext.Provider value={[ notification, setNotification ]}>
 					  	<ConfirmationMsgContext.Provider value={[confMsgState, setConfMsgState]}>
 
-					  	<div id="search-section" 
-					  	className="flex items-center justify-center space-x-4">
-							<SearchBar onSearch={handleSearch} />
-							<NewItemButton/>
-					  	</div>
+						<div id="notate-content" className="xl:col-span-7 pt-14 xl:pt-24 min-w-0">
+						  	<div id="search-section" 
+						  	className="flex items-end gap-6 animate-rise"
+						  	style={{ animationDelay: '480ms' }}>
+								<SearchBar onSearch={handleSearch} />
+								<NewItemButton/>
+						  	</div>
 
-						<RecentNotes searchTerm={searchTerm} />
+							<RecentNotes searchTerm={searchTerm} />
+						</div>
+
 						{selectedNote && !selectedNotebook && <NoteModal/>}
 						{ confMsgState && <ConfirmationMsg/> }
 					  	{ selectedNotebook && !selectedNote && <NotebookModal/> }
@@ -230,20 +223,11 @@ export default function Notate(){
 
 
 
+// Page edge rules: a heavy rule at the top, a hairline at the foot.
 const ShadeComponent = ({direction}) => {
-	let style;
+	const style = direction === 'top' ? "h-[3px]" : "h-px"
 
-	if (direction === 'top') {
-		style = "bg-gradient-to-b top-0"
-	} else if (direction === 'bottom') {
-		style = "bg-gradient-to-t bottom-0"	
-	}
-	
 	return (
-		<div id={`shader-${direction}`} className={` w-full h-16 ${style} from-black to-transparent z-shader`}>
-		</div>
+		<div id={`shader-${direction}`} className={`w-full ${style} bg-ink`}></div>
 	)
 }
-
-// dark-wood-bg cork-board-bg marble-chess-board-bg
-

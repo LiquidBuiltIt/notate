@@ -62,7 +62,7 @@ export default function SaveNotebookButton() {
 
 	return (
 		<button id="save-notebook-button"
-		className={`trans-ease btn-sm-text ${ permittedToSave ? "bg-green-500" : "bg-gray-500" }`}
+		className={`smallcaps focus-ink trans-ease h-12 px-10 ${ permittedToSave ? "bg-ink text-paper hover:bg-vermilion" : "bg-transparent hairline text-ink-faint cursor-not-allowed" }`}
 		onClick={handleSaveClick}
 		disabled={!permittedToSave}>Save</button>
 	)

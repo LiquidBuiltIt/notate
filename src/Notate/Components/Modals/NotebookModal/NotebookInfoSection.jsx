@@ -26,14 +26,12 @@ export default function NotebookInfoSection () {
 
 
 	return (
-		<div id="notebook-info-section" className="flex flex-col h-full w-[20rem] p-1 rounded-b-3xl">
+		<div id="notebook-info-section" className="flex flex-col h-full w-[22rem] shrink-0 py-5 pl-8 pr-8 gap-4 border-r border-ink">
+			<p className="smallcaps text-vermilion-ink">Notebook</p>
 			<input 
 			 id="notebook-title" 
-			 className={`
-			 placeholder:trans-ease placeholder:text-lg placeholder:hover:text-white placeholder:alice-regular
-			 font-bold text-xl resize-none outline-none inline-block 
-			 bg-[#4d4d4d] px-2 py-1 
-			 `}
+			 aria-label="Notebook title"
+			 className="font-display italic text-[30px] leading-tight text-ink caret-vermilion bg-transparent border-b border-ink rounded-none pb-1 outline-none placeholder:text-ink-faint focus:border-vermilion"
 			 value={title}
 			 placeholder="Name your research topic..."
 			 onChange={handleTitleChange}
@@ -41,10 +39,8 @@ export default function NotebookInfoSection () {
 
 			<textarea 
 			 id="notebook-description" 
-			 className={`
-			 	placeholder:trans-ease placeholder:hover:text-white placeholder:alice-regular 
-				p-3 text-sm h-full resize-none outline-none inline-block bg-[#404040] rounded-b-3xl
-			 `}
+			 aria-label="Notebook description"
+			 className="flex-grow resize-none outline-none bg-transparent font-serif italic text-[17px] leading-relaxed text-ink-soft caret-vermilion placeholder:text-ink-faint"
 			 placeholder="Organize your thoughts..."
 			 type="text"
 			 value={description}
@@ -53,6 +49,3 @@ export default function NotebookInfoSection () {
 		</div>
 	)
 }
-
-
-

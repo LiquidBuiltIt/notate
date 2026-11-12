@@ -1,5 +1,4 @@
 import React from 'react';
-import PlusSign from '@assets/Designs/plus-logo.svg'
 import NoteHandler from '@universal/Handlers/NoteHandler.js'
 
 import  { NotebookModalContext } from '../NotebookModal.jsx'
@@ -27,11 +26,12 @@ export default function AddNewNoteButton () {
 
 	return (
 		<div id="add-new-note-container"
-		className="flex size-[170px] items-center justify-center">
+		className="flex shrink-0 items-center justify-center">
 			<button id="add-new-note-button"
-			className="trans-ease flex items-center justify-center size-[5rem] bg-gray-500 hover:bg-gray-400 rounded-xl opacity-[70%]"
+			className="smallcaps focus-ink trans-ease flex flex-col items-center justify-center gap-2 w-[9rem] h-[170px] border border-dashed border-ink-faint text-ink-soft hover:border-vermilion hover:text-vermilion-ink hover:bg-vermilion-wash/40"
 			onClick={handleAddNewNoteClick}>
-				<PlusSign className="size-[3rem] fill-gray-100"/>
+				<span className="font-display italic text-[34px] leading-none normal-case tracking-normal" aria-hidden="true">+</span>
+				New note
 			</button>
 		</div>
 

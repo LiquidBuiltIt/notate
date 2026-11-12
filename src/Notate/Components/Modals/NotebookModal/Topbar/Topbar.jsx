@@ -5,7 +5,7 @@ export default function TopBar(){
 	return (
 		<header 
 		 id="notebook-modal-topbar"
-		 className="w-full flex justify-between px-4 garamond-bold"
+		 className="w-full flex justify-between items-baseline pb-2 border-b border-ink"
 		>
 			<aside 
 			 id="left-section"
@@ -13,9 +13,9 @@ export default function TopBar(){
 			>
 				<h3 
 				 id="title" 
-				 className="text-2xl font-semibold "
+				 className="font-display italic text-[24px] leading-none text-ink"
 				>
-					Your Note Collection...
+					Your note collection
 				</h3>
 			</aside>
 			<aside id="right-section"
