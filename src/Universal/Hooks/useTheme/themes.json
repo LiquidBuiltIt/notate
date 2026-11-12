@@ -1,53 +1,62 @@
 {
-  "darkWood": {
-    "background": "dark-wood-bg",
-    "text": {
-      "h1": "text-white",
-      "h2": "text-gray-200",
-      "h3": "text-gray-300",
-      "sub": "text-gray-400"
-    },
-    "accent": {}
-  },
-  "corkBoard": {
-    "background": "cork-board-bg",
-    "text": {
-      "h1": "text-black",
-      "h2": "text-black",
-      "h3": "text-gray-800",
-      "sub": "text-gray-800 font-extrabold"
-    },
-    "accent": {}
-  },
-  "marbleChessBoard": {
-    "background": "marble-chess-board-bg",
-    "text": {
-      "h1": "text-red-400",
-      "h2": "text-red-500",
-      "h3": "text-red-600",
-      "sub": "text-red-600"
-    },
-    "accent": {}
-  },
   "notePaper": {
-    "background": "note-paper-bg",
+    "background": "paper-grain",
     "text": {
-      "h1": "text-black",
-      "h2": "text-gray-800",
-      "h3": "text-gray-700",
-      "sub": "text-gray-800"
+      "h1": "text-ink",
+      "h2": "text-ink",
+      "h3": "text-ink-soft",
+      "sub": "text-ink-soft",
+      "muted": "text-ink-faint",
+      "placeholder": "placeholder:text-ink-faint"
     },
     "accent": {}
   },
   "monoColor": {
-    "background": "note-paper-bg",
+    "background": "paper-grain",
     "text": {
-      "h1": "text-black",
-      "h2": "text-gray-800",
-      "h3": "text-gray-700",
-      "sub": "text-gray-600"
+      "h1": "text-ink",
+      "h2": "text-ink",
+      "h3": "text-ink-soft",
+      "sub": "text-ink-soft",
+      "muted": "text-ink-faint",
+      "placeholder": "placeholder:text-ink-faint"
+    },
+    "accent": {}
+  },
+  "corkBoard": {
+    "background": "paper-grain bg-[#E6CF9F]",
+    "text": {
+      "h1": "text-ink",
+      "h2": "text-ink",
+      "h3": "text-[#4A4234]",
+      "sub": "text-[#4A4234]",
+      "muted": "text-[#6B614D]",
+      "placeholder": "placeholder:text-[#6B614D]"
+    },
+    "accent": {}
+  },
+  "darkWood": {
+    "background": "paper-grain bg-[#B89A6C]",
+    "text": {
+      "h1": "text-ink",
+      "h2": "text-ink",
+      "h3": "text-[#2F2A20]",
+      "sub": "text-[#2F2A20]",
+      "muted": "text-[#43392A]",
+      "placeholder": "placeholder:text-[#43392A]"
+    },
+    "accent": {}
+  },
+  "marbleChessBoard": {
+    "background": "paper-grain bg-[#E3E8E7]",
+    "text": {
+      "h1": "text-ink",
+      "h2": "text-ink",
+      "h3": "text-[#454C4C]",
+      "sub": "text-[#454C4C]",
+      "muted": "text-[#6A7272]",
+      "placeholder": "placeholder:text-[#6A7272]"
     },
     "accent": {}
   }
 }
-

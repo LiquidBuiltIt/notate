@@ -1,6 +1,5 @@
 import React from 'react';
 import { NOTATE_DB, ERROR_LOGGING_DB, USER_CONFIGURATION_DB } from '@background/background.js'
-import TrashLogo from '@assets/Designs/trash-logo.svg'
 import { NotebookModalContext } from '../NotebookModal.jsx'
 import { NotateContext } from '@notate/Notate.jsx'
 import { NotificationContext } from '@universal/Components/NotificationMessenger.jsx'
@@ -74,10 +73,10 @@ export default function DeleteNotebookButton() {
 
 	return (
 		<button id="delete-notebook-btn"
-		className={`trans-ease size-12  ${ disabledState ? "bg-gray-700" : "bg-gray-600 hover:bg-red-400" }  rounded flex items-center justify-center`}
+		className={`smallcaps focus-ink trans-ease whitespace-nowrap pb-1 border-b ${ disabledState ? "border-paper-edge text-ink-faint cursor-not-allowed" : "border-ink text-ink hover:text-vermilion-ink hover:border-vermilion" }`}
 		onClick={handleDeleteClick}
 		disabled={disabledState}>
-			<TrashLogo className="size-10 fill-transparent stroke-gray-50 stroke=[1.5]"/>	
+			Delete notebook
 		</button>
 	)
 }

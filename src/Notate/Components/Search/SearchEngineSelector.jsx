@@ -58,14 +58,16 @@ export default function SearchEngineSelector({  }) {
  
   	return (
     		<div id="search-engine-selector" 
-		className={`trans-ease flex items-center ${ searchBarStatus ? "bg-[#333333]" : "bg-[#595959]" } rounded-r-full px-2`}>
+		className="flex items-center">
       			<button id="search-engine-btn" 
-			className="flex items-center bg-transparent border-none rounded-full overflow-hidden  cursor-pointer" 
+			className="smallcaps focus-ink flex items-center gap-2 cursor-pointer bg-transparent border-none text-ink hover:text-vermilion-ink" 
+			title="Change search engine"
 			onClick={handleClick}>
         			<img id="search-engine-favicon" 
-				className="w-6 h-6" 
+				className="w-4 h-4" 
 				src={selectedEngine.favicon} 
-				alt={selectedEngine.name} />
+				alt="" />
+				{selectedEngine.name} <span aria-hidden="true">&#9662;</span>
       			</button>
     		</div>
   );

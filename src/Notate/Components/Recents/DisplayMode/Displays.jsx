@@ -1,8 +1,6 @@
 import React from 'react'
-import { createPortal } from 'react-dom'
 
 import { NotateContext } from '@notate/Notate.jsx';
-import RightCurvedUpArrow from '@assets/Designs/Arrows/right-curved-up-arrow.svg'
 
 
 export const NoItemsFound = () => {
@@ -10,8 +8,9 @@ export const NoItemsFound = () => {
 	const theme = THEME_CONTEXT
 
 	return (
-		<div id="no-items-found-container" className="flex  items-center justify-center">
-			<h2 id="no-items-found-text" className={`text-[1.45rem] font-bold garamond-bold ${theme.text.h2 || ""}`}>No Notes or Notebooks Found...</h2>
+		<div id="no-items-found-container" className="py-10">
+			<h2 id="no-items-found-text" className={`font-display italic text-[28px] leading-tight ${theme.text.h2 || ""}`}>No notes or notebooks found.</h2>
+			<p className={`smallcaps mt-3 ${theme.text.muted || ""}`}>Nothing in the index matches that search</p>
 		</div>
 	)
 }
@@ -20,41 +19,13 @@ export const EmptyRecentsContent = () => {
 	const { THEME_CONTEXT } = React.useContext(NotateContext)
 	const theme = THEME_CONTEXT
 
-	const [ portal, setPortal ] = React.useState(null)
-
-	React.useEffect(()=>{
-		const test = window.document.getElementById('new-item-btn-container')
-		// For now we are leaving this disabled until we can fix other Components
-		// to be more responsive
-		//setPortal(test)
-
-	},[])
-
 	return (
-		<>
-			<div className="flex items-center justify-center">
-				<div className="items-center justify-center">
-					<h3 className={`text-2xl font-semibold ${theme.text.h3 || ""}`}>Nothing to see yet... </h3>
-					<h1 className={`text-[4rem] ${theme.text.h3 || ""} font-bold text-center`}>:(</h1>
-	
-				</div>
-
-			</div>
-
-
-
-
-		
-			{portal && createPortal(
-				<div id="new-items-help-context"
-				className="absolute flex ">
-					<p className="text-gray-400 max-w-[6rem] text-bold">Click here to begin adding some notes!</p>
-					<span>
-						<RightCurvedUpArrow className="size-12 fill-gray-500"/>
-					</span>
-				</div> , portal 
-			)}
-		</>
+		<div id="empty-recents" className="relative py-8 overflow-hidden">
+			<span className="absolute -top-10 right-0 font-display italic font-black text-[16rem] leading-none text-ink/[.06] select-none" aria-hidden="true">&para;</span>
+			<h3 className={`relative font-display italic font-semibold text-[40px] leading-tight ${theme.text.h3 || ""}`}>The page is blank.</h3>
+			<p className={`relative mt-3 max-w-[26rem] text-lg italic ${theme.text.sub || ""}`}>
+				Nothing is filed yet. Choose <span className="not-italic smallcaps text-vermilion-ink">+ New</span> above to write your first note.
+			</p>
+		</div>
 	) 
 }
-

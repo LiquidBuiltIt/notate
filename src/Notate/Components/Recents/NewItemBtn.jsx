@@ -37,40 +37,42 @@ export default function NewItemButton(){
 
 	return (
 		<div id="new-item-btn-container"
-		className="self-center max-h-[2rem] max-w-[80px] font-sans"	
+		className="relative self-stretch shrink-0"	
 		onMouseOver={handleMouseOver}
 		onMouseLeave={handleMouseLeave}>
 			<div id="new-note-button"
-			className="group">
+			className="group h-full">
 				<button 
-				 className={`
-				 	relative btn-sm-icon z-[5] bg-green-500 shadow-lg group-hover:rounded-b-none
-				`}>
-					<span id="btn-logo" className="text-2xl font-bold ">+</span> {/* <--- to be replaced by an svg icon */}
+				 type="button"
+				 aria-haspopup="true"
+				 title="Create a note or notebook"
+				 className="smallcaps focus-ink h-full flex items-center gap-3 px-5 bg-ink text-paper trans-ease hover:bg-vermilion">
+					<span id="btn-logo" className="text-[20px] leading-none font-medium" aria-hidden="true">+</span>New
 
 				</button>
 
-				<div id="new-options" className="w-full flex flex-col ">
+				<div id="new-options" 
+				 className={`
+				 	absolute right-0 top-full z-button w-60 flex flex-col paper-grain hairline border-t-0 shadow-print-sm
+					transition-all duration-150 ease-out group-focus-within:visible group-focus-within:opacity-100 group-focus-within:translate-y-0
+					${ styleState ? "visible opacity-100 translate-y-0" : "invisible opacity-0 -translate-y-1" }
+				`}>
 					<button 
 					 id="new-note-button" 
-					 className={`
-					 	trans-ease-all ${ styleState ? "-translate-y-[0%]" : "-translate-y-[100%]" } 
-						w-full h-[2rem] bg-green-600 z-[4] rounded-b group-hover:rounded-b-none
-					`}
+					 type="button"
+					 className="smallcaps focus-ink flex justify-between items-center gap-4 px-4 py-4 text-left border-b border-paper-edge trans-ease hover:bg-paper-deep hover:text-vermilion-ink"
 					 onClick={handleNewNoteClick}
 					>
-						<span className="text-white font-semibold text-sm">+ Note</span>
+						<span className="whitespace-nowrap">+ Note</span><span className="font-display italic normal-case tracking-normal text-sm text-ink-faint whitespace-nowrap">a loose page</span>
 					</button>
 
 					<button 
 					 id="new-notebook-button" 
-					 className={`
-					 	trans-ease-all ${ styleState ? "-translate-y-[0%]" : "-translate-y-[200%]" } 
-						bg-green-700 q-full h-[2rem] rounded-b z-[4]
-					 `}
+					 type="button"
+					 className="smallcaps focus-ink flex justify-between items-center gap-4 px-4 py-4 text-left trans-ease hover:bg-paper-deep hover:text-vermilion-ink"
 					 onClick={handleNewNotebookClick}
 					>
-						<span className="text-white font-semibold text-sm">+ Book</span>
+						<span className="whitespace-nowrap">+ Notebook</span><span className="font-display italic normal-case tracking-normal text-sm text-ink-faint whitespace-nowrap">a bound set</span>
 					</button>
 				</div>
 				

@@ -87,15 +87,15 @@ export default function NotebookModal() {
 	 id="notebook-modal-container" 
 	 className={`
 	 	pointer-events-none trans-ease fixed flex justify-center z-modal left-0 top-0 w-full h-full 
-		${ status ? "bg-black bg-opacity-40" : "bg-transparent" }
+		${ status ? "bg-paper/75" : "bg-transparent" }
 	 `}
 	 onClick={handleOutsideClick}
 	>
 		<div 
 		 id="notebook-modal" 
 	  	 className={`
-			pointer-events-auto trans-ease flex w-full h-[19rem] top-0 left-0 rounded-b-3xl bg-[#2f2f2f] 
-			${ status ? "translate-y-[0%]" : "-translate-y-[100%]" }
+			pointer-events-auto trans-ease flex w-full h-[24rem] top-0 left-0 paper-grain border-b border-ink shadow-[0_6px_0_0_#1B1A17] overflow-hidden
+			${ status ? "translate-y-[0%]" : "-translate-y-[110%]" }
 		 `}
 	  	 onClick={handlePreventingEventPropagation}
 		>
@@ -105,7 +105,7 @@ export default function NotebookModal() {
 
 	  			<NotebookInfoSection/>	
 	  			<main id="notebook-modal-main-section"
-	  			className="flex flex-col  h-full overflow-x-auto overflow-y-hidden p-2 px-[1rem] space-y-2 rounded-br-3xl">
+	  			className="flex flex-col flex-grow min-w-0 h-full overflow-x-auto overflow-y-hidden py-5 px-8 gap-3">
 	  				<Topbar/>	
  					<NotebookCollection/>
 	  				<Bottombar/>

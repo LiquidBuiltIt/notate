@@ -161,32 +161,54 @@ export default function DisplayMode() {
 	return (
 		
     		<div id="recent-notes-container" 
-	  	className={`${sortedItemsNotEmpty ? "grid grid-cols-4 gap-10" : "" } w-[85%] justify-items-center`}>
- 			{
-				sortedItemsNotEmpty ? (sortedNotes.map((note, index) => {
-					return (
-						<NoteCard 
-						 key={index} 
-						 note={note} 
-	      					 onClick={() => FUNCTIONS.HANDLE_NOTE_CLICK(note)}
-						/> 
-					)
-      				})) : ( activeSearch ? <NoItemsFound/> : <EmptyRecentsContent/> ) 
+	  	className="w-full">
+			{
+				sortedItemsNotEmpty ? (
+					<div id="recent-notes-grid" 
+					className="grid grid-cols-[repeat(auto-fill,230px)] justify-between gap-x-6 gap-y-10 items-start">
+						{
+							sortedNotes.map((note, index) => {
+								return (
+									<div key={index} 
+									 className="animate-rise min-w-0 [&:nth-child(3n+2)]:mt-8 [&:nth-child(3n)]:mt-3"
+									 style={{ animationDelay: `${Math.min(index, 11) * 40 + 120}ms` }}>
+										<NoteCard 
+										 note={note} 
+										 onClick={() => FUNCTIONS.HANDLE_NOTE_CLICK(note)}
+										/> 
+									</div>
+								)
+							})
+						}
+					</div>
+				) : ( activeSearch ? <NoItemsFound/> : <EmptyRecentsContent/> ) 
 			}
-      			{
-				sortedNotebooks.map((notebook, index) => {
-		      			return (
-						<NotebookCard 	      
-			      			 key={index} 
-			      			 notebook={notebook} 
-			      			 onNotebookClick={() => FUNCTIONS.HANDLE_NOTEBOOK_CLICK(notebook)}
-						 onNoteClick={FUNCTIONS.HANDLE_NOTE_CLICK}
-		      				 updatesDispatcher={FUNCTIONS.NOTEBOOK_DRAGDROP_LISTENER}
-						 inventory={database?.inventory}
-						/>
-      			)})}
+			{
+				sortedNotebooks.length > 0 && (
+					<section id="notebook-shelf" className="mt-24">
+						<p className="smallcaps text-ink-soft mb-3">Notebooks</p>
+						<div id="notebook-shelf-row" className="flex flex-wrap items-end gap-[10px] pt-2 border-b-[3px] border-ink">
+							{
+								sortedNotebooks.map((notebook, index) => {
+									return (
+										<div key={index} 
+										 className="animate-rise" 
+										 style={{ animationDelay: `${Math.min(index, 11) * 40 + 200}ms` }}>
+											<NotebookCard 	      
+											 notebook={notebook} 
+											 onNotebookClick={() => FUNCTIONS.HANDLE_NOTEBOOK_CLICK(notebook)}
+											 onNoteClick={FUNCTIONS.HANDLE_NOTE_CLICK}
+											 updatesDispatcher={FUNCTIONS.NOTEBOOK_DRAGDROP_LISTENER}
+											 inventory={database?.inventory}
+											/>
+										</div>
+									)
+								})
+							}
+						</div>
+					</section>
+				)
+			}
     		</div>
 	)
 }
-
-

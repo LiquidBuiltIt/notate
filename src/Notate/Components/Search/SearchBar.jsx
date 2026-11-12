@@ -1,9 +1,12 @@
 import React from 'react';
 import browser from 'webextension-polyfill'
+import { NotateContext } from '@notate/Notate.jsx'
 
 export const BarStatusContext = React.createContext()
 
 export default function SearchBar({ onSearch }) {
+	const { THEME_CONTEXT } = React.useContext(NotateContext)
+	const theme = THEME_CONTEXT
 	const [selectedEngineIndex, setSelectedEngineIndex] = React.useState('google'); 
   	const [searchTerm, setSearchTerm] = React.useState('');
 	const [barActiveStatus, setStatus] = React.useState(false)
@@ -58,35 +61,20 @@ export default function SearchBar({ onSearch }) {
   return (
 	<div 
 	 id="search-bar-container" 
-	 className="relative w-[50vw] self-center"
+	 className="relative flex-grow min-w-0"
 	 onClick={handleSearchBarActiveState}
 	>
 
 		<div 
-	  	 id="external"
-		 className={`
-			 absolute blur-xl rounded-xl inset-0 
-			 ${ barActiveStatus ? "bg-red-300" : "bg-transparent" }
-		`}/>
-
-		<div 
 		 id="internal"
-		 className={`
-		 relative trans-ease flex max-w-[50rem] mx-auto justify-center rounded-full border  
-		 ${barActiveStatus ? 'border-red-400' : 'border-transparent' }
-		`}>
+		 className="relative flex items-baseline gap-4 border-b border-ink"
+		>
+			<label htmlFor="searchInput" className={`smallcaps shrink-0 cursor-text ${theme.text.sub || ""}`}>Search</label>
 			<input
 			 type="text"
 		         id="searchInput"
-		 	 className={`
-				 trans-ease flex-grow px-4 py-3 text-base rounded-full 
-				 placeholder:playfair-regular placeholder:font-mono  
-				 ${barActiveStatus 
-						 ? "bg-[#333333]" 
-						 : "bg-[#595959]" } 
-				 text-[#e0e0e0] focus:outline-none
-			 `}
-		         placeholder="Your Conquest for Knowledge begins here..."
+		 	 className={`flex-grow min-w-0 bg-transparent py-2 font-serif text-[26px] leading-tight text-ink caret-vermilion rounded-none outline-none placeholder:italic ${theme.text.placeholder || ""}`}
+		         placeholder="Your conquest for knowledge begins here..."
 		         value={searchTerm}
 		         onChange={handleInputChange}
 		         onKeyPress={handleKeyPress}
@@ -94,11 +82,16 @@ export default function SearchBar({ onSearch }) {
 	
 			  <BarStatusContext.Provider value={[ barActiveStatus ]}>
 			  </BarStatusContext.Provider>
+
+			{/* The vermilion line that draws under the hairline while the bar is active */}
+			<div 
+			 id="external"
+			 className={`
+				 absolute left-0 right-0 -bottom-px h-[3px] bg-vermilion origin-left transition-transform duration-300 ease-out
+				 ${ barActiveStatus ? "scale-x-100" : "scale-x-0" }
+			`}/>
 	
 		</div>
 	</div>
   );
 }
-
-
-

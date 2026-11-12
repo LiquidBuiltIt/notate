@@ -1,5 +1,6 @@
 import React from 'react';
 import { NoteColors } from './NoteColorProvider.js'
+import noteSwatch from '@universal/Utils/noteSwatch.js'
 import { NotateContext } from '@notate/Notate.jsx'
 import NoteModal, { NoteModalContext } from '../NoteModal.jsx';
 
@@ -40,13 +41,18 @@ export default function NoteColorPicker() {
 
 
 
+	const swatch = noteSwatch(colorIndex)
+
 	return (
-		<span id="note-color-picker"
-		className="trans-ease flex size-8 bg-[#444] rounded-md items-center justify-center cursor-pointer hover:bg-[#555]"
+		<button id="note-color-picker"
+		type="button"
+		title="Change note colour"
+		aria-label={`Note colour: ${swatch.name}. Click for the next colour.`}
+		className="smallcaps focus-ink trans-ease shrink-0 flex items-center gap-3 pb-2 text-ink-soft cursor-pointer hover:text-ink"
 		onClick={handleColorPickerClick}>
 			<span id="color"
-			className={ `block size-[1rem] ${selectedColor?.card || "bg-gray-200" } ` }></span>
-		</span>
+			className={ `block size-[14px] ${swatch.bg}` }></span>
+			{swatch.name}
+		</button>
 	)
 }
-

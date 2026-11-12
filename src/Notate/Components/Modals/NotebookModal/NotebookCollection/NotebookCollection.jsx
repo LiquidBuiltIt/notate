@@ -66,13 +66,13 @@ export default function NotebookCollection() {
 
 
 	return (
-		<div id="notebook-collection" className="flex flex-col flex-grow space-y-4">
+		<div id="notebook-collection" className="flex flex-col flex-grow min-h-0">
 			
 			<div 
 			 id="note-card-collection" 
 			 className={`
-				flex space-x-[1.25rem] items-center 
-				flex-grow px-3 py-1 overflow-x-auto overflow-y-visible flex-nowrap
+				flex gap-5 items-center 
+				flex-grow px-1 py-2 overflow-x-auto overflow-y-hidden flex-nowrap
 			`}
 			 onDragOver={handleDragOver}
 			 onDrop={handleNoteDrop}

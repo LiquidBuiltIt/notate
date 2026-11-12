@@ -19,12 +19,12 @@ export default function NoteModalInput() {
 
 		<div 
 		 id="title-n-color-section"
-		 className="flex py-1  my-2 space-x-2"
+		 className="flex items-end gap-6 mb-4"
 		>
 	       		 <input
 	       		   type="text"
 	       		   id="edit-note-title"
-	       		   className="flex-grow h-8 px-2 inline-block border-none rounded bg-[#444] text-white text-base outline-none"
+	       		   className="flex-grow min-w-0 pb-1 bg-transparent border-b border-ink rounded-none font-display italic text-[30px] leading-tight text-ink caret-vermilion outline-none placeholder:text-ink-faint focus:border-vermilion"
 	       		   placeholder="What's on your mind...?"
 	       		   value={title}
 	       		   onChange={handleTitleChange}
@@ -33,8 +33,7 @@ export default function NoteModalInput() {
 			<NoteColorPicker/>
 		</div>
 
-			<
-			 TextEditor TailwindClassNames={"fill-gray-200 stroke-gray-200"}/>	
+			<TextEditor TailwindClassNames={"fill-ink stroke-ink"}/>	
 	</TextInputContext.Provider>
 
 	)

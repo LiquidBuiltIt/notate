@@ -7,10 +7,10 @@ export default function RightSection() {
 
 	return (
 	  			<div id="notebook-modal-seperator"
-	  			className="flex flex-col h-full min-w-[2rem] max-w-[2rem] space-y-[1rem] ml-auto py-[1rem] mr-[2rem] items-center justify-center">
-					<DeleteNotebookButton/>
-					<span id="spacer" className="flex-grow"></span>
+	  			className="flex flex-col h-full shrink-0 w-[11rem] ml-auto py-5 px-6 items-end border-l border-ink">
 					<CloseModalButton/>
+					<span id="spacer" className="flex-grow"></span>
+					<DeleteNotebookButton/>
 				</div>
 	)
 }

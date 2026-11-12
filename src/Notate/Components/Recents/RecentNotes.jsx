@@ -185,9 +185,8 @@ export default function RecentNotes({ searchTerm }) {
 		<div 
 		 id="recent-notes" 
 	  	 className={`
-		 	w-full flex-grow  flex flex-col items-center 
-			rounded-xl mx-auto mt-10 trans-ease-all p-[1rem]
-			${ hoverState ? "bg-black bg-opacity-25" : "" }
+		 	w-full flex-grow flex flex-col mt-14 pb-6 trans-ease-all
+			${ hoverState ? "bg-vermilion-wash" : "" }
 		 `}
 		 onDrop={handleNoteDrop}
 		 onDragOver={handleNoteHover}
@@ -196,17 +195,17 @@ export default function RecentNotes({ searchTerm }) {
 		>
 	  		<header 
 			 id="recent-notes-header"
-	  		 className="flex flex-row w-full max-h-[3rem] justify-between mb-5"
+	  		 className="flex flex-row w-full items-baseline justify-between gap-4 mb-8 pb-3 border-b border-ink"
 			>
 				<h2 
 				 id="recent-notes-title" 
 	  			 className={`
-				 	text-2xl playfair-regular font-extrabold 
-					${theme.text.h2 || ""} mb-5 trans-ease-all
-					${hoverState ? "text-white" : ""}
+				 	font-display italic text-[32px] leading-none
+					${theme.text.h2 || ""} trans-ease-all
 				`}>
-	  				Your Recent Notes...
+	  				Recent notes
 	  			</h2>
+				<span className={`smallcaps ${theme.text.muted || ""}`}>Contents</span>
 	  		</header>
 			
 	  		<Suspense fallback={<Loading/>}>
