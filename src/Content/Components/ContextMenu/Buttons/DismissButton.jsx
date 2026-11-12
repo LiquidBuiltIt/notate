@@ -8,8 +8,10 @@ import {
 } from './dismissUtils.js';
 
 export default function DismissButton() {
-    const { CONTEXT_MENU_CONTEXT } = React.useContext(ContextMenuHoverRegionContext);
+    const { CONTEXT_MENU_CONTEXT, CORNER_CONTEXT } = React.useContext(ContextMenuHoverRegionContext);
     const [ contextMenuState, setContextMenuState ] = CONTEXT_MENU_CONTEXT;
+    const [ corner ] = CORNER_CONTEXT;
+    const left = corner.endsWith('left');
     const { 
         USER_CONFIGURATION_DB_CONTEXT,
         REQUEST_CONTEXT,
@@ -75,12 +77,13 @@ export default function DismissButton() {
     
     return (
         <div className="relative">
-            {/* Extra options that open beside the dismiss tag */}
+            {/* Extra options that open beside the dismiss tag, toward the middle of the page */}
             <div 
                 className={`
-                    absolute right-full bottom-0 mr-3 flex items-center gap-2
+                    absolute bottom-0 flex items-center gap-2
                     transition-all duration-300 ease-out
-                    ${showExtraButtons ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-6 pointer-events-none'}
+                    ${left ? 'left-full ml-3' : 'right-full mr-3'}
+                    ${showExtraButtons ? 'opacity-100 translate-x-0' : `opacity-0 ${left ? '-translate-x-6' : 'translate-x-6'} pointer-events-none`}
                 `}
             >
                 <ExtraButton 
@@ -104,7 +107,7 @@ export default function DismissButton() {
                 onClick={handleDismissClick}
             >
                 <span aria-hidden="true" className={TAG_GLYPH_CLASS}>
-                    {showExtraButtons ? '\u2039' : '\u00D7'}
+                    {showExtraButtons ? (left ? '\u203A' : '\u2039') : '\u00D7'}
                 </span>
                 <label className={`${TAG_LABEL_CLASS} cursor-pointer`}>
                     {`Dismiss Menu`}

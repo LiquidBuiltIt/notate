@@ -11,7 +11,8 @@ import SettingsModal from '@content/Components/Modals/SettingsModal/SettingsModa
 /**
  * Root component for the content script's Context Menu. Stores
  * menu items as objects in the 'items' array that is supplied to
- * the ContextItem component. The tags fan out above the seal.
+ * the ContextItem component. The tags fan out from the seal, above it
+ * in the bottom corners and below it in the top corners.
  */
 export default function ContextMenu(){
 	const items = [{
@@ -27,8 +28,10 @@ export default function ContextMenu(){
 
 	}]
 
-	const { CONTEXT_MENU_CONTEXT } = React.useContext(ContextMenuHoverRegionContext)
+	const { CONTEXT_MENU_CONTEXT, CORNER_CONTEXT } = React.useContext(ContextMenuHoverRegionContext)
 	const [ contextMenuState, setContextMenuState ] = CONTEXT_MENU_CONTEXT
+	const [ corner ] = CORNER_CONTEXT
+	const top = corner.startsWith('top'), left = corner.endsWith('left')
 
 	// New note, the items, then dismiss. The tag nearest the seal appears first.
 	const tags = [
@@ -50,8 +53,9 @@ export default function ContextMenu(){
 		<div 
 		 id="context-menu" 
 		 className={`
-		 	absolute right-3.5 bottom-[calc(50%+2.1rem)] w-max
-			flex flex-col items-end gap-2 font-serif text-ink
+		 	absolute w-max flex gap-2 font-serif text-ink
+			${ top ? 'top-[calc(50%+2.1rem)] flex-col-reverse' : 'bottom-[calc(50%+2.1rem)] flex-col' }
+			${ left ? 'left-3.5 items-start' : 'right-3.5 items-end' }
 			${ contextMenuState ? "" : "pointer-events-none" }
 		`}>
 		{tags.map( (tag, i) => (
@@ -60,7 +64,7 @@ export default function ContextMenu(){
 			 style={{ transitionDelay: contextMenuState ? `${(tags.length - 1 - i) * 50}ms` : '0ms' }}
 			 className={`
 				transition-[opacity,transform] duration-300 ease-out
-				${ contextMenuState ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 pointer-events-none" }
+				${ contextMenuState ? "opacity-100 translate-y-0" : `opacity-0 ${ top ? '-translate-y-3' : 'translate-y-3' } pointer-events-none` }
 			`}>
 				{tag}
 			</div>

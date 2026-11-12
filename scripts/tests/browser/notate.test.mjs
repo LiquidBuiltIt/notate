@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { launch, startFixture, openFixture, openContextMenu, ui, waitFor, sleep, EXT_ID } from './helper.mjs'
+import { launch, startFixture, openFixture, openContextMenu, ui, waitFor, sleep, EXT_ID, CONTENT_ROOT } from './helper.mjs'
 
 const NEWTAB = `chrome-extension://${EXT_ID}/notate.html`
 let b, fx
@@ -135,6 +135,27 @@ test('dismiss "For This Session" hides the menu, also after a reload', async () 
 	await waitFor(() => page.eval(`!!document.querySelector('#content-script-entry-point')`), 'content script root')
 	await sleep(1500)
 	assert.equal(await c.exists('#context-menu-hover-region'), false)
+})
+
+test('dragging the seal snaps it to the nearest corner, does not open the menu, and the corner survives a reload', async () => {
+	await waitFor(config, 'seeded config')
+	const { page, c } = await openFixture(b, fx)
+	await page.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
+	const region = () => page.eval(`(() => { const r = (${CONTENT_ROOT}).querySelector('#context-menu-hover-region').getBoundingClientRect(); return [r.top, r.left] })()`, 'content')
+	await c.hover('#context-menu-hover-region')
+	const s = await c.center('#context-menu-btn')
+	await page.mouse('mousePressed', s.x, s.y, { buttons: 1 })
+	for (let i = 1; i <= 5; i++) await page.mouse('mouseMoved', s.x - (s.x - 100) * i / 5, s.y - (s.y - 150) * i / 5, { buttons: 1 })
+	await page.mouse('mouseReleased', 100, 150, { buttons: 0 })
+	await waitFor(async () => (await region()).join() === '32,0', 'seal in the top-left corner')
+	assert.equal(await page.eval(`(${CONTENT_ROOT}).querySelector('#context-menu').className.includes('pointer-events-none')`, 'content'), true, 'menu stays closed after a drag')
+	await page.send('Page.reload')
+	await waitFor(() => page.eval(`!!document.querySelector('#content-script-entry-point')`), 'content script root')
+	await c.appear('#context-menu-btn')
+	await waitFor(async () => (await region()).join() === '32,0', 'seal still in the top-left corner after a reload')
+	await openContextMenu(c)
+	await waitFor(async () => !(await page.eval(`(${CONTENT_ROOT}).querySelector('#context-menu').className.includes('pointer-events-none')`, 'content')), 'a click still opens the menu')
+	assert.deepEqual(b.errors, [])
 })
 
 test('dismiss "For This Site" stores the site in config', { todo: 'dismissForSite() is imported but never called, so the site is not stored' }, async () => {

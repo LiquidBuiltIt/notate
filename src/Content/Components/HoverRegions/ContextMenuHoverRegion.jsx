@@ -25,10 +25,13 @@ export default function ContextMenuHoverRegion() {
 	// Use the shared context for menu dismissed state
 	const [ isMenuDismissed, setIsMenuDismissed ] = MENU_DISMISSED_CONTEXT
 	const [ isHovered, setIsHovered ] = React.useState(false)
+	// Which viewport corner the seal sits in: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+	const [ corner, setCorner ] = React.useState('bottom-right')
 	
 	const HOVER_REGION_CONTEXT = {
 		CONTEXT_MENU_CONTEXT: CONTEXT_MENU_CONTEXT,
-		HOVER_CONTEXT: [isHovered, setIsHovered]
+		HOVER_CONTEXT: [isHovered, setIsHovered],
+		CORNER_CONTEXT: [corner, setCorner]
 		// No need to expose SET_MENU_DISMISSED as it's now in WebContentContext
 	}
 
@@ -50,6 +53,11 @@ export default function ContextMenuHoverRegion() {
 
 	// Removed console.log useEffect
 
+
+	// The seal's corner is global, so it lives in extension storage, not the page's.
+	React.useEffect(() => {
+		chrome.storage.local.get('sealCorner').then(({ sealCorner }) => sealCorner && setCorner(sealCorner))
+	}, [])
 
 	// Check dismissal status when component mounts
 	React.useEffect(() => {
@@ -129,7 +137,11 @@ export default function ContextMenuHoverRegion() {
 			<div 
 			 id="context-menu-hover-region"
 			 ref={hoverReginonRef}
-			 className="fixed flex bottom-0 right-0 size-[7rem] items-center justify-center transition-opacity duration-300"
+			 className={`
+				fixed flex size-[7rem] items-center justify-center transition-opacity duration-300
+				${ corner.startsWith('top') ? 'top-8' : 'bottom-0' /* top-8 clears the related notes ribbon */ }
+				${ corner.endsWith('left') ? 'left-0' : 'right-0' }
+			 `}
 			 onMouseEnter={handleMouseEnter}
 			 onMouseLeave={handleMouseLeave}
 			>
