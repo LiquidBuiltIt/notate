@@ -77,13 +77,13 @@ function NoNotebooksFound() {
 		<section 
 		 id="no-notebooks-found-help-msg" 
 		 className={`
-		 	text-slate-100 text-opacity-90 text-center
+		 	text-ink-soft text-center font-serif
 			flex flex-col space-y-2
 		`}>
-			<label>
+			<label className="font-display italic font-semibold text-[1.25rem] text-ink">
 			{`You have no notebooks yet... \n`}
 			</label>
-			<label>
+			<label className="italic text-[15px]">
 			{`Go back to your Notate page to create one!`}
 			</label>
 		</section>

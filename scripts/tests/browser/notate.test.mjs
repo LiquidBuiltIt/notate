@@ -416,7 +416,7 @@ test('"Insert Image" from the editor context menu still inserts the picked image
 
 test('scripted clicks cannot close the page editor window', async () => {
 	const { page, c } = await openPageEditor()
-	const closeBtn = '#editor-window-ctrl-center > svg:last-child'
+	const closeBtn = '#editor-window-ctrl-center > button:last-child'
 	await page.eval(`(() => { const el = chrome.dom.openOrClosedShadowRoot(document.querySelector('#content-script-entry-point')).querySelector(${JSON.stringify(closeBtn)}); el.dispatchEvent(new MouseEvent('click', { bubbles: true })) })()`, 'content')
 	await sleep(700)
 	assert.equal(await c.exists('#edit-title'), true, 'scripted click did not close the editor')

@@ -90,8 +90,8 @@ export default function Modal({modal}) {
 		 id={MODAL_CONTAINER_ID}
 		 className={`
 			 trans-ease-all fixed left-0 top-0 flex flex-col
-			 w-full h-full bg-black z-[90] 
-			 ${ transition ? "bg-opacity-30" : "bg-opacity-0" }
+			 w-full h-full bg-paper z-[90] font-serif text-ink
+			 ${ transition ? "bg-opacity-60" : "bg-opacity-0" }
 			 items-center justify-center pointer-events-none
 		`}>
 		<ModalControllerContext.Provider value={MODAL_CONTROLLER_CONTEXT}>

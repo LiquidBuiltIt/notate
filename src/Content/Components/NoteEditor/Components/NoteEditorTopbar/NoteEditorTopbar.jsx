@@ -13,8 +13,8 @@ export default function NoteEditorTopbar() {
 		<header 
 		 id="editor-title" 
 		 className={`
-			h-10 w-full rounded-t flex pointer-events-auto
-			${note?.color?.styles?.top || "bg-yellow-300"} 
+			h-10 w-full flex shrink-0 items-stretch pointer-events-auto
+			border-b border-ink
 		`}>
 
 			<NoteEditorTitle/>

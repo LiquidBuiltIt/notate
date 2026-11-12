@@ -6,7 +6,6 @@ import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextIn
 import { NoteEditorTitleContext } from '../NoteEditorTopbar/Components/NoteEditorTitle.jsx' 
 import { NotificationContext } from '@universal/Components/NotificationMessenger.jsx';
 import { WebContentContext } from '@content/content.jsx';
-import SaveNoteLogo from '@assets/Designs/save-note-logo.svg'
 
 const NOTATE_DB = "notate"
 const ERROR_LOGGING_DB = "errorLogging"
@@ -49,13 +48,13 @@ export default function SaveNoteButton() {
 	return (
 		<button id="save-note-btn"
 		className={ `
-			trans-ease flex h-6 w-10 rounded 
-			${ permittedToSave ? "bg-black bg-opacity-25 hover:bg-green-400 hover:bg-opacity-100" : "backdrop-filter backdrop-brightness-[.80]" } 
-			text-white items-center justify-center 
+			focus-ink smallcaps flex h-7 px-3 border items-center justify-center
+			transition-colors duration-150
+			${ permittedToSave ? "bg-ink text-paper border-ink hover:bg-vermilion hover:border-vermilion" : "bg-transparent text-ink-faint border-paper-edge cursor-not-allowed" } 
 		`}
 		onClick={(e)=>{ if (e.isTrusted) handleSave(title, content) }}
 		disabled={!permittedToSave}>
-			<SaveNoteLogo className="size-4"/>
+			{`Save`}
 		</button>
 	)
 }

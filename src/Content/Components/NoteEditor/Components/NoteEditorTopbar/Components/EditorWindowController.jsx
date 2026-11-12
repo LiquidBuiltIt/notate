@@ -1,10 +1,6 @@
 import React from 'react';
 import { WebContentContext } from '@content/content.jsx'
 
-import CloseBtn from '@assets/Designs/Window-Controls/close-icon.svg';
-import MaximizeBtn from '@assets/Designs/Window-Controls/maximize-icon.svg';
-import MinimizeBtn from '@assets/Designs/Window-Controls/minimize-icon.svg';
-
 
 export const NoteEditorWindowDisplayContext = React.createContext()
 
@@ -40,19 +36,32 @@ export default function EditorWindowController() {
 		}
 	},[noteWindowState])
 
+	const ctrl = `
+		focus-ink flex w-8 items-center justify-center border-l border-paper-edge font-serif
+		text-[1.35rem] leading-none text-ink-soft cursor-pointer transition-colors duration-150
+	`
+
 	return (
 		<div id="editor-window-ctrl-center"
-			className="flex px-2 items-center pointer-events-auto">	
+			className="flex items-stretch pointer-events-auto border-l border-ink">	
 				
-			<MinimizeBtn
-				className="trans-ease size-8 rounded fill-black opacity-35 cursor-pointer hover:opacity-50"
-				onClick={runMinimizeWindow}/>
-			<MaximizeBtn
-				className="trans-ease size-8 rounded fill-black opacity-35 cursor-pointer hover:opacity-50"
-				onClick={runMaximizeWindow}/>
-			<CloseBtn 
-				className="trans-ease size-8 rounded fill-black opacity-35 cursor-pointer hover:fill-red-400 hover:opacity-100"
-				onClick={runCloseWindow}/>
+			<button
+				aria-label="Minimize"
+				title="Minimize"
+				className={`${ctrl} hover:bg-ink hover:text-paper`}
+				onClick={runMinimizeWindow}>&ndash;</button>
+			<button
+				aria-label="Maximize"
+				title="Maximize"
+				className={`${ctrl} hover:bg-ink hover:text-paper`}
+				onClick={runMaximizeWindow}>
+				<span aria-hidden="true" className="block size-[0.65rem] border border-current"/>
+			</button>
+			<button 
+				aria-label="Close"
+				title="Close"
+				className={`${ctrl} hover:bg-vermilion hover:text-paper`}
+				onClick={runCloseWindow}>&times;</button>
 		</div>
 	)
 }
