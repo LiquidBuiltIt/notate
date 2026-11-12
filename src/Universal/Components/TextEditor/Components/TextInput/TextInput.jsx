@@ -181,9 +181,9 @@ export default function TextInput() {
         		 id={TEXT_EDITOR_ID}
         		 ref={textDisplayRef}
         		 className={`
-			 	 ${ root === shadowRootElement ? "text-black" : "text-white" }
-				 w-full h-full max-h-[100vh] p-2  
-				 rounded bg-inherit outline-none text-base
+			 	 font-serif text-[17px] leading-[1.6] text-ink caret-vermilion selection:bg-vermilion-wash
+				 w-full h-full max-h-[100vh] px-5 py-4  
+				 rounded-none bg-transparent outline-none
 			 `}
         		 contentEditable
 			 suppressContentEditableWarning

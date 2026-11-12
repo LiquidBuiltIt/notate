@@ -13,13 +13,15 @@ export default function SettingsTopBar() {
 
 	return (
 		<header id="settings-top-bar"
-		className="w-full flex py-5 justify-between">
+		className="w-full flex pt-6 pb-3 mb-4 items-baseline justify-between border-b-2 border-ink">
 			
-			<h1 id="settings-title" className={`text-2xl text-white playfair-bold`}>Settings</h1>
+			<h1 id="settings-title" className="font-display italic font-semibold text-[40px] leading-none text-ink">Settings</h1>
 
 			<button 
 			 id="exit-settings-button"
-			 className="trans-ease text-4xl text-[#777] font-bold hover:text-red-300"
+			 aria-label="Close settings"
+			 title="Close settings"
+			 className="focus-ink font-serif text-[34px] leading-none px-2 text-ink-faint transition duration-150 ease-out hover:text-vermilion-ink"
 			 onClick={handleExitSettingsButtonClick}
 			>
 				&times;

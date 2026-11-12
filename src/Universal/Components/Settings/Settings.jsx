@@ -99,9 +99,9 @@ export default function Settings({ContextAdapter, targetModule, setterCallback})
 		<div 
 		 id="settings-modal-container"
 		 className={`
-			 trans-ease fixed flex left-0 top-0 w-screen h-screen bg-opacity-40 
-			 ${ settingsState ? "bg-black" : "bg-transparent" } 
-			 justify-center z-modal playfair-regular
+			 trans-ease fixed flex left-0 top-0 w-screen h-screen 
+			 ${ settingsState ? "bg-paper/75" : "bg-transparent" } 
+			 justify-center z-modal font-serif text-ink
 		 `}>
 
 			<div 
@@ -109,17 +109,17 @@ export default function Settings({ContextAdapter, targetModule, setterCallback})
 			 className={`
 			 	trans-ease flex flex-col absolute px-[2rem] 
 			 	${ settingsState ? "translate-y-[0%]" : "translate-y-[100%]" } 
-			 	h-[85%] md:w-[60%] w-[95%] bottom-0 bg-zinc-800 rounded-t-xl  
+			 	h-[85%] md:w-[60%] w-[95%] bottom-0 paper-grain rounded-none border-x border-t border-ink shadow-print-lg  
 			`}>
 
 				<SettingsContext.Provider value={SETTINGS_CONTEXT}>
 					<SettingsTopBar/>	
-						<main id="settings-content" className="overflow-auto space-y-5">
+						<main id="settings-content" className="overflow-auto space-y-8 pb-4">
 						{ targetModule instanceof Array && targetModule.map( module => {
 							return (
-								<ul className="space-y-3 mx-4"
+								<ul className="space-y-4 mx-4"
 								key={module}>
-									<header className="text-xl text-white font-bold">
+									<header className="smallcaps text-vermilion-ink pb-2 border-b border-ink">
 									{module}</header>
 									<ConfigurationModule
 									module={module}/>

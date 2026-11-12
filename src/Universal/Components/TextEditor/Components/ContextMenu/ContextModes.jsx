@@ -24,9 +24,9 @@ export function NormalMode() {
 				 id={cmd.type}
 				 onClick={()=> consumeAction(cmd.action)}
 				 className={`
-				 	w-full h-[2rem] flex items-center justify-center 
-					text-center text-[.8rem]  text-white cursor-default
-					hover:bg-zinc-600
+				 	focus-ink smallcaps w-full h-[2rem] px-3 flex items-center justify-start 
+					text-left text-ink cursor-default border-b border-paper-edge
+					transition duration-150 ease-out hover:bg-ink hover:text-paper
 				`}>
 				{cmd.name}
 				</button>
@@ -49,7 +49,7 @@ export function SelectionMode() {
 	return (
 		<li 
 		 id="selection-mode"
-		 className="flex flex-col"
+		 className="flex flex-col border-t border-ink"
 		>
 		{SelectionModeCmds.map( (cmd, id) => {
 			return (
@@ -58,9 +58,9 @@ export function SelectionMode() {
 				 id={cmd.type}
 				 onClick={()=> consumeAction(cmd.action)}
 				 className={`
-				 	w-full h-[2rem] flex items-center justify-center
-					text-center text-[.8rem] text-white cursor-default
-					hover:bg-zinc-600
+				 	focus-ink smallcaps w-full h-[2rem] px-3 flex items-center justify-start 
+					text-left text-ink cursor-default border-b border-paper-edge
+					transition duration-150 ease-out hover:bg-ink hover:text-paper
 				`}>
 				{cmd.name}
 				</button>

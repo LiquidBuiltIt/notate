@@ -25,7 +25,7 @@ export default function TextEditor({ToolbarComponents, TailwindClassNames, Shado
 	  	 ref={contextMenuReferrer}
 		 className={`
 		 	${TailwindClassNames} 
-			flex flex-col flex-grow overflow-auto
+			flex flex-col flex-grow overflow-auto font-serif text-ink
 		`}>
 		  	<ShadowRootContext.Provider value={[ShadowRootElement]}>
       				<Toolbar ControllerComponents={ToolbarComponents}/>
