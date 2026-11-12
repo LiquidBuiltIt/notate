@@ -8,7 +8,7 @@ export default function RelatedNote({note, tagId, index = 0}) {
 	const [ noteWindowState, setNoteWindowState ] = NOTE_WINDOW_CONTEXT 
 	const [ targetNote, setTargetNote ] = NOTE_CONTEXT
 	const swatch = noteSwatch(note?.color)
-	const host = typeof note?.origin === 'string' ? note.origin.split('/')[0] : ''
+	const host = typeof note?.origin === 'string' ? note.origin.split('/')[0].replace(/^www\./, '') : ''
 
 	const handleNoteClick = (event) => {
 		if (!event.isTrusted) return
@@ -48,7 +48,7 @@ export default function RelatedNote({note, tagId, index = 0}) {
 				overflow-hidden text-ellipsis whitespace-nowrap
 				decoration-vermilion decoration-2 underline-offset-4 group-hover:underline
 			`}>{note.title}</p>
-			{host && <span className="smallcaps max-w-[5.5rem] shrink-0 truncate text-ink-faint">{host}</span>}
+			{host && <span className="smallcaps max-w-[5.5rem] shrink-0 truncate text-ink-soft" title={host}>{host}</span>}
 		</header>
 
 	)

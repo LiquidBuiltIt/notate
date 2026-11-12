@@ -13,48 +13,31 @@ export default function NotebookCollection() {
 	const [ response, makeRequest ] = REQUEST 
 	const [ notatedb ] = NOTATE_DB
 
-	const [ notebooks, setNotebooks ] = React.useState([])
-	const [ isEmpty, setIsEmpty ] = React.useState(false)
+	const notebooks = React.useMemo(() => (notatedb?.inventory?.NOTEBOOKS ?? []).slice().sort((a, b) => a.id - b.id), [notatedb])
+	const isEmpty = notebooks.length <= 0
 
+	// Drops are queued as a copy of the notebook with the note added; Save writes the queue.
 	const handleNoteDrop = (notebook, note) => {
-		try {
-			const id = note.id
-			const dupe = notebook.collection.some( (item) => item === id )
+		const queued = queue.find( (item) => item.id === notebook.id )
+		const current = queued ?? notebook
 
-			if (!dupe) {
-				notebook.collection.push(id)
-				add2Queue(queue => ([...queue, notebook]))
-			}
-		} catch(error) {
-
+		if (!current.collection.includes(note.id)) {
+			const updated = { ...notebook, collection: [...current.collection, note.id] }
+			add2Queue(queue => ([...queue.filter( (item) => item.id !== notebook.id ), updated]))
 		}
 	}
 
-
-	React.useEffect(()=>{
-		const asyncProcessor = async () => {
-			if (notatedb.inventory) {
-				const inventory = notatedb.inventory
-
-				setNotebooks(inventory.NOTEBOOKS)
-
-			} 
-		}
-
-		asyncProcessor()
-	},[notatedb])
-
-	React.useEffect(()=>{
-		setIsEmpty(notebooks.length <= 0)
-	},[notebooks])
+	const pendingFor = (notebook) => {
+		const queued = queue.find( (item) => item.id === notebook.id )
+		return queued ? queued.collection.length - notebook.collection.length : 0
+	}
 
 	return (
 		<main 
 		 id="notebook-collection" 
 		 className={`
-		 	flex items-center  space-x-[1rem] 
-			${ isEmpty ? "justify-center" : "" }
-			overflow-x-auto px-[1rem] flex-grow
+		 	flex flex-col w-full flex-grow min-h-0 overflow-y-auto px-[1rem]
+			${ isEmpty ? "justify-center items-center" : "" }
 		`}>
 
 		{isEmpty ? <NoNotebooksFound/> 
@@ -62,8 +45,11 @@ export default function NotebookCollection() {
 			return (
 				<
 				 NotebookCard
-				 key={key}
+				 key={notebook.id}
 				 notebook={notebook}
+				 volume={key + 1}
+				 inventory={notatedb?.inventory?.NOTES}
+				 pending={pendingFor(notebook)}
 				 updatesDispatcher={handleNoteDrop}
 				/>	
 			)

@@ -63,7 +63,7 @@ export default function NewItemButton(){
 					 className="smallcaps focus-ink flex justify-between items-center gap-4 px-4 py-4 text-left border-b border-paper-edge trans-ease hover:bg-paper-deep hover:text-vermilion-ink"
 					 onClick={handleNewNoteClick}
 					>
-						<span className="whitespace-nowrap">+ Note</span><span className="font-display italic normal-case tracking-normal text-sm text-ink-faint whitespace-nowrap">a loose page</span>
+						<span className="whitespace-nowrap">+ Note</span><span className="font-display italic normal-case tracking-normal text-sm text-ink-soft whitespace-nowrap">a loose page</span>
 					</button>
 
 					<button 
@@ -72,7 +72,7 @@ export default function NewItemButton(){
 					 className="smallcaps focus-ink flex justify-between items-center gap-4 px-4 py-4 text-left trans-ease hover:bg-paper-deep hover:text-vermilion-ink"
 					 onClick={handleNewNotebookClick}
 					>
-						<span className="whitespace-nowrap">+ Notebook</span><span className="font-display italic normal-case tracking-normal text-sm text-ink-faint whitespace-nowrap">a bound set</span>
+						<span className="whitespace-nowrap">+ Notebook</span><span className="font-display italic normal-case tracking-normal text-sm text-ink-soft whitespace-nowrap">a bound set</span>
 					</button>
 				</div>
 				

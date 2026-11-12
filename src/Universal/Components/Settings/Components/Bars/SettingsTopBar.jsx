@@ -21,7 +21,7 @@ export default function SettingsTopBar() {
 			 id="exit-settings-button"
 			 aria-label="Close settings"
 			 title="Close settings"
-			 className="focus-ink font-serif text-[34px] leading-none px-2 text-ink-faint transition duration-150 ease-out hover:text-vermilion-ink"
+			 className="focus-ink font-serif text-[34px] leading-none px-2 text-ink-soft transition duration-150 ease-out hover:text-vermilion-ink"
 			 onClick={handleExitSettingsButtonClick}
 			>
 				&times;

@@ -2,7 +2,6 @@ import React from 'react';
 import { RecentNotesContext } from './../RecentNotes.jsx'
 import { NotateContext } from '@notate/Notate.jsx';
 import NoteCard from '@universal/Components/NoteCard.jsx';
-import NotebookCard from '@universal/Components/NotebookCard.jsx';
 import { NoItemsFound, EmptyRecentsContent } from './Displays.jsx'
 
 
@@ -107,7 +106,7 @@ export default function DisplayMode() {
 		if (dupeFreeNoteList) setSortedNotes(dupeFreeNoteList)
 		if (results?.notebook) setSortedNotebooks(results.notebook)
 
-		const sortedBoolean = (sortedNotes.length > 0) || (sortedNotebooks.length > 0)
+		const sortedBoolean = sortedNotes.length > 0
 		setSortedItemsState(sortedBoolean)
 
 		const activeSearchBoolean = searchTerm !== ''
@@ -126,7 +125,7 @@ export default function DisplayMode() {
   		// displays, NoItemsFound Component if there is an active search term but no items returned, and the items 
   		// in all other cases.
 		//
-		const sortedBoolean = (sortedNotes.length > 0) || (sortedNotebooks.length > 0)
+		const sortedBoolean = sortedNotes.length > 0
 		setSortedItemsState(sortedBoolean)
 
 		const activeSearchBoolean = searchTerm !== ''
@@ -165,12 +164,12 @@ export default function DisplayMode() {
 			{
 				sortedItemsNotEmpty ? (
 					<div id="recent-notes-grid" 
-					className="grid grid-cols-[repeat(auto-fill,230px)] justify-between gap-x-6 gap-y-10 items-start">
+					className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-x-6 gap-y-10 items-start">
 						{
 							sortedNotes.map((note, index) => {
 								return (
 									<div key={index} 
-									 className="animate-rise min-w-0 [&:nth-child(3n+2)]:mt-8 [&:nth-child(3n)]:mt-3"
+									 className="animate-rise min-w-0 [&:nth-child(even)]:mt-6"
 									 style={{ animationDelay: `${Math.min(index, 11) * 40 + 120}ms` }}>
 										<NoteCard 
 										 note={note} 
@@ -181,33 +180,7 @@ export default function DisplayMode() {
 							})
 						}
 					</div>
-				) : ( activeSearch ? <NoItemsFound/> : <EmptyRecentsContent/> ) 
-			}
-			{
-				sortedNotebooks.length > 0 && (
-					<section id="notebook-shelf" className="mt-24">
-						<p className="smallcaps text-ink-soft mb-3">Notebooks</p>
-						<div id="notebook-shelf-row" className="flex flex-wrap items-end gap-[10px] pt-2 border-b-[3px] border-ink">
-							{
-								sortedNotebooks.map((notebook, index) => {
-									return (
-										<div key={index} 
-										 className="animate-rise" 
-										 style={{ animationDelay: `${Math.min(index, 11) * 40 + 200}ms` }}>
-											<NotebookCard 	      
-											 notebook={notebook} 
-											 onNotebookClick={() => FUNCTIONS.HANDLE_NOTEBOOK_CLICK(notebook)}
-											 onNoteClick={FUNCTIONS.HANDLE_NOTE_CLICK}
-											 updatesDispatcher={FUNCTIONS.NOTEBOOK_DRAGDROP_LISTENER}
-											 inventory={database?.inventory}
-											/>
-										</div>
-									)
-								})
-							}
-						</div>
-					</section>
-				)
+				) : ( activeSearch ? <NoItemsFound/> : <EmptyRecentsContent filed={notebookList.length > 0}/> ) 
 			}
     		</div>
 	)

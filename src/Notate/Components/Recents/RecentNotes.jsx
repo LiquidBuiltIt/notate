@@ -67,39 +67,15 @@ export default function RecentNotes({ searchTerm }) {
 		} 
 	};
 
- 	const handleNotebookClick = (notebook) => { if (!selectedNote) {
-			setSelectedNotebook(notebook);
-			setModalState(true)
-		} 
-	};
-
   	const handleModalClose = () => {
     		setSelectedNote(null);
     		setSelectedNotebook(null);
   	};
 
 
-	const notebookDragDropListener = async (notebook, note) => {
-		try {
-			notebook.collection.push(note.id)
-			await makeRequest({ 
-				type: 'POST_DATABASE', 
-				data: notebook, 
-				store: 'NOTEBOOKS',
-				database: NOTATE_DB
-			})	
-			setUpdateState(true)
-		} catch (e) {
-			console.error(`Error making changes: ${e}`)
-			setNotification(notification.showError())
-		}
-	}
-
 	RECENT_NOTES_CONTEXT.FUNCTIONS = {
 		HANDLE_NOTE_CLICK: handleNoteClick,
-		HANDLE_NOTEBOOK_CLICK: handleNotebookClick,
-		HANDLE_MODAL_CLOSE: handleModalClose,
-		NOTEBOOK_DRAGDROP_LISTENER: notebookDragDropListener 
+		HANDLE_MODAL_CLOSE: handleModalClose
 	}
 
 

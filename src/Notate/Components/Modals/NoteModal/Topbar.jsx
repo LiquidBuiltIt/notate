@@ -1,6 +1,9 @@
 import React from 'react';
+import { NotateContext } from '@notate/Notate.jsx';
 
 export default function NoteModalTopbar({onExit}) {
+	const [ note ] = React.useContext(NotateContext).NOTE_CONTEXT
+
 	return (
 		<>
 	  		<div 
@@ -10,7 +13,7 @@ export default function NoteModalTopbar({onExit}) {
           			<h2 
 				 id="modal-title" 
 				 className="font-display italic text-[28px] leading-none text-ink"
-				> Edit Note </h2>
+				>{ note?.id ? 'Edit Note' : 'New Note' }</h2>
 
           			<button id="close" 
 				type="button"

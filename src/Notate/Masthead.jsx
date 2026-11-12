@@ -2,11 +2,11 @@ import React from 'react';
 import { mastheadParts } from './dateWords.js'
 
 // The showpiece: today's date written out in giant italic type.
-export default function Masthead({ theme, noteCount, notebookCount }) {
+export default function Masthead({ theme, noteCount, notebookCount, children }) {
 	const { weekday, day, month, year } = React.useMemo(() => mastheadParts(), [])
 
 	return (
-		<header id="page-header" className="xl:col-span-5 xl:sticky xl:top-0 xl:self-start pt-10 xl:pt-16">
+		<header id="page-header" className="xl:col-span-5 xl:sticky xl:top-0 xl:self-start xl:max-h-screen xl:flex xl:flex-col pt-10 xl:pt-16 xl:pb-8">
 			<p id="page-wordmark" className="smallcaps flex items-center gap-2 animate-rise">
 				<span className="block size-[7px] rounded-full bg-vermilion" aria-hidden="true"></span>
 				Notate
@@ -38,6 +38,8 @@ export default function Masthead({ theme, noteCount, notebookCount }) {
 			<p className={`smallcaps oldstyle mt-6 animate-rise ${theme.text.muted || ""}`} style={{ animationDelay: '720ms' }}>
 				{year} &nbsp;&middot;&nbsp; {noteCount} {noteCount === 1 ? 'note' : 'notes'} &nbsp;&middot;&nbsp; {notebookCount} {notebookCount === 1 ? 'notebook' : 'notebooks'}
 			</p>
+
+			{children}
 		</header>
 	)
 }

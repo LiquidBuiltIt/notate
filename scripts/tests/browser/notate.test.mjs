@@ -232,6 +232,7 @@ for (const [name, content] of [
 		await b.openPage(NEWTAB) // creates the databases
 		await waitFor(config, 'seeded config')
 		await plantNote(content)
+		await plantNote(content, { id: 2 }) // a loose note: filed notes show only inside their volume
 		await b.post('notate', 'NOTEBOOKS', { id: 1, title: 'Book', description: 'd', collection: [1], created: new Date().toISOString(), modified: new Date().toISOString() })
 		const page = await b.openPage(NEWTAB)
 		const n = ui(page)
@@ -391,13 +392,13 @@ test('the font size select changes the size of the selected text', async () => {
 	await page.eval(`document.execCommand('selectAll')`, 'content')
 	const select = '#font-size-controls select'
 	await page.eval(`chrome.dom.openOrClosedShadowRoot(document.querySelector('#content-script-entry-point')).querySelector(${JSON.stringify(select)}).focus()`, 'content')
-	const key = { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 }
+	const key = { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 } // the select starts at 3 (Normal)
 	await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...key })
 	await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...key })
-	await waitFor(async () => /<font [^>]*size="6"[^>]*>before/.test(await editorHtml(page)), 'text resized to 6')
+	await waitFor(async () => /<font [^>]*size="4"[^>]*>before/.test(await editorHtml(page)), 'text resized to 4')
 	await c.click('#save-note-btn')
 	const [saved] = await waitFor(async () => { const n = await notes(); return n.length && n }, 'note in IndexedDB')
-	assert.match(saved.content, /<font [^>]*size="6"[^>]*>before/)
+	assert.match(saved.content, /<font [^>]*size="4"[^>]*>before/)
 	assert.deepEqual(b.errors, [])
 })
 

@@ -67,7 +67,7 @@ export default function NotificationMsg() {
 				>
 					<div id="external" className={`w-[6px] ${kind.spine}`} aria-hidden="true"/>
 					<div id="internal" className="flex flex-col gap-[6px] py-3 pl-4 pr-6">
-						<span id="notification-label" className="smallcaps text-ink-faint">{kind.label}</span>
+						<span id="notification-label" className="smallcaps text-ink-soft">{kind.label}</span>
 						<h3 
 						 id="message"
 						 className="text-[17px] leading-snug font-medium"

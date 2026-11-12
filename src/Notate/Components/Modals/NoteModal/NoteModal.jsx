@@ -99,7 +99,7 @@ export default function NoteModal() {
 		<div 
 		 id="note-modal-container" 
     		 className={`
-			 trans-ease fixed flex items-center justify-center z-modal left-0 top-0 w-full h-full p-4 sm:p-8
+			 trans-ease fixed flex items-end justify-center z-modal left-0 top-0 w-full h-full
 			 ${transition ? "bg-paper/75" : "bg-transparent" }
 		 `}
     		 onMouseDown={handleMouseDown}
@@ -109,9 +109,9 @@ export default function NoteModal() {
 			 id="modal" 
       			 ref={modalRef}
       			 className={`
-				 trans-ease flex flex-col animate-unfold
-				 paper-grain hairline shadow-print-lg max-h-[46rem] h-full max-w-[52rem] 
-				 py-6 pr-8 pl-10 w-full relative box-border
+				 trans-ease flex flex-col ${ transition ? "translate-y-0" : "translate-y-full" }
+				 paper-grain border-x border-t border-ink shadow-print-lg h-[85%] max-w-[56rem] 
+				 py-6 pr-8 pl-10 w-[95%] relative box-border
 			 `}
       			 onClick={handlePreventingEventPropagation}
 			>

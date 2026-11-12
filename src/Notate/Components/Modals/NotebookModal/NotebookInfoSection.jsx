@@ -26,14 +26,14 @@ export default function NotebookInfoSection () {
 
 
 	return (
-		<div id="notebook-info-section" className="flex flex-col h-full w-[22rem] shrink-0 py-5 pl-8 pr-8 gap-4 border-r border-ink">
+		<div id="notebook-info-section" className="flex flex-col h-full w-[18rem] shrink-0 py-5 pl-8 pr-6 gap-4 border-r border-ink">
 			<p className="smallcaps text-vermilion-ink">Notebook</p>
 			<input 
 			 id="notebook-title" 
 			 aria-label="Notebook title"
 			 className="font-display italic text-[30px] leading-tight text-ink caret-vermilion bg-transparent border-b border-ink rounded-none pb-1 outline-none placeholder:text-ink-faint focus:border-vermilion"
 			 value={title}
-			 placeholder="Name your research topic..."
+			 placeholder="Name this notebook"
 			 onChange={handleTitleChange}
 			/>
 

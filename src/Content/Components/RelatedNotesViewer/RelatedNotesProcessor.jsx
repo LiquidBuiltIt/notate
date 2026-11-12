@@ -19,7 +19,8 @@ export default function RelatedNotesProcessor({database, view }) {
 	const [ headerState, setHeaderState ] = HEADER_STATE 
 	const [ endReached, setEndReached ] = END_REACHED
 
-	const [ processedNotes, setProcessedNotes ] = React.useState([])
+	// null until the first view is computed, so the empty line does not flash
+	const [ processedNotes, setProcessedNotes ] = React.useState(null)
 	const [ scroll, setScroll ] = React.useState(`-translate-x-[${position}%]`)
 
 	const gapRef = React.useRef(null)
@@ -116,6 +117,9 @@ export default function RelatedNotesProcessor({database, view }) {
 					/>
 				)
 			})}	
+			{processedNotes instanceof Array && processedNotes.length === 0 && (
+				<span id="no-related-notes" className="smallcaps self-center px-5 text-ink-soft whitespace-nowrap">No related notes on this page</span>
+			)}
 			<div 
 			 id="gap"
 			 ref={gapRef}

@@ -35,7 +35,9 @@ export default function NoteCard({ note, stackClass=false, onClick, onDragStart 
 	// Origin is stored as host + path; the card shows the host only.
 	const host = (note?.origin ?? '').replace(/^[a-z]+:\/\//i, '').split(/[/?#]/)[0].replace(/^www\./, '')
 	const stamp = new Date(note?.modified ?? note?.created)
-	const date = isNaN(stamp) ? '' : stamp.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+	// The year is shown only for older notes, so the host keeps its room.
+	const sameYear = stamp.getFullYear() === new Date().getFullYear()
+	const date = isNaN(stamp) ? '' : stamp.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) })
 	const number = String(note?.id ?? '').padStart(2, '0')
 
   return (
@@ -44,7 +46,7 @@ export default function NoteCard({ note, stackClass=false, onClick, onDragStart 
 	 id={`note-card-${note.id}`} 
 	 className={`
 		 ${ stackClass ? stackClass : '' }  
-		 group relative flex flex-col min-h-[170px] max-h-[170px] min-w-[230px] max-w-[230px] 
+		 group relative flex flex-col min-h-[170px] max-h-[170px] w-full min-w-0 
 		 rounded-none bg-paper-deep hairline overflow-hidden font-serif text-ink
 		 transition duration-150 ease-out transform hover:-translate-y-1 hover:shadow-lift cursor-pointer
 	 `} 
@@ -83,8 +85,8 @@ export default function NoteCard({ note, stackClass=false, onClick, onDragStart 
 			 id="note-meta" 
 			 className="mt-auto pt-2 flex items-baseline justify-between gap-2 border-t border-paper-edge"
 			>
-				<span className="smallcaps text-ink-faint overflow-hidden text-ellipsis whitespace-nowrap">{host || '\u2014'}</span>
-				<span className="oldstyle text-[12px] leading-none text-ink-faint whitespace-nowrap">{date}</span>
+				<span className="smallcaps tracking-[.06em] min-w-0 flex-1 text-ink-soft overflow-hidden text-ellipsis whitespace-nowrap" title={host}>{host || '\u2014'}</span>
+				<span className="oldstyle text-[12px] leading-none text-ink-soft whitespace-nowrap shrink-0">{date}</span>
 			</footer>
 	 	</div>
     </div>

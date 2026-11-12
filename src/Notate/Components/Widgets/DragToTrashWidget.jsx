@@ -83,12 +83,14 @@ export default function DragToTrashHandler() {
 	
 
 	React.useEffect(()=>{
-		RECENT_NOTES_ELEMENT = document.getElementById("recent-notes")
+		// Notes live in the recents, notebooks in the volumes list.
+		for (const id of ["recent-notes", "volumes"]) {
+			const element = document.getElementById(id)
 
-		if (RECENT_NOTES_ELEMENT) {
-
-			RECENT_NOTES_ELEMENT.addEventListener("dragstart", handleDragStart)
-			RECENT_NOTES_ELEMENT.addEventListener("dragend", handleDragEnd)
+			if (element) {
+				element.addEventListener("dragstart", handleDragStart)
+				element.addEventListener("dragend", handleDragEnd)
+			}
 		}
 	},[])
 

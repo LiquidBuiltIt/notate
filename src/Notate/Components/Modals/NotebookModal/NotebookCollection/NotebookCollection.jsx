@@ -70,19 +70,25 @@ export default function NotebookCollection() {
 			
 			<div 
 			 id="note-card-collection" 
-			 className={`
-				flex gap-5 items-center 
-				flex-grow px-1 py-2 overflow-x-auto overflow-y-hidden flex-nowrap
-			`}
+			 className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] content-start gap-5 flex-grow min-h-0 px-1 py-2 overflow-y-auto"
 			 onDragOver={handleDragOver}
 			 onDrop={handleNoteDrop}
 			>
 				{
-					notes.map((note, id)=>{
+					notes.map((note)=>{
 						return (
-							<NoteCard key={id}
-								note={note}
-								onClick={()=>{handleNoteClick(note)}}/>
+							<div key={note.id} className="relative min-w-0">
+								<NoteCard
+									note={note}
+									onClick={()=>{handleNoteClick(note)}}/>
+								<button
+								 type="button"
+								 aria-label={`Remove ${note.title} from this notebook`}
+								 title="Remove from notebook (press Save to keep the change)"
+								 className="focus-ink absolute right-1 top-1 size-6 leading-none font-serif text-[20px] text-ink-soft bg-paper-deep hover:text-vermilion-ink"
+								 onClick={()=>{ setCollection(prev => prev.filter(id => id !== note.id)) }}
+								>&times;</button>
+							</div>
 						)
 					})
 				}

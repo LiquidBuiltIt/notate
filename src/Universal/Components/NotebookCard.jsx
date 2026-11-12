@@ -1,121 +1,111 @@
 import React from 'react';
-import NoteCard from './NoteCard.jsx';
+import noteSwatch from '@universal/Utils/noteSwatch.js';
 
-export default function NotebookCard({ notebook, onNoteClick, onNotebookClick, updatesDispatcher, inventory }) {
+const ROMAN = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+const toRoman = (n) => ROMAN.reduce((out, [v, s]) => { while (n >= v) { out += s; n -= v } return out }, '')
 
- 	const [showNotes, setShowNotes] = React.useState(false);
-	const [noteList, populate] = React.useState([]);
+/* One volume in the table of contents: a ruled row.
+   volume:    1-based position, shown as a roman numeral
+   inventory: the stored notes, used for the count and the colour ticks
+   pending:   notes dropped here but not saved yet (in-page sheet)
+   Row and drag payload ids are used by the browser tests; keep them. */
+export default function NotebookCard({ notebook, volume = 1, onNotebookClick, updatesDispatcher, inventory, pending = 0 }) {
+	const [ over, setOver ] = React.useState(false)
 
-	/* Function that grabs notes via StorageHandler which requires
-	using a Promise object */
-	const populateNotebook = async () => {
-		if (inventory?.NOTES) {
-			const notes = inventory.NOTES
-
-			const filteredNotes = notes.filter(note => notebook.collection.includes(note.id)) 
-	
-			populate(filteredNotes)
-		}
-
-	}
+	const notes = React.useMemo(() => {
+		const ids = notebook.collection ?? []
+		return inventory ? inventory.filter(note => ids.includes(note.id)) : []
+	}, [inventory, notebook])
+	const count = inventory ? notes.length : (notebook.collection?.length ?? 0)
 
 	const handleNoteDrop = async (event) => {
-		event.preventDefault();
-		const fetchedData = event.dataTransfer.getData('text/plain')
-		const parsedData = JSON.parse(fetchedData) 
-		const note = sanitizeNoteData(parsedData) 
-		await updatesDispatcher(notebook, note)
-	}
-
-	const sanitizeNoteData = (note) => {
-		// add more props if any parts of application
-		// attach props for specific use cases
-		delete note?.hits
-		return note
+		event.preventDefault()
+		setOver(false)
+		try {
+			const note = JSON.parse(event.dataTransfer.getData('text/plain'))
+			// A dragged notebook carries a collection: it is not a note, so it cannot be filed.
+			if (!note || note.id === undefined || Array.isArray(note.collection)) return
+			delete note.hits
+			await updatesDispatcher(notebook, note)
+		} catch (error) {
+			console.error(`Could not file the note: ${error}`)
+		}
 	}
 
 	const dragHandler = (event) => {
 		if (event.target.id === 'notebook-card-container') {
-			const JSONified = JSON.stringify(notebook)
-			event.dataTransfer.setData('text/plain', JSONified)
+			event.dataTransfer.setData('text/plain', JSON.stringify(notebook))
 		}
 	}
 
-
-	// update this to add more visual functionality
-	const handleNoteDragOver = (event) => {
-		// Needed for event propagation | onDrop event to fire
-		event.preventDefault();
+	const handleDragOver = (event) => {
+		// Needed for the onDrop event to fire
+		event.preventDefault()
+		setOver(true)
 	}
 
-	React.useEffect(()=> {populateNotebook()},[inventory])
+	const handleDragLeave = (event) => {
+		if (!event.currentTarget.contains(event.relatedTarget)) setOver(false)
+	}
 
+	const handleKey = (event) => {
+		if (onNotebookClick && event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+			event.preventDefault()
+			onNotebookClick(event)
+		}
+	}
 
+	// With a click handler (new tab) the row opens the notebook and can be dragged to the trash.
+	// Without one (in-page sheet) it only receives dropped notes.
+	const interactive = !!onNotebookClick
 
-  	return (
-		<div 
-		 id="notebook-card-container" 
-		 className={`
-			 relative group z-0 w-[76px] shrink-0 transition duration-150 ease-out transform hover:-translate-y-2 
-			 font-serif cursor-pointer
-		 `}
+	return (
+		<div
+		 id="notebook-card-container"
+		 className={`group font-serif ${ interactive ? "cursor-pointer" : "" }`}
 		 onDragStart={dragHandler}
-		 draggable
+		 draggable={interactive}
 		>
-		
-			  {/* Notebook Cover Designs: a book seen by its spine */}
-			<div 
-			 id={`notebook-card-${notebook.id}`} 
+			<div
+			 id={`notebook-card-${notebook.id}`}
 			 data-notebook-id={notebook.id}
-			 title={notebook.description ? `${notebook.title}: ${notebook.description}` : notebook.title}
-			 className="relative flex flex-col items-center justify-between w-[76px] min-h-[232px] max-h-[232px] py-3 rounded-none bg-ink text-paper border-x border-t border-ink shadow-print-sm z-[5] hover:z-[20] hover:shadow-print" 
+			 role={interactive ? "button" : undefined}
+			 tabIndex={interactive ? 0 : undefined}
+			 className={`
+				focus-ink flex gap-4 py-3 pl-3 pr-3 border-l-2 border-b border-b-paper-edge
+				transition-colors duration-150
+				${ over ? "bg-vermilion-wash border-l-vermilion" : "border-l-transparent hover:bg-paper-deep" }
+			 `}
 			 onClick={onNotebookClick}
+			 onKeyDown={handleKey}
 			 onDrop={handleNoteDrop}
-			 onDragOver={handleNoteDragOver}
-		    	>
-				{/* Gilt bands, top and bottom, as on a bound spine */}
-				<div id="notebook-cover-side" className="absolute inset-x-[7px] top-[10px] bottom-[10px] border-y border-paper/40 pointer-events-none" aria-hidden="true"/>
-				<span id="notebook-count" className="oldstyle text-[13px] leading-none text-vermilion-wash mt-[10px]">{noteList.length}</span>
-			      	<h3 
-				 id="notebook-title" 
-				 className="font-display italic text-[22px] leading-none font-semibold text-paper overflow-hidden text-ellipsis whitespace-nowrap max-h-[150px]"
-				 style={{ writingMode: 'vertical-rl' }}
-				>{notebook.title}</h3>
-			      	<p 
-				 id="notebook-description" 
-				 className="smallcaps text-paper/60 overflow-hidden text-ellipsis whitespace-nowrap max-h-[48px] mb-[10px]"
-				 style={{ writingMode: 'vertical-rl' }}
-				>{notebook.description}</p>
-		    	</div>
-		
-			  {/* Where NoteCard Components are populated */}
-			<div 
-			 id="note-card-group" 
-			 className="absolute w-full top-0 z-0 max-h-[170px] opacity-0 pointer-events-none transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto"
+			 onDragOver={handleDragOver}
+			 onDragLeave={handleDragLeave}
 			>
-		        {			
-				noteList.slice(0, 4).map((note, index) => {
-					// group-hover:z-[6] group-hover:z-[7] group-hover:z-[8] group-hover:z-[9]
-					const pos = (((index+1)*(-1))+10).toString() 
-			
-					//  group-hover:-translate-y-[40px] group-hover:-translate-y-[80px] group-hover:-translate-y-[120px] group-hover:-translate-y-[160px]
-					const stack = ((index*40)+40).toString() 
-							
-					return (
-						<div id="note-card-stack-item" 
-						 key={index}
-			     			 className={`relative group-hover:z-[${pos}] transition duration-200 ease-in-out transform hover:-translate-y-5`}
-						> 
-							<NoteCard 
-							 note={note}  
-							 stackClass={`absolute top-full left-0 transition duration-200 ease-in-out transform group-hover:-translate-y-[${stack}px]`} 
-							 onClick={() => onNoteClick(note)} 
-							/>
-						</div>
-					)
-				})
-			}
+				<span className="smallcaps oldstyle w-[3.25rem] shrink-0 pt-[9px] text-ink-soft whitespace-nowrap">Vol. {toRoman(volume)}</span>
+
+				<div className="min-w-0 flex-grow">
+					<div className="flex items-baseline gap-2">
+						<h3 className="min-w-0 truncate font-display italic font-semibold text-[22px] leading-tight text-ink decoration-vermilion decoration-2 underline-offset-4 group-hover:underline">{notebook.title}</h3>
+						<span className="flex-grow min-w-[1rem] translate-y-[-3px] border-b border-dotted border-ink-soft" aria-hidden="true"></span>
+						<span className="oldstyle shrink-0 text-[15px] leading-none text-ink whitespace-nowrap">
+							{count} {count === 1 ? 'note' : 'notes'}
+							{pending > 0 && <span className="ml-1 font-semibold text-vermilion-ink" title="Not saved yet">+{pending}</span>}
+						</span>
+					</div>
+
+					{notebook.description && (
+						<p className="mt-1 text-[15px] italic leading-snug text-ink-soft line-clamp-2 break-words">{notebook.description}</p>
+					)}
+
+					<div className="mt-2 flex items-center justify-between gap-3 h-[14px]">
+						<span className="flex items-center gap-[3px]" aria-hidden="true">
+							{notes.slice(0, 14).map((note, i) => <i key={i} className={`block w-[5px] h-[11px] ${noteSwatch(note.color).bg}`}></i>)}
+						</span>
+						{over && <span className="smallcaps text-vermilion-ink">File here</span>}
+					</div>
+				</div>
 			</div>
 		</div>
-  );
+	);
 }

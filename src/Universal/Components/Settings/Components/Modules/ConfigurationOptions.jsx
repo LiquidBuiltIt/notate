@@ -29,6 +29,10 @@ export default function ConfigurationOptions({options}) {
 
 	} 
 
+	// Stored values stay as they are; only the label changes.
+	const LABELS = { duckduckgo: 'DuckDuckGo', perplexityai: 'Perplexity' }
+	const labelOf = (option) => LABELS[option] ?? convertCamelToCapitalized(option)
+
 	const handleOptionChange = (event) => {
 		if (optionType === "checkbox") setSelectedOption(event.target.checked)
 		else setSelectedOption(event.target.value)
@@ -81,13 +85,14 @@ export default function ConfigurationOptions({options}) {
 					value={option}
 					checked={option === selectedOption}
 					onChange={handleOptionChange}/>
-					{convertCamelToCapitalized(option)}
+					{labelOf(option)}
 				</label>
 			)
 		})}
 		{ (optionType === "dropdown") && (
+			<div className="relative w-full min-w-[9rem]">
 				<select 
-				className="focus-ink block w-full min-w-[9rem] px-2 py-1 rounded-none border border-ink bg-paper-deep font-serif text-[16px] text-ink cursor-pointer"
+				className="focus-ink block w-full appearance-none pl-2 pr-8 py-1 rounded-none border border-ink bg-paper-deep font-serif text-[16px] text-ink cursor-pointer"
 				defaultValue={selectedOption}
 				onChange={handleOptionChange}>
 				{optionList.map( option => {
@@ -96,11 +101,13 @@ export default function ConfigurationOptions({options}) {
 						className="bg-paper text-ink"
 						key={option}
 						value={option}>
-						{convertCamelToCapitalized(option)}
+						{labelOf(option)}
 						</option>
 					)
 				})}	
 				</select>
+				<span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[14px] leading-none text-ink" aria-hidden="true">&#9662;</span>
+			</div>
 			)}
 		</form>
 	)

@@ -5,6 +5,7 @@ import useRequest from '@universal/Hooks/useRequest/useRequest.jsx'
 import Helper from './helper.js'
 import { NOTATE_DB, ERROR_LOGGING_DB, USER_CONFIGURATION_DB } from '@background/background.js'
 import Masthead from './Masthead.jsx';
+import Volumes from './Components/Volumes/Volumes.jsx';
 import SearchBar from './Components/Search/SearchBar.jsx';
 import RecentNotes from './Components/Recents/RecentNotes.jsx';
 import NewItemButton from './Components/Recents/NewItemBtn.jsx';
@@ -180,14 +181,16 @@ export default function Notate(){
 		  			 id="notate" 
 		  			 className="w-full flex-grow pb-28 px-6 sm:px-12 xl:px-16 xl:grid xl:grid-cols-12 xl:gap-x-14"
 		  			>
+						<NotificationContext.Provider value={[ notification, setNotification ]}>
+					  	<ConfirmationMsgContext.Provider value={[confMsgState, setConfMsgState]}>
+
 						<Masthead 
 						 theme={theme} 
 						 noteCount={notatedb?.inventory?.NOTES?.length ?? 0} 
 						 notebookCount={notatedb?.inventory?.NOTEBOOKS?.length ?? 0}
-						/>
-					  	
-						<NotificationContext.Provider value={[ notification, setNotification ]}>
-					  	<ConfirmationMsgContext.Provider value={[confMsgState, setConfMsgState]}>
+						>
+							<Volumes/>
+						</Masthead>
 
 						<div id="notate-content" className="xl:col-span-7 pt-14 xl:pt-24 min-w-0">
 						  	<div id="search-section" 

@@ -29,7 +29,7 @@ export default function AddToNotebookModal() {
 		<div
 		 id="add-to-notebook-modal"
 		 className={`
-			trans-ease-all fixed bottom-0 md:h-[50%] h-[75%] md:w-[70%] w-[95%]
+			trans-ease-all fixed bottom-0 h-[70%] md:w-[70%] w-[95%]
 			flex flex-col pt-[1.25rem] pb-[1rem] px-[2rem] space-y-[1rem]
 			paper-grain border border-b-0 border-ink shadow-print-lg
 			font-serif text-ink pointer-events-auto
