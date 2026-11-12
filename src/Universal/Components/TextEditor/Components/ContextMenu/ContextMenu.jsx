@@ -89,9 +89,9 @@ export default function ContextMenu({RefElement}) {
 			 id={CONTEXT_MENU_ID}
 			 ref={menuRef}
 			 className={`
-				 fixed flex flex-col  w-[7rem]  
-				 bg-zinc-700 rounded-xl overflow-hidden
-				 z-content-script -translate-y-[100%]
+				 fixed flex flex-col  w-[8.5rem]  
+				 paper-grain hairline shadow-print-sm rounded-none overflow-hidden
+				 font-serif text-ink z-content-script -translate-y-[100%]
 			 `}
 			 style={{
 				 top: `${pos.y}px`,

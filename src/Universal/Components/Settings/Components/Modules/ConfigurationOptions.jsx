@@ -54,13 +54,14 @@ export default function ConfigurationOptions({options}) {
 
 	return (
 		<form id={ `${optionType}-option` }
-		className="flex space-x-2 font-sans">
+		className="flex gap-4 font-serif text-[16px] text-ink">
 		{ 	/* Since this will always contain booleans in the optionList,
 			its best to just parse the strings as actual bool types */
 			(optionType === "checkbox") &&  (
 				<label 
 				className="flex justify-center items-center">
 					<input
+					 className="focus-ink appearance-none size-5 rounded-none border border-ink bg-paper cursor-pointer transition duration-150 checked:bg-vermilion checked:shadow-[inset_0_0_0_3px_#F2ECE0]"
 					 type="checkbox"
 					 value={(selectedOption)}
 					 checked={JSON.parse(selectedOption)}
@@ -73,8 +74,9 @@ export default function ConfigurationOptions({options}) {
 		{ (optionType === "radio") && optionList.map( option => {
 			return (
 				<label key={option}
-				className="flex justify-center items-center">
+				className="flex justify-center items-center gap-2 cursor-pointer">
 					<input
+					className="focus-ink appearance-none size-4 rounded-none border border-ink bg-paper cursor-pointer transition duration-150 checked:bg-vermilion checked:shadow-[inset_0_0_0_3px_#F2ECE0]"
 					type="radio"
 					value={option}
 					checked={option === selectedOption}
@@ -85,13 +87,13 @@ export default function ConfigurationOptions({options}) {
 		})}
 		{ (optionType === "dropdown") && (
 				<select 
-				className="trans-ease-all border border-gray-300 text-white  rounded-lg block w-full p-[0.15rem] bg-[#3f3f3f]  placeholder-gray-400  focus:ring-blue-500 focus:border-blue-500"
+				className="focus-ink block w-full min-w-[9rem] px-2 py-1 rounded-none border border-ink bg-paper-deep font-serif text-[16px] text-ink cursor-pointer"
 				defaultValue={selectedOption}
 				onChange={handleOptionChange}>
 				{optionList.map( option => {
 					return (
 						<option 
-						className="bg-inherit"
+						className="bg-paper text-ink"
 						key={option}
 						value={option}>
 						{convertCamelToCapitalized(option)}

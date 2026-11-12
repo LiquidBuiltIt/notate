@@ -56,42 +56,43 @@ export default function NotebookCard({ notebook, onNoteClick, onNotebookClick, u
 		<div 
 		 id="notebook-card-container" 
 		 className={`
-			 relative group z-0 trans-ease transform hover:-translate-y-5 
-			 playfair-bold cursor-pointer
+			 relative group z-0 w-[76px] shrink-0 transition duration-150 ease-out transform hover:-translate-y-2 
+			 font-serif cursor-pointer
 		 `}
 		 onDragStart={dragHandler}
 		 draggable
 		>
 		
-			  {/* Notebook Cover Designs */}
+			  {/* Notebook Cover Designs: a book seen by its spine */}
 			<div 
 			 id={`notebook-card-${notebook.id}`} 
 			 data-notebook-id={notebook.id}
-			 className="flex  relative  min-h-[170px] max-h-[170px] min-w-[230px] max-w-[230px]  rounded shadow-xl  bg-[#bf8040] z-[5] hover:z-[20]" 
+			 title={notebook.description ? `${notebook.title}: ${notebook.description}` : notebook.title}
+			 className="relative flex flex-col items-center justify-between w-[76px] min-h-[232px] max-h-[232px] py-3 rounded-none bg-ink text-paper border-x border-t border-ink shadow-print-sm z-[5] hover:z-[20] hover:shadow-print" 
 			 onClick={onNotebookClick}
 			 onDrop={handleNoteDrop}
 			 onDragOver={handleNoteDragOver}
 		    	>
-				<div id="notebook-cover-side" className={`min-w-[1.5rem] bg-[#86592d] rounded-l`}/>
-				<div id="" className={`flex-grow overflow-hidden p-4`}>
-			      		<h3 
-					 id="notebook-title" 
-					 className="text-lg font-medium mt-0 text-white overflow-hidden text-ellipsis whitespace-nowrap"
-					>{notebook.title}</h3>
-			      		<p 
-					 id="notebook-description" 
-					 className="text-base mb-0 text-gray-200 overflow-hidden text-ellipsis whitespace-nowrap"
-					>{notebook.description}</p>
-
-				</div>
-
+				{/* Gilt bands, top and bottom, as on a bound spine */}
+				<div id="notebook-cover-side" className="absolute inset-x-[7px] top-[10px] bottom-[10px] border-y border-paper/40 pointer-events-none" aria-hidden="true"/>
+				<span id="notebook-count" className="oldstyle text-[13px] leading-none text-vermilion-wash mt-[10px]">{noteList.length}</span>
+			      	<h3 
+				 id="notebook-title" 
+				 className="font-display italic text-[22px] leading-none font-semibold text-paper overflow-hidden text-ellipsis whitespace-nowrap max-h-[150px]"
+				 style={{ writingMode: 'vertical-rl' }}
+				>{notebook.title}</h3>
+			      	<p 
+				 id="notebook-description" 
+				 className="smallcaps text-paper/60 overflow-hidden text-ellipsis whitespace-nowrap max-h-[48px] mb-[10px]"
+				 style={{ writingMode: 'vertical-rl' }}
+				>{notebook.description}</p>
 		    	</div>
 		
 			  {/* Where NoteCard Components are populated */}
 			<div 
 			 id="note-card-group" 
-			 className="absolute w-full top-0 z-0 max-h-[170px]"
-			>{/* <-- need to add tailwind classes to create a stacked visual effect */}  
+			 className="absolute w-full top-0 z-0 max-h-[170px] opacity-0 pointer-events-none transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto"
+			>
 		        {			
 				noteList.slice(0, 4).map((note, index) => {
 					// group-hover:z-[6] group-hover:z-[7] group-hover:z-[8] group-hover:z-[9]
@@ -99,7 +100,6 @@ export default function NotebookCard({ notebook, onNoteClick, onNotebookClick, u
 			
 					//  group-hover:-translate-y-[40px] group-hover:-translate-y-[80px] group-hover:-translate-y-[120px] group-hover:-translate-y-[160px]
 					const stack = ((index*40)+40).toString() 
-					const colors = ['bg-yellow-250', 'bg-yellow-300','bg-yellow-350','bg-yellow-400'] //
 							
 					return (
 						<div id="note-card-stack-item" 
@@ -108,7 +108,7 @@ export default function NotebookCard({ notebook, onNoteClick, onNotebookClick, u
 						> 
 							<NoteCard 
 							 note={note}  
-							 stackClass={`absolute  top-full left-0 w-full transition duration-200 ease-in-out transform group-hover:-translate-y-[${stack}px]`} 
+							 stackClass={`absolute top-full left-0 transition duration-200 ease-in-out transform group-hover:-translate-y-[${stack}px]`} 
 							 onClick={() => onNoteClick(note)} 
 							/>
 						</div>
@@ -119,4 +119,3 @@ export default function NotebookCard({ notebook, onNoteClick, onNotebookClick, u
 		</div>
   );
 }
-

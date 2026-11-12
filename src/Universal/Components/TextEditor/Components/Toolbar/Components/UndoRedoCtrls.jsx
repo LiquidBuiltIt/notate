@@ -13,20 +13,24 @@ export default function UndoRedoCtrls() {
 
 	return (
 	<div id="undo-redo-controls"
-	     className="flex space-x-1 bg-inherit">
+	     className="flex gap-[2px] pl-3 border-l border-paper-edge">
 	      <button
 	        id="undo-btn"
-	        className="flex items-center justify-center size-6 p-1 text-sm rounded   backdrop-filter backdrop-brightness-[.80]"
+	        aria-label="Undo"
+	        title="Undo"
+	        className="focus-ink flex items-center justify-center size-7 rounded-none font-serif text-[17px] leading-none text-ink transition duration-150 ease-out hover:bg-paper-deep active:bg-ink active:text-paper"
 	        onClick={handleUndoClick}
 	      >
-	       <UndoIcon className="size-3 stroke-inherit"/> 
+	       <UndoIcon className="size-4 stroke-current" aria-hidden="true"/> 
 	      </button>
 	      <button
 	        id="redo-btn"
-	        className="flex items-center justify-center size-6 p-1 text-sm rounded   backdrop-filter backdrop-brightness-[.80]"
+	        aria-label="Redo"
+	        title="Redo"
+	        className="focus-ink flex items-center justify-center size-7 rounded-none font-serif text-[17px] leading-none text-ink transition duration-150 ease-out hover:bg-paper-deep active:bg-ink active:text-paper"
 	        onClick={handleRedoClick}
 	      >
-	        <RedoIcon className="size-3 stroke-inherit"/>
+	        <RedoIcon className="size-4 stroke-current" aria-hidden="true"/>
 	      </button>	
 	</div>
 	)

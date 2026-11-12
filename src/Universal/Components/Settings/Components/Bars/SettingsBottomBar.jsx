@@ -15,9 +15,9 @@ export default function SettingsBottomBar() {
 
 	return (
 		<footer id="settings-bottom-bar"
-		className="w-full flex py-5">
+		className="w-full flex py-5 border-t border-ink">
 			<button id="save-settings-button"
-			className="trans-ease-all btn-sm-text font-bold text-[1rem] text-white bg-green-600 hover:bg-green-500"
+			className="focus-ink smallcaps h-10 px-8 rounded-none bg-ink text-paper transition duration-150 ease-out hover:bg-vermilion"
 			onClick={handleSaveClick}>
 				Save
 			</button>

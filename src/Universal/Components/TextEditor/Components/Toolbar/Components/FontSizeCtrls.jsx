@@ -13,15 +13,19 @@ export default function FontSizeCtrls() {
   },[])
 
   return (
-    <div id="font-size-controls" className="flex items-center h-6">
+    <div id="font-size-controls" className="flex items-center h-7 gap-[6px] pl-3 border-l border-paper-edge text-ink">
+      {/* Two letters of different sizes, as on a proofreader's size mark */}
+      <span aria-hidden="true" className="font-serif leading-none select-none"><span className="text-[12px]">A</span><span className="text-[19px]">A</span></span>
       <select
 	defaultValue={7}
-        className="px-2 py-1 text-[.7rem] h-6 text-center rounded bg-inherit backdrop-filter backdrop-brightness-[.80] outline-none cursor-pointer"
+	aria-label="Font size"
+	title="Font size"
+        className="focus-ink px-1 h-7 w-12 text-[15px] text-center rounded-none border border-ink bg-paper-deep font-serif text-ink cursor-pointer"
         onChange={(e) => handleFontSizeChange(e.target.value)}
       >
         {fontSizes.map((size) => {
 		return (
-          <option key={size} value={size} className="h-6">
+          <option key={size} value={size} className="bg-paper text-ink">
             {size}
           </option>
         )})}

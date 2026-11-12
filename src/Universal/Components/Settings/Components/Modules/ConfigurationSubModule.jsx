@@ -80,11 +80,11 @@ export default function ConfigurationSubModule({name, module, parent}) {
 
 	if (optionsEnabled) return (
 		<section id={ `${name}-module` }
-		className="w-full h-auto text-white border-t-2 border-b-2 border-t-[#555] border-b-[#555] border-opacity-50">
+		className="w-full h-auto text-ink">
 			<div className="py-[0.5rem]">
 				<h3 id="module-title"
-				className="font-semibold text-[1rem]">{moduleName}</h3>
-				<ul className="list-disc space-y-[1rem] py-2 pl-[1.5rem]">
+				className="font-display italic font-semibold text-[24px] leading-tight">{moduleName}</h3>
+				<ul className="list-none mt-2 divide-y divide-paper-edge">
 					{moduleArray && moduleArray.map( (sub,key) => {
 						if (sub.length == 2) {
 							const enabled = sub[1].enabled
@@ -94,18 +94,18 @@ export default function ConfigurationSubModule({name, module, parent}) {
 
 							if (enabled) return (
 								<li id=""
-								className=""
+								className="py-3"
 								key={key}>
 									<div id="config-opt" 
-									className="flex justify-between mb-2">
+									className="flex items-baseline justify-between gap-6 mb-1">
 										<h4 id="opt-title"
-										className="font-bold text-[0.8rem]">{configTitle}</h4>
+										className="smallcaps text-ink">{configTitle}</h4>
 
 										{optionType}
 									</div>
 
 									<label id="opt-description"
-									className="pl-2">
+									className="block text-[16px] leading-snug italic text-ink-soft">
 										{configOptions.description}
 									</label>
 								</li>

@@ -41,38 +41,36 @@ export default function NotificationMsg() {
 
 
 
+	const KIND = {
+		info:  { label: 'Notice',  spine: 'bg-swatch-green' },
+		warn:  { label: 'Caution', spine: 'bg-swatch-yellow' },
+		error: { label: 'Erratum', spine: 'bg-vermilion' },
+	}
+	const kind = KIND[notification?.type] ?? KIND.info
+
+
 	return (
 
 		notification?.active && (
 			<div 
 			 id="notification-banner"
+			 role="status"
+			 aria-live="polite"
 			 className={`
-				 pointer-events-none banner z-notification 
+				 pointer-events-none fixed inset-x-0 bottom-10 flex justify-center z-notification 
 				 ${visible ? "opacity-100" : "opacity-0" } 
-				 transition-opacity duration-500 ease-in-out 
-			`}>i
+				 transition-opacity duration-300 ease-in-out 
+			`}>
 				<div 
 				 id="notification"
-				 className={`
-				 	relative flex items-center justify-center 
-					w-[31rem] h-[6rem]  rounded-xl
-				`}>
-					<div 
-					 id="external"
-					 className={`
-						 absolute inset-0 rounded-xl blur-xl
-						 ${notification?.styles?.blur} 
-					`}/>
-					<div 
-					 id="internal"
-					 className={`
-					 	relative w-[30rem] h-20 bg-[#404040] rounded-xl 
-						flex items-center justify-center 
-						${notification?.styles?.ring} ring-2
-					`}>
+				 className="animate-rise relative flex items-stretch min-w-[18rem] max-w-[31rem] rounded-none paper-grain hairline shadow-print-sm font-serif text-ink"
+				>
+					<div id="external" className={`w-[6px] ${kind.spine}`} aria-hidden="true"/>
+					<div id="internal" className="flex flex-col gap-[6px] py-3 pl-4 pr-6">
+						<span id="notification-label" className="smallcaps text-ink-faint">{kind.label}</span>
 						<h3 
 						 id="message"
-						 className="text-white font-bold text-[1.1rem]"
+						 className="text-[17px] leading-snug font-medium"
 						>{notification?.message}</h3>
 					</div>
 				</div>
@@ -80,7 +78,3 @@ export default function NotificationMsg() {
 		)
 	)
 }
-
-
-
-

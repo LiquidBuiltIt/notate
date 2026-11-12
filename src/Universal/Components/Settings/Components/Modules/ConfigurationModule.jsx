@@ -34,7 +34,7 @@ export default function ConfigurationModule({module}) {
 
 	return (
 		<main id="settings-content"
-		className="flex-grow  space-y-[2rem]">
+		className="flex-grow  space-y-[1.75rem]">
 			<ConfigurationContext.Provider value={[ configuration, setConfiguration ]}>
 				{configuration && Object.entries(configuration[module]).map(( [submoduleName, submodule] ,key) => {
 					
