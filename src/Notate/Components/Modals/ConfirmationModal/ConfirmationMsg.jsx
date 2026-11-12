@@ -19,7 +19,7 @@ export default function ConfirmationMsg() {
 
 	const performCancel = () => {
 		confMsgState?.action?.handleScroll ? setScrollState(true) : setScrollState(false)
-		(typeof confMsgState?.action?.cancelCallback === 'function') ? confMsgState.action.cancelCallback() : ''
+		if (typeof confMsgState?.action?.cancelCallback === 'function') confMsgState.action.cancelCallback()
 		setConfMsgState(false)
 	}
 
