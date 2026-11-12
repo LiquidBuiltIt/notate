@@ -123,7 +123,10 @@ export default function RelatedNotesHeader() {
 	return (
 		<div 
 		 id="related-notes-hover-region"
-		 className="fixed flex top-0  h-[2rem] "
+		 className={`
+			 fixed flex top-0 h-[2rem] font-serif text-ink
+			 ${ headerState ? "min-w-full paper-grain border-b border-ink" : "" }
+		 `}
 		 onMouseEnter={handleHoverEvent}
 		 onMouseLeave={handleHoverEvent}
 		 ref={viewerLengthRef}

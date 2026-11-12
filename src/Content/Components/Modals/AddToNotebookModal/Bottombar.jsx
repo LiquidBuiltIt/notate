@@ -46,8 +46,9 @@ export default function Bottombar() {
 			 onClick={handleSave}
 			 disabled={!isEnabled}
 			 className={`
-			 	trans-ease btn-sm-icon text-white ${ isEnabled 
-				? "bg-green-500 hover:bg-green-400" : "bg-zinc-400" }
+			 	focus-ink smallcaps h-9 px-6 border transition-colors duration-150 ${ isEnabled 
+				? "bg-ink text-paper border-ink shadow-print-sm hover:bg-vermilion hover:border-vermilion" 
+				: "bg-transparent text-ink-faint border-paper-edge cursor-not-allowed" }
 			`}>{`Save`}</button>	
 		</footer>
 	)

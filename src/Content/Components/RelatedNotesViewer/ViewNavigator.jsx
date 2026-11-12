@@ -16,35 +16,30 @@ export default function ViewNavigator() {
 		}
 	}
 
+	const arrow = `
+		focus-ink w-8 h-full font-serif text-[1.35rem] leading-none text-ink
+		hover:bg-ink hover:text-paper transition-colors duration-150
+	`
 
 	return  (
 		<div
 		 id="view-navigator"
 		 className={`
-			h-[2rem] w-[4rem] flex
-			fixed right-0 
+			h-[2rem] flex fixed right-0 paper-grain border-l border-b border-ink
 		`}>
 			<button 
-			 id="" 
+			 aria-label="Scroll back"
+			 title="Scroll back"
 			 onClick={() => handleNavigationClick('backward')}
-			 className={`
-			 	w-[50%] bg-zinc-700 rounded-bl-xl 
-				text-zinc-300 font-extrabold
-				border-b-2 border-b-zinc-500
-				hover:bg-zinc-600 trans-ease
-			`}>
-			 {`<`}
+			 className={arrow}>
+			 {`‹`}
 			</button>
 			<button 
-			 id="" 
+			 aria-label="Scroll forward"
+			 title="Scroll forward"
 			 onClick={() => handleNavigationClick('forward')}
-			 className={`
-			 	w-[50%] bg-zinc-700
-				text-zinc-200 font-extrabold
-				border-b-2 border-b-zinc-500
-				hover:bg-zinc-600 trans-ease
-			`}>
-			 {`>`}
+			 className={`${arrow} border-l border-paper-edge`}>
+			 {`›`}
 			</button>
 		</div>
 	)

@@ -32,8 +32,10 @@ export default function NoteEditorTitle() {
 		<input 
 		 id="edit-title" 
 		 className={`
-			 playfair-regular placeholder:text-slate-900 placeholder:opacity-70 placeholder:italic  
-			 h-full bg-transparent text-black font-bold flex-grow border-none p-2 outline-none
+			 font-display italic font-semibold text-[1.3rem] text-ink caret-vermilion
+			 placeholder:font-normal placeholder:text-ink-faint
+			 h-full min-w-0 bg-transparent flex-grow border-none px-3 outline-none
+			 transition-colors duration-150 focus:bg-paper-deep/60
 		 `}
 		 type="text"
 		 placeholder="What are we Researching...?"

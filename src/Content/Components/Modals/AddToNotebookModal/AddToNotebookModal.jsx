@@ -30,8 +30,9 @@ export default function AddToNotebookModal() {
 		 id="add-to-notebook-modal"
 		 className={`
 			trans-ease-all fixed bottom-0 md:h-[50%] h-[75%] md:w-[70%] w-[95%]
-			flex flex-col py-[1rem] px-[2rem] space-y-[1rem]
-			bg-[#2f2f2f] rounded-t-xl pointer-events-auto
+			flex flex-col pt-[1.25rem] pb-[1rem] px-[2rem] space-y-[1rem]
+			paper-grain border border-b-0 border-ink shadow-print-lg
+			font-serif text-ink pointer-events-auto
 			${ isActive ? "translate-y-[0%]" : "translate-y-[100%]" }
 		`}
 		>
@@ -41,7 +42,7 @@ export default function AddToNotebookModal() {
 			<main 
 			 id="modal-centerpiece" 
 			 className={`
-			 	flex w-full flex-grow bg-white bg-opacity-10
+			 	flex w-full flex-grow min-h-0 border-y border-paper-edge bg-paper-deep/50
 			`}>
 				<NotebookCollection/>	
 			</main>

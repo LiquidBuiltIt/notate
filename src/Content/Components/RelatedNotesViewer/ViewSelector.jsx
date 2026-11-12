@@ -1,6 +1,5 @@
 import React from 'react'
 import { RelatedNotesContext, views } from './RelatedNotesViewer.jsx'
-import DropdownArrow from '@assets/Designs/Arrows/dropdown-arrow.svg'
 
 
 export default function ViewSelector() {
@@ -33,54 +32,55 @@ export default function ViewSelector() {
 	}
 
 
+	const arrow = `
+		focus-ink w-8 h-full font-serif text-[1.35rem] leading-none text-ink-soft
+		hover:bg-ink hover:text-paper transition-colors duration-150
+	`
+
 	return headerState ? (
 		<span
 		 id="related-notes-navigation"
 		 className={`
-			trans-ease flex min-w-[15rem] h-[1.5rem] 
-			rounded-b-2xl bg-zinc-700 z-10
-			font-extrabold text-white
+			trans-ease flex shrink-0 items-stretch min-w-[17rem] h-full
+			border-r border-ink z-10 font-serif text-ink
 			${ navState ? "-translate-y-[0%]" : "-translate-y-[100%]" }
 		`}>
 			<button 
 			 id="cycle-backwards-btn" 
+			 aria-label="Previous view"
+			 title="Previous view"
 			 onClick={(e)=>{handleViewCycle(e, 'backward')}}
-			 className={`
-				w-[15%] text-zinc-300
-				hover:bg-zinc-600 trans-ease
-				rounded-bl-2xl
-			`}>{`<`}</button>
+			 className={arrow}>{`\u2039`}</button>
 
 			<span 
 			 id="divider" 
-			 className={`
-				flex-grow h-full bg-zinc-700 
-				alice-regular text-[.8rem] text-center font-bold
-			`}>
-			{`${view.name} View`}
+			 className={`flex flex-grow items-center justify-center px-2`}>
+				<span className="smallcaps whitespace-nowrap pb-[3px] border-b-2 border-vermilion">
+				{`${view.name} View`}
+				</span>
 			</span>
 
 			<button 
 			 id="cycle-forwards-btn" 
+			 aria-label="Next view"
+			 title="Next view"
 			 onClick={(e)=>{handleViewCycle(e, 'forward')}}
-			 className={`
-				w-[15%] text-zinc-300
-				hover:bg-zinc-600 trans-ease
-				rounded-br-2xl
-			`}>{`>`}</button>
+			 className={arrow}>{`\u203A`}</button>
 		</span>
 
 		) : (
 
 		<button 
 		 id="reveal-related-notes-btn"
+		 aria-label="Show related notes"
+		 title="Show related notes"
 		 onClick={(e)=>{ if (e.isTrusted) setHeaderState(true) }}
 		 className={`
-			 trans-ease flex w-[3rem] h-[1.5rem] rounded-b-2xl
-			 ${ headerState ? "-translate-y-[100%] pointer-events-none" : "bg-zinc-500" }  
-			 ${ hoverState ? "-translate-y-[0%]" : "-translate-y-[100%]" }
+			 focus-ink smallcaps trans-ease flex items-center h-[1.75rem] px-4 
+			 paper-grain border border-t-0 border-ink shadow-print-sm text-ink hover:bg-ink hover:text-paper
+			 ${ hoverState ? "-translate-y-[0%]" : "-translate-y-[130%]" }
 		`}>
-			<DropdownArrow className="h-[inherit] w-[inherit] fill-zinc-300"/>
+			{`Related \u25BE`}
 		</button>
 	)	
 }

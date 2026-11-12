@@ -11,30 +11,33 @@ export default function Topbar() {
 		 className={`
 			w-full flex flex-col 
 		`}>
-			<section id="top-section" className={`flex justify-between`}>
+			<section id="top-section" className={`flex items-start justify-between`}>
 				<h2 
 				 id="title" 
 				 className={`
-				 	text-white playfair-regular text-xl
-					font-bold
+				 	font-display italic font-semibold text-ink
+					text-[1.7rem] leading-tight
 				`}>
 				{`Add To Your Notebook Collection`}
 				</h2>
 
 				<button 
 				 id="exit-btn" 
+				 aria-label="Close"
+				 title="Close"
 				 className={`
-					text-zinc-700 hover:text-red-400 text-4xl text-center
-					font-extrabold mb-2 trans-ease-all
+					focus-ink font-serif text-[2rem] leading-none px-2 -mt-1 text-ink-soft
+					hover:text-vermilion-ink transition-colors duration-150
 				 `}
 				 onClick={exitModal}
 				>
 				&times;
 				</button>
 			</section>
-			<section>
+			<div className="mt-2 h-px w-full origin-left bg-ink animate-draw"/>
+			<section className="mt-2">
 				<label id="help-message" className={`
-					text-center text-zinc-100 text-[0.75rem] italic
+					font-serif italic text-[15px] text-ink-soft
 				`}>{`
 					Drag your notes from above into the notebook of your choosing...
 				`}</label>

@@ -6,6 +6,7 @@ import NoteEditorTitle, { NoteEditorTitleContext } from './Components/NoteEditor
 import SaveNoteButton from './Components/Buttons/SaveNoteButton.jsx';
 
 import { WebContentContext } from '@content/content.jsx'
+import noteSwatch from '@universal/Utils/noteSwatch.js'
 
 
 
@@ -22,6 +23,7 @@ export default function NoteEditor() {
 	const [ displayState, updateDisplayState ] = React.useState(MINIMIZED)
 	const [ content,  setContent ] = React.useState(note?.content || buffer?.content)
 	const [ title, setTitle ] = React.useState(note?.title || buffer?.title)
+	const swatch = noteSwatch(note?.color)
 
 
 	React.useEffect(()=>{ 
@@ -42,16 +44,19 @@ export default function NoteEditor() {
 			<div 
 			 id="note-editor-container"
 			 className={`
-				 fixed bottom-0 left-0 ml-10
+				 fixed bottom-1.5 left-0 ml-10 max-w-[calc(100vw-4rem)]
+				 origin-bottom-right animate-[unfold_380ms_cubic-bezier(.2,.8,.2,1)_backwards]
 				 ${ !displayState && "pointer-events-none" }
 			`}>
 
 				<div 
 				 id="note-editor" 
 				 className={`
-					flex flex-col trans-ease size-[35rem] rounded bg-yellow-200 
+					relative flex flex-col trans-ease size-[35rem] max-w-full pl-1.5
+					paper-grain border border-ink shadow-print font-serif text-ink
 					 ${ displayState ? "" : "translate-y-[92.856%]" }
 				`}>
+					<span id="note-spine" aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${swatch.bg}`}/>
 
 					<NoteEditorTitleContext.Provider value={[ title, setTitle ]}>
 						<NoteEditorTopbar/>
@@ -61,8 +66,7 @@ export default function NoteEditor() {
 							 TextEditor 
 							 ToolbarComponents={<SaveNoteButton/>} 
 							 TailwindClassNames={`
-								 fill-gray-800 stroke-gray-800 
-								 ${note?.color?.styles?.card || "bg-yellow-200"}
+								 fill-ink stroke-ink bg-transparent
 							 `}
 							 ShadowRootElement={shadowRootElement}
 							/>	

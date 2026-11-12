@@ -111,6 +111,7 @@ export default function RelatedNotesProcessor({database, view }) {
 					 RelatedNote 
 					 note={note}
 					 tagId={tagId}
+					 index={id}
 					 key={id}
 					/>
 				)
