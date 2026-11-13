@@ -151,9 +151,10 @@ const ContentScript = () => {
 
 					{ notification?.active && <NotificationMsg/> }
 
-					<ContextMenuHoverRegion/>
-
 					{ note && noteWindowState && <NoteEditor/> }
+
+					{/* after the editor, so the seal stays reachable when they overlap */}
+					<ContextMenuHoverRegion/>
 
 					{ selectedModal && <Modal modal={selectedModal}/> }
 

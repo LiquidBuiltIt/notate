@@ -30,6 +30,12 @@ export default function NoteEditor() {
 		updateDisplayState(MAXIMIZED) 
 	},[])
 
+	// Open on the side away from the seal, so the editor does not cover it.
+	const [ sealLeft, setSealLeft ] = React.useState(false)
+	React.useEffect(() => {
+		chrome.storage.local.get('sealCorner').then(({ sealCorner }) => setSealLeft(!!sealCorner?.endsWith('left')))
+	}, [])
+
 	React.useEffect(()=> {
 		if (!note.id) {
 			setBuffer({
@@ -44,8 +50,8 @@ export default function NoteEditor() {
 			<div 
 			 id="note-editor-container"
 			 className={`
-				 fixed bottom-1.5 left-0 ml-10 max-w-[calc(100vw-4rem)]
-				 origin-bottom-right animate-[unfold_380ms_cubic-bezier(.2,.8,.2,1)_backwards]
+				 fixed bottom-1.5 max-w-[calc(100vw-4rem)] animate-[unfold_380ms_cubic-bezier(.2,.8,.2,1)_backwards]
+				 ${ sealLeft ? 'right-0 mr-10 origin-bottom-left' : 'left-0 ml-10 origin-bottom-right' }
 				 ${ !displayState && "pointer-events-none" }
 			`}>
 
