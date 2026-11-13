@@ -6,7 +6,7 @@ export default function Masthead({ theme, noteCount, notebookCount, children }) 
 	const { weekday, day, month, year } = React.useMemo(() => mastheadParts(), [])
 
 	return (
-		<header id="page-header" className="max-xl:contents xl:col-span-5 xl:sticky xl:top-0 xl:self-start xl:max-h-screen xl:flex xl:flex-col pt-10 xl:pt-16 xl:pb-8">
+		<header id="page-header" className="max-xl:contents xl:col-span-5 xl:min-h-0 xl:flex xl:flex-col pt-10 xl:pt-16 xl:pb-8">
 			<p id="page-wordmark" className="max-xl:pt-10 smallcaps flex items-center gap-2 animate-rise">
 				{/* the paper backing gives multiply something to blend with inside the animated layer */}
 				<span className="paper-grain block"><img src="./Designs/notate-logo.svg" alt="" className="block h-9 w-auto mix-blend-multiply"/></span>

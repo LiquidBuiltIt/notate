@@ -173,13 +173,13 @@ export default function Notate(){
 		  	<div 
 		  	 id="wallpaper-theme" 
 		  	 className={`
-				 relative min-w-full min-h-screen flex flex-col flex-grow top-0 left-0 trans-ease
+				 relative min-w-full min-h-screen xl:h-screen xl:overflow-hidden flex flex-col flex-grow top-0 left-0 trans-ease
 				 ${ theme.background || "" }
 			`}>
 					<ShadeComponent direction={"top"}/>
 		  			<main 
 		  			 id="notate" 
-		  			 className="w-full flex-grow pb-28 px-6 sm:px-12 xl:px-16 flex flex-col xl:grid xl:grid-cols-12 xl:gap-x-14"
+		  			 className="w-full flex-grow pb-28 xl:pb-0 xl:min-h-0 px-6 sm:px-12 xl:px-16 flex flex-col xl:grid xl:grid-cols-12 xl:grid-rows-[minmax(0,1fr)] xl:gap-x-14"
 		  			>
 						<NotificationContext.Provider value={[ notification, setNotification ]}>
 					  	<ConfirmationMsgContext.Provider value={[confMsgState, setConfMsgState]}>
@@ -192,7 +192,8 @@ export default function Notate(){
 							<Volumes/>
 						</Masthead>
 
-						<div id="notate-content" className="xl:col-span-7 pt-14 xl:pt-24 min-w-0">
+						{/* wide screens: the page is locked and only the notes scroll, in their own box */}
+						<div id="notate-content" className="xl:col-span-7 pt-14 xl:pt-24 min-w-0 xl:flex xl:flex-col xl:min-h-0">
 						  	<div id="search-section" 
 						  	className="flex items-end gap-6 animate-rise"
 						  	style={{ animationDelay: '480ms' }}>
@@ -200,7 +201,9 @@ export default function Notate(){
 								<NewItemButton/>
 						  	</div>
 
-							<RecentNotes searchTerm={searchTerm} />
+							<div id="notate-scroll" className="xl:flex-1 xl:min-h-0 xl:overflow-y-auto xl:-mr-16 xl:pr-16 xl:pb-28">
+								<RecentNotes searchTerm={searchTerm} />
+							</div>
 						</div>
 
 						{selectedNote && !selectedNotebook && <NoteModal/>}
