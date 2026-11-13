@@ -77,10 +77,10 @@ export default function DismissButton() {
     
     return (
         <div className="relative">
-            {/* Extra options that open beside the dismiss tag, toward the middle of the page */}
+            {/* Extra options stack beside the dismiss tag, toward the middle of the page and away from the other tags */}
             <div 
                 className={`
-                    absolute bottom-0 flex items-center gap-2
+                    absolute ${corner.startsWith('top') ? 'bottom-0' : 'top-0'} flex flex-col gap-2 ${left ? 'items-start' : 'items-end'}
                     transition-all duration-300 ease-out
                     ${left ? 'left-full ml-3' : 'right-full mr-3'}
                     ${showExtraButtons ? 'opacity-100 translate-x-0' : `opacity-0 ${left ? '-translate-x-6' : 'translate-x-6'} pointer-events-none`}

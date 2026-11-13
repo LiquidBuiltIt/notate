@@ -158,6 +158,30 @@ test('dragging the seal snaps it to the nearest corner, does not open the menu, 
 	assert.deepEqual(b.errors, [])
 })
 
+test('the seal stays on screen after a drop inside its corner zone, and when it gets keyboard focus', async () => {
+	await waitFor(config, 'seeded config')
+	const { page, c } = await openFixture(b, fx)
+	await page.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
+	const onScreen = () => page.eval(`(() => { const r = (${CONTENT_ROOT}).querySelector('#context-menu-btn').getBoundingClientRect(); return r.bottom <= 900 && r.right <= 1440 })()`, 'content')
+	// Keyboard focus: the seal slides in from off-screen.
+	await page.send('Page.bringToFront')
+	for (let i = 0; i < 15 && !(await page.eval(`(${CONTENT_ROOT}).activeElement?.id === 'context-menu-btn'`, 'content')); i++) {
+		await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 })
+		await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 })
+		await sleep(100)
+	}
+	await waitFor(onScreen, 'the focused seal on screen')
+	// Drop away from the seal's final spot but inside the corner zone: the seal still shows.
+	await c.hover('#context-menu-hover-region')
+	const s = await c.center('#context-menu-btn')
+	await page.mouse('mousePressed', s.x, s.y, { buttons: 1 })
+	for (let i = 1; i <= 5; i++) await page.mouse('mouseMoved', s.x - (s.x - 100) * i / 5, s.y - (s.y - 140) * i / 5, { buttons: 1 })
+	await page.mouse('mouseReleased', 100, 140, { buttons: 0 })
+	await sleep(600)
+	assert.equal(await page.eval(`(${CONTENT_ROOT}).querySelector('#context-menu-btn').getBoundingClientRect().top >= 0`, 'content'), true, 'seal is visible after the drop')
+	assert.deepEqual(b.errors, [])
+})
+
 test('dismiss "For This Site" stores the site in config', { todo: 'dismissForSite() is imported but never called, so the site is not stored' }, async () => {
 	const { c } = await openFixture(b, fx)
 	await dismiss(c, 'For This Site')

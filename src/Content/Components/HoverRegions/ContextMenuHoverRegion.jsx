@@ -147,7 +147,7 @@ export default function ContextMenuHoverRegion() {
 			>
 				<div 
 				 id="context-menu-items"
-				 className="w-20 h-60 flex flex-col items-center justify-center relative transition-opacity duration-300"
+				 className="w-20 h-20 flex flex-col items-center justify-center relative transition-opacity duration-300"
 				>
 					<ContextMenu/>
 					{contextMenuButton && <ContextMenuButton/>}

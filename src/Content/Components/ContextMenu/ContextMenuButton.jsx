@@ -44,7 +44,7 @@ export default function ContextMenuButton () {
 	}
 
 	const shown = isHovered || contextMenuState
-	const hidden = corner.startsWith('top') ? '-translate-y-[250%]' : 'translate-y-[250%]'
+	const hidden = corner.startsWith('top') ? '-translate-y-[250%] focus-visible:translate-y-[0%]' : 'translate-y-[250%] focus-visible:translate-y-[0%]'
 	// Tailwind runs with important: true, so while dragging the translate and transition
 	// classes are dropped; otherwise they beat the inline drag transform.
 
@@ -65,8 +65,6 @@ export default function ContextMenuButton () {
 			 onPointerUp={handlePointerUp}
 			 onPointerCancel={() => { drag.current = null; setOffset(null) }}
 			 onClick={handleMenuClick}
-			 onMouseEnter={()=> setIsHovered(true)}
-			 onMouseLeave={()=> setIsHovered(false)}
 			>
 				<span 
 				 id="glow-effect" 
