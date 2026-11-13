@@ -7,11 +7,10 @@ import {
     dismissForSession 
 } from './dismissUtils.js';
 
-export default function DismissButton() {
-    const { CONTEXT_MENU_CONTEXT, CORNER_CONTEXT } = React.useContext(ContextMenuHoverRegionContext);
-    const [ contextMenuState, setContextMenuState ] = CONTEXT_MENU_CONTEXT;
-    const [ corner ] = CORNER_CONTEXT;
-    const left = corner.endsWith('left');
+// The three ways to dismiss. ContextMenu shows them in place of the other tags.
+export function useDismissOptions() {
+    const { CONTEXT_MENU_CONTEXT } = React.useContext(ContextMenuHoverRegionContext);
+    const [ , setContextMenuState ] = CONTEXT_MENU_CONTEXT;
     const { 
         USER_CONFIGURATION_DB_CONTEXT,
         REQUEST_CONTEXT,
@@ -21,19 +20,6 @@ export default function DismissButton() {
     const [ database ] = USER_CONFIGURATION_DB_CONTEXT;
     const [ , makeRequest ] = REQUEST_CONTEXT;
     const [ , setIsMenuDismissed ] = MENU_DISMISSED_CONTEXT;
-    
-    const [showExtraButtons, setShowExtraButtons] = React.useState(false);
-    
-    // Reset extra buttons when context menu is hidden
-    React.useEffect(() => {
-        if (!contextMenuState && showExtraButtons) {
-            setShowExtraButtons(false);
-        }
-    }, [contextMenuState]);
-    
-    const handleDismissClick = () => {
-        setShowExtraButtons(!showExtraButtons);
-    };
     
     // Dismissal handlers
     const handleDismissUntilReload = () => {
@@ -61,58 +47,42 @@ export default function DismissButton() {
         dismissForSession();
     };
     
-    const ExtraButton = ({ title, onClick }) => {
-        return (
-            <button 
-                className={TAG_CLASS}
-                title={title}
-                onClick={onClick}
-            >
-                <span className={`${TAG_LABEL_CLASS} cursor-pointer`}>
-                    {title}
-                </span>
-            </button>
-        );
-    };
-    
+    return [
+        { title: 'Until Page Reload', onClick: handleDismissUntilReload },
+        { title: 'For This Site', onClick: handleDismissForSite },
+        { title: 'For This Session', onClick: handleDismissForSession },
+    ];
+}
+
+export function DismissOption({ title, onClick }) {
     return (
-        <div className="relative">
-            {/* Extra options stack beside the dismiss tag, toward the middle of the page and away from the other tags */}
-            <div 
-                className={`
-                    absolute ${corner.startsWith('top') ? 'bottom-0' : 'top-0'} flex flex-col gap-2 ${left ? 'items-start' : 'items-end'}
-                    transition-all duration-300 ease-out
-                    ${left ? 'left-full ml-3' : 'right-full mr-3'}
-                    ${showExtraButtons ? 'opacity-100 translate-x-0' : `opacity-0 ${left ? '-translate-x-6' : 'translate-x-6'} pointer-events-none`}
-                `}
-            >
-                <ExtraButton 
-                    title="Until Page Reload"
-                    onClick={handleDismissUntilReload}
-                />
-                <ExtraButton 
-                    title="For This Site"
-                    onClick={handleDismissForSite}
-                />
-                <ExtraButton 
-                    title="For This Session"
-                    onClick={handleDismissForSession}
-                />
-            </div>
-            
-            {/* Main dismiss button */}
-            <button
-                id="context-dismiss-btn"
-                className={`${TAG_CLASS} hover:!bg-vermilion-wash hover:!text-vermilion-ink`}
-                onClick={handleDismissClick}
-            >
-                <span aria-hidden="true" className={TAG_GLYPH_CLASS}>
-                    {showExtraButtons ? (left ? '\u203A' : '\u2039') : '\u00D7'}
-                </span>
-                <label className={`${TAG_LABEL_CLASS} cursor-pointer`}>
-                    {`Dismiss Menu`}
-                </label>
-            </button>
-        </div>
+        <button 
+            className={TAG_CLASS}
+            title={title}
+            onClick={onClick}
+        >
+            <span className={`${TAG_LABEL_CLASS} cursor-pointer`}>
+                {title}
+            </span>
+        </button>
+    );
+}
+
+export default function DismissButton({ open, onToggle }) {
+    return (
+        <button
+            id="context-dismiss-btn"
+            aria-expanded={open}
+            className={`${TAG_CLASS} hover:!bg-vermilion-wash hover:!text-vermilion-ink`}
+            onClick={onToggle}
+        >
+            {/* while the options show, the glyph reads as "back" */}
+            <span aria-hidden="true" className={TAG_GLYPH_CLASS}>
+                {open ? '\u2039' : '\u00D7'}
+            </span>
+            <label className={`${TAG_LABEL_CLASS} cursor-pointer`}>
+                {`Dismiss Menu`}
+            </label>
+        </button>
     );
 }
