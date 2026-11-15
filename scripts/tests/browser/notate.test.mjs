@@ -895,7 +895,7 @@ test('search bar: an engine pick is stored by patch and leaves other settings al
 	// The icons are real files in the build.
 	await n.hover('#search-bar-tab')
 	await waitFor(() => page.eval(`(() => { const i = document.querySelector('#search-engine-chip img'); return i.complete && i.naturalWidth > 0 })()`), 'chip icon loaded')
-	assert.deepEqual(b.errors.filter((e) => !e.includes('Favicons')), [])
+	assert.deepEqual(b.errors, [])
 })
 
 test('search bar: Enter opens the chosen engine in the current tab', async () => {
@@ -949,6 +949,101 @@ test('search bar: "/" raises the bar, but not while typing in another field or w
 	await page.eval(`document.activeElement.blur()`)
 	await pressKey(page, '/', { text: '/' })
 	assert.notEqual(await page.eval(`document.activeElement.id`), 'searchInput')
+	// Typing "/" in a field of the open editor keeps the character and leaves focus there.
+	await n.click('#edit-note-title')
+	await pressKey(page, '/', { text: '/' })
+	assert.equal(await page.eval(`document.activeElement.id`), 'edit-note-title')
+	assert.equal(await page.eval(`document.querySelector('#edit-note-title').value`), '/')
+})
+
+test('search bar: "/" and Alt+E still work after a notebook delete or cancel', async () => {
+	await b.post('notate', 'NOTEBOOKS', { id: 1, title: 'Doomed book', description: 'x', collection: [], created: stamp, modified: stamp })
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	const focusBar = async (what) => {
+		await page.eval(`document.activeElement.blur()`)
+		await pressKey(page, '/', { text: '/' })
+		await waitFor(async () => (await page.eval(`document.activeElement.id`)) === 'searchInput', what)
+		await pressKey(page, 'Escape')
+	}
+	// Cancel the delete, close the notebook, then try the key.
+	await n.click('#notebook-card-1')
+	await n.click('#delete-notebook-btn')
+	await n.appear('#confirmation-modal')
+	await n.click('#cancel-btn')
+	await n.gone('#confirmation-modal')
+	await n.click('#close-modal-button')
+	await n.gone('#notebook-title')
+	await focusBar('"/" after a cancelled delete')
+	// Confirm the delete, then try the key.
+	await n.click('#notebook-card-1')
+	await n.click('#delete-notebook-btn')
+	await n.appear('#confirmation-modal')
+	await n.click('#action-btn')
+	await waitFor(async () => (await notebooks()).length === 0, 'notebook deleted')
+	await n.gone('#confirmation-modal')
+	await focusBar('"/" after a delete')
+	await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'e', code: 'KeyE', modifiers: 1, windowsVirtualKeyCode: 69 })
+	await n.appear('#search-engine-menu')
+	assert.deepEqual(b.errors, [])
+})
+
+test('search bar: Alt+E does not take AltGr+E, which types a character', async () => {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.appear('#searchInput')
+	await page.eval(`window.__prevented = null; document.addEventListener('keydown', (e) => { window.__prevented = e.defaultPrevented }, { capture: false })`)
+	await page.eval(`document.querySelector('#searchInput').focus()`)
+	// AltGr arrives as Ctrl+Alt with the typed character as the key.
+	await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: '€', code: 'KeyE', modifiers: 3, windowsVirtualKeyCode: 69 })
+	await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: '€', code: 'KeyE', modifiers: 3, windowsVirtualKeyCode: 69 })
+	await sleep(300)
+	assert.equal(await page.eval(`!!document.querySelector('#search-engine-menu')`), false, 'menu stays shut')
+	assert.equal(await page.eval(`window.__prevented`), false, 'the key is left alone, so the character can be typed')
+})
+
+test('search bar: an IME composition is not a command or a search', async () => {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.fill('#searchInput', '/note "composed"')
+	// Enter that picks an IME candidate arrives with keyCode 229.
+	await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 229 })
+	await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 229 })
+	await sleep(600)
+	assert.equal((await notes()).length, 0, 'no note from a composing Enter')
+	assert.equal(await page.eval(`document.querySelector('#searchInput').value`), '/note "composed"')
+	await pressKey(page, 'Enter')
+	await waitFor(async () => (await notes()).length === 1, 'note from the real Enter')
+	assert.deepEqual(b.errors, [])
+})
+
+test('search bar: "/note" takes its colour from the settings', async () => {
+	await waitFor(config, 'seeded config')
+	await b.request('PATCH_DATABASE', { database: 'userConfiguration', store: 'USER_CONFIGURATION', data: { Notate: { noteModal: { preferredColor: { value: 'green' } } } } })
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.fill('#searchInput', '/note "Green by setting"')
+	await pressKey(page, 'Enter')
+	const [saved] = await waitFor(async () => { const l = await notes(); return l.length && l }, 'note in IndexedDB')
+	assert.equal(saved.color.name, 'green')
+	assert.ok(saved.color.styles, 'stored in the same shape as the editor writes')
+})
+
+test('search bar: a stored engine that is not a real engine falls back to the default, and picking the default repairs it', async () => {
+	await waitFor(config, 'seeded config')
+	for (const bad of ['constructor', 'gone-engine']) {
+		await b.request('PATCH_DATABASE', { database: 'userConfiguration', store: 'USER_CONFIGURATION', data: { Notate: { search: { preferredEngine: { value: bad } } } } })
+		const page = await b.openPage(NEWTAB)
+		const n = ui(page)
+		await n.appear('#search-engine-chip')
+		assert.equal(await page.eval(`document.querySelector('#search-engine-chip').dataset.engine`), 'perplexityai', `${bad} shows the default`)
+		await n.hover('#search-bar-tab')
+		await n.click('#search-engine-chip')
+		await n.appear('#search-engine-menu')
+		await n.click('#search-engine-perplexityai')
+		await waitFor(async () => (await config()).Notate.search.preferredEngine.value === 'perplexityai', `${bad} repaired`)
+	}
+	assert.deepEqual(b.errors, [])
 })
 
 test('search bar: a drag tucks the bar and raises the trash, and both return afterwards', async () => {

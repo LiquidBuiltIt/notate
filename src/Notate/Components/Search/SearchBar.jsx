@@ -4,6 +4,7 @@ import { NOTATE_DB, USER_CONFIGURATION_DB } from '@background/background.js'
 import { ConfirmationMsgContext } from '@notate/Components/Modals/ConfirmationModal/ConfirmationMsg.jsx'
 import NoteHandler from '@universal/Handlers/NoteHandler.js'
 import NotebookHandler from '@universal/Handlers/NotebookHandler.js'
+import { NoteColors } from '@notate/Components/Modals/NoteModal/Components/NoteColorProvider.js'
 import { searchEngineProviders } from './searchEngineProviders.js'
 import { tokensOf, noteMatches, volumeMatches, looseNotes } from './matching.js'
 
@@ -38,7 +39,7 @@ const Key = ({ k, children, optional }) => (
 export default function SearchBar() {
 	const {
 		SEARCH_TERM_CONTEXT, NOTATE_DB_CONTEXT, USER_CONFIGURATION_DB_CONTEXT, REQUEST_CONTEXT,
-		NOTE_CONTEXT, NOTEBOOK_CONTEXT, DRAG_TO_TRASH_STATE_CONTEXT, SCROLL_STATE_CONTEXT
+		NOTE_CONTEXT, NOTEBOOK_CONTEXT, DRAG_TO_TRASH_STATE_CONTEXT, SETTINGS_OPEN_CONTEXT
 	} = React.useContext(NotateContext)
 	const [ confMsgState ] = React.useContext(ConfirmationMsgContext)
 	const [ , setSearchTerm ] = SEARCH_TERM_CONTEXT
@@ -48,7 +49,7 @@ export default function SearchBar() {
 	const [ selectedNote, setSelectedNote ] = NOTE_CONTEXT
 	const [ selectedNotebook, setSelectedNotebook ] = NOTEBOOK_CONTEXT
 	const [ dragging ] = DRAG_TO_TRASH_STATE_CONTEXT
-	const [ scrollState ] = SCROLL_STATE_CONTEXT
+	const [ settingsOpen ] = SETTINGS_OPEN_CONTEXT
 
 	const [ value, setValue ] = React.useState('')
 	const [ selected, setSelected ] = React.useState(0)
@@ -63,11 +64,11 @@ export default function SearchBar() {
 	const chipRef = React.useRef(null)
 	const menuRef = React.useRef(null)
 
-	const modalOpen = !!(selectedNote || selectedNotebook || confMsgState || scrollState === false)
+	const modalOpen = !!(selectedNote || selectedNotebook || confMsgState || settingsOpen)
 
 	/* The engine lives in the stored settings, so Settings and the bar always agree. */
 	const configured = configuration?.inventory?.USER_CONFIGURATION?.[0]?.Notate?.search?.preferredEngine?.value
-	const engineId = searchEngineProviders[configured] ? configured : DEFAULT_ENGINE
+	const engineId = Object.hasOwn(searchEngineProviders, configured) ? configured : DEFAULT_ENGINE
 	const engine = searchEngineProviders[engineId]
 
 	/* Matching, derived from the stored data so a saved edit never resets it. */
@@ -147,7 +148,11 @@ export default function SearchBar() {
 		}
 
 		if (cmd.name === 'note') {
-			makeRequest({ type: 'POST_DATABASE', data: new NoteHandler.Note(arg), store: 'NOTES', database: NOTATE_DB })
+			const note = new NoteHandler.Note(arg)
+			const name = configuration?.inventory?.USER_CONFIGURATION?.[0]?.Notate?.noteModal?.preferredColor?.value
+			// Same stored shape the note editor writes.
+			if (Object.hasOwn(NoteColors, name)) note.color = { name, styles: NoteColors[name] }
+			makeRequest({ type: 'POST_DATABASE', data: note, store: 'NOTES', database: NOTATE_DB })
 		} else {
 			makeRequest({ type: 'POST_DATABASE', data: new NotebookHandler.Notebook(arg), store: 'NOTEBOOKS', database: NOTATE_DB })
 		}
@@ -164,7 +169,7 @@ export default function SearchBar() {
 
 	/* The engine menu. */
 	const pickEngine = (id) => {
-		if (id !== engineId) {
+		if (id !== configured) {
 			makeRequest({
 				type: 'PATCH_DATABASE',
 				data: { Notate: { search: { preferredEngine: { value: id } } } },
@@ -206,6 +211,9 @@ export default function SearchBar() {
 
 	/* Keys on the input. */
 	const handleInputKeys = (event) => {
+		// An IME uses Enter, the arrows and Tab to pick candidates.
+		if (event.nativeEvent.isComposing || event.keyCode === 229) return
+
 		const key = event.key
 
 		if (key === 'Enter') {
@@ -239,7 +247,8 @@ export default function SearchBar() {
 		const handleKeys = (event) => {
 			if (modalOpen) return
 
-			if (event.altKey && event.code === 'KeyE') {
+			// By key, not code: AltGr+E and Option+E type a character and must keep it.
+			if (event.altKey && !event.ctrlKey && event.key.toLowerCase() === 'e') {
 				event.preventDefault()
 				if (menuOpen) closeMenu(chipRef.current)
 				else setMenuOpen(true)

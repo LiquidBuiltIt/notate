@@ -13,7 +13,6 @@
     "storage",
     "tabs", 
     "activeTab",
-    "search",
     "history"
   ],
   "action": {

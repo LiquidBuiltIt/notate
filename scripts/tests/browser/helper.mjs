@@ -171,6 +171,16 @@ export async function launch() {
 				port.postMessage({ type: 'POST_DATABASE', content: { database: ${JSON.stringify(database)}, store: ${JSON.stringify(store)}, data: ${JSON.stringify(data)} } })
 			})`)
 		},
+		// Any request of the data protocol, as the app sends it (PATCH_DATABASE, DELETE_DATABASE ...). Resolves with the reply type.
+		async request(type, content) {
+			const r = await api.reader()
+			return r.eval(`new Promise((res, rej) => {
+				const port = chrome.runtime.connect({ name: 'DATABASE_CONNECTION' })
+				port.onMessage.addListener((m) => res(m.type))
+				setTimeout(() => rej(new Error('no reply to ' + ${JSON.stringify(type)})), 8000)
+				port.postMessage({ type: ${JSON.stringify(type)}, content: ${JSON.stringify(content)} })
+			})`)
+		},
 		async close() {
 			try { ws.close() } catch {}
 			proc.kill('SIGKILL')

@@ -7,7 +7,8 @@ export default function SettingsWidget() {
 	
 	const [ scrollState, setScrollState ] = NOTATE_CONTEXT.SCROLL_STATE_CONTEXT
 
-	const [ widgetState, setWidgetState ] = React.useState(false)
+	// Shared, so the search bar and the board know the settings are open.
+	const [ widgetState, setWidgetState ] = NOTATE_CONTEXT.SETTINGS_OPEN_CONTEXT
 
 	const handleSettingsWidgetClick = () => {
 		setWidgetState(!widgetState)	
