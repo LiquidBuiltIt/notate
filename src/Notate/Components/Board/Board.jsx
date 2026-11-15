@@ -1,8 +1,7 @@
 import React from 'react'
-import browser from 'webextension-polyfill'
 import { NotateContext } from '@notate/Notate.jsx'
 import { NOTATE_DB, USER_CONFIGURATION_DB } from '@background/background.js'
-import useRequest from '@universal/Hooks/useRequest/useRequest.jsx'
+import { sendRequest } from '@universal/Hooks/useRequest/useRequest.jsx'
 import { NotificationContext } from '@universal/Components/NotificationMessenger.jsx'
 import { ConfirmationMsgContext } from '@notate/Components/Modals/ConfirmationModal/ConfirmationMsg.jsx'
 import ConfirmationMsgHandler from '@notate/Components/Modals/ConfirmationModal/ConfimrationMsgHandler.js'
@@ -78,7 +77,6 @@ export default function Board() {
 	const [ settingsOpen ] = SETTINGS_OPEN_CONTEXT
 	const [ confMsgState, setConfMsgState ] = React.useContext(ConfirmationMsgContext)
 	const [ notification, setNotification ] = React.useContext(NotificationContext)
-	const [ resp, makeReq ] = useRequest()
 
 	const [ , bump ] = React.useReducer(x => x + 1, 0)
 	const [ held, setHeld ] = React.useState(null)    // { id, phase: 'in' | 'lift' | 'settle' }
@@ -127,25 +125,38 @@ export default function Board() {
 
 
 	/* ---- requests: one at a time, in order, so a later position never lands before an earlier one ---- */
-	const pump = () => {
+	// The chain does not depend on the component: after the board unmounts it still sends what is left, in order.
+	const pump = async () => {
 		if (s.inflight || !s.queue.length) return
 		s.inflight = true
-		makeReq(s.queue.shift())
+		const req = s.queue.shift()
+		const res = await sendRequest(req)
+		s.inflight = false
+		if (res) {
+			const { data, database: name } = res
+			if (name === NOTATE_DB) setDatabase(data)
+			else if (name === USER_CONFIGURATION_DB) setConfiguration(data)
+		} else {
+			A.current.failed(req)   // the queue moves on, so later changes still save
+		}
+		pump()
 	}
 	const enqueue = (...requests) => { s.queue.push(...requests); pump() }
 
-	React.useEffect(() => {
-		if (!resp) return
-		s.inflight = false
-		if (resp.status === '200') {
-			const { data, database: name } = resp.content ?? {}
-			if (data && name === NOTATE_DB) setDatabase(data)
-			else if (data && name === USER_CONFIGURATION_DB) setConfiguration(data)
-		} else {
-			showToast('That change could not be saved')   // the queue moves on, so later changes still save
-		}
-		pump()
-	}, [resp])
+	// A change that could not be saved goes back to where it was last stored.
+	const failed = (req) => {
+		if (!boardRef.current) return
+		const { noteMap, bookMap } = L.current
+		const each = req.data?.$each ?? []
+		each.forEach(({ id }) => {
+			const m = req.store === 'NOTES' ? s.n.get(id) : s.f.get(id)
+			const b = (req.store === 'NOTES' ? noteMap : bookMap).get(id)?.board
+			if (m && b && (req.store === 'NOTES' ? B.validNotePos(b) : B.validFramePos(b))) Object.assign(m, b)
+		})
+		if (!s.queue.length) { s.over.clear(); s.gone.clear() }   // nothing more is coming, so the unsaved filing and deletions are dropped
+		applyAll(); bump()
+		showToast('That change could not be saved')
+	}
 
 	// Positions and filing. One $each per store; every record is patched by id, `board` only.
 	const save = (nIds, fIds, extra = []) => {
@@ -338,14 +349,14 @@ export default function Board() {
 		}
 
 		refreshSheet()
-		const taken = [...s.n.values()].map(m => ({ x: m.x, y: m.y, w: B.NW, h: B.NH })).concat([...s.f.values()].map(B.frameBlock))
+		const taken = B.occupancy([...s.n.values()].map(m => ({ x: m.x, y: m.y, w: B.NW, h: B.NH })).concat([...s.f.values()].map(B.frameBlock)))
 		const centre = viewCentre()
 
 		for (const bk of bs) if (!s.f.has(bk.id)) {
 			const size = B.defaultFrameSize((bk.collection ?? []).filter(id => ids.has(id)).length)
 			const spot = B.placeFree(taken, size.w + 16, size.h + 60, centre, s.sheet)
 			s.f.set(bk.id, { x: spot.x + 8, y: spot.y + 52, ...size }); tF.add(bk.id)
-			taken.push(B.frameBlock(s.f.get(bk.id)))
+			taken.add(B.frameBlock(s.f.get(bk.id)))
 			refreshSheet()
 		}
 
@@ -367,7 +378,7 @@ export default function Board() {
 				s.n.set(n.id, { ...base, ...pos })
 			}
 			const placed = s.n.get(n.id)
-			taken.push({ x: placed.x, y: placed.y, w: B.NW, h: B.NH })
+			taken.add({ x: placed.x, y: placed.y, w: B.NW, h: B.NH })
 			if (mark) { hideMark(); mark = null }
 			tN.add(n.id)
 		}
@@ -737,7 +748,7 @@ export default function Board() {
 		else if (e.key === 't' || e.key === 'T') tidy()
 	}
 
-	A.current = { flushAll: () => { flushDirty(); if (s.viewDue) sendView() }, onDown, onMove, onUp, onCancel, onWheel, onBoardKey, onFocusIn, onFocusOut, onGlobalKey,
+	A.current = { failed, flushAll: () => { flushDirty(); if (s.viewDue) sendView() }, onDown, onMove, onUp, onCancel, onWheel, onBoardKey, onFocusIn, onFocusOut, onGlobalKey,
 		onResize: () => { clampView(); applyView(false, false) } }
 
 
@@ -754,15 +765,9 @@ export default function Board() {
 		on.forEach(([el, type, fn, opt]) => el.addEventListener(type, fn, opt))
 		return () => {
 			on.forEach(([el, type, fn, opt]) => el.removeEventListener(type, fn, opt))
-			// This board's request hook goes with it, so unsaved changes are sent straight (fire and forget).
-			const s = S.current
-			s.inflight = true
+			// Unsaved changes join the queue, which keeps sending after the board is gone.
 			A.current.flushAll()
-			s.queue.splice(0).forEach(r => {
-				const port = browser.runtime.connect({ name: 'DATABASE_CONNECTION' })
-				port.postMessage({ type: r.type, content: { database: r.database, store: r.store, data: r.data } })
-			})
-			Object.values(s.timers).forEach(clearTimeout)
+			Object.values(S.current.timers).forEach(clearTimeout)
 			clearAim(); setDragging(false)
 		}
 	}, [])

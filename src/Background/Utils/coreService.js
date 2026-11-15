@@ -172,6 +172,8 @@ export default class CoreService {
 								type: 'DATABASE',
 								content: { data: db, database: target }
 							}, port)
+						} else {
+							this.sendMessage({ type: 'DATABASE', content: {} }, port)   // an unusable request still gets a reply
 						}
 
 						break;

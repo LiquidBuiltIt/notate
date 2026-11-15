@@ -33,20 +33,42 @@ export const frameBlock = (f) => ({ x: f.x - 8, y: f.y - 52, w: f.w + 16, h: f.h
 
 const overlaps = (a, b, gap) => a.x < b.x + b.w + gap && a.x + a.w + gap > b.x && a.y < b.y + b.h + gap && a.y + a.h + gap > b.y
 
-// The free spot nearest the anchor for a w x h box: the anchor itself first, then outwards.
+// What is taken, bucketed so a box is only tested against the rects near it. rects: [{ x, y, w, h }]
+export function occupancy(rects = [], size = 256) {
+	const buckets = new Map()
+	let bottom = 0
+	const each = (r, gap, fn) => {
+		for (let i = Math.floor((r.x - gap) / size); i <= Math.floor((r.x + r.w + gap) / size); i++)
+			for (let j = Math.floor((r.y - gap) / size); j <= Math.floor((r.y + r.h + gap) / size); j++) if (fn(`${i},${j}`)) return true
+		return false
+	}
+	const add = (r) => { bottom = Math.max(bottom, r.y + r.h); each(r, 0, (k) => { (buckets.get(k) ?? buckets.set(k, []).get(k)).push(r) }) }
+	rects.forEach(add)
+	return { add, bottom: () => bottom, hits: (box, gap) => each(box, gap, (k) => buckets.get(k)?.some(r => overlaps(box, r, gap))) }
+}
+
+const spiral = new Map()   // the cells around the anchor, nearest first, kept per cell size
+const cellsAround = (sx, sy, R) => {
+	const key = `${sx},${sy},${R}`
+	if (!spiral.has(key)) {
+		const cells = []
+		for (let i = -R; i <= R; i++) for (let j = -R; j <= R; j++) cells.push([i, j, (i * sx) ** 2 + (j * sy) ** 2])
+		spiral.set(key, cells.sort((a, b) => a[2] - b[2]))
+	}
+	return spiral.get(key)
+}
+
+// The free spot nearest the anchor for a w x h box: the anchor itself first, then outwards. `taken` is an occupancy.
 export function placeFree(taken, w, h, anchor, sheet, gap = 14) {
 	const sx = w + gap, sy = h + gap, R = 12
 	const cx = clamp(anchor.x, w / 2, sheet.w - w / 2), cy = clamp(anchor.y, TOP_MARGIN + h / 2, sheet.h - h / 2)
-	const cells = []
-	for (let i = -R; i <= R; i++) for (let j = -R; j <= R; j++) cells.push([i, j, (i * sx) ** 2 + (j * sy) ** 2])
-	cells.sort((a, b) => a[2] - b[2])
 
-	for (const [i, j] of cells) {
+	for (const [i, j] of cellsAround(sx, sy, R)) {
 		const box = { x: Math.round(cx - w / 2 + i * sx), y: Math.round(cy - h / 2 + j * sy), w, h }
 		if (box.x < 0 || box.y < TOP_MARGIN || box.x + w > sheet.w || box.y + h > sheet.h) continue
-		if (!taken.some(r => overlaps(box, r, gap))) return { x: box.x, y: box.y }
+		if (!taken.hits(box, gap)) return { x: box.x, y: box.y }
 	}
-	return { x: clamp(Math.round(cx - w / 2), 0, sheet.w - w), y: Math.round(Math.max(0, ...taken.map(r => r.y + r.h)) + gap) }
+	return { x: clamp(Math.round(cx - w / 2), 0, sheet.w - w), y: Math.round(taken.bottom() + gap) }
 }
 
 // A frame size that holds `count` notes in two columns.

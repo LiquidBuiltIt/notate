@@ -1389,6 +1389,7 @@ test('board: a save the background cannot do is reported, and later moves still 
 	await waitFor(async () => /could not be saved/.test(await page.eval(`document.querySelector('#board-toast')?.textContent ?? ''`)), 'failure toast')
 	b.errors.length = 0 // the forced failure is expected
 	assert.deepEqual(pick(await savedBoard('NOTES', 1)), { x: 200, y: 150 }, 'the failed move was not stored')
+	assert.equal(await translateOf(page, '#board-note-1'), '200px 150px', 'and the note is back where it was')
 	const two = await n.center('#board-note-2')
 	await drag(page, two, { x: two.x, y: two.y + 220 })
 	await waitFor(async () => (await savedBoard('NOTES', 2)).y > 300, 'a later move saves')
@@ -1426,4 +1427,22 @@ test('a PATCH with no record id is refused for notes and does not touch the firs
 	await sleep(300)
 	assert.equal((await notes())[0].title, 'Note 1')
 	b.errors.length = 0 // the refusal is logged as an error
+})
+
+test('a web-page save that keeps failing is retried three times and then stops', async () => {
+	await waitFor(config, 'seeded config')
+	const { c } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.click('#new-note-btn')
+	await c.fill('#edit-title', 'Doomed')
+	await c.fill('#input-text-display', 'never stored')
+	// Every write to NOTES fails in the service worker, and each failure is counted.
+	const sw = await b.serviceWorker()
+	await sw.eval(`(() => { const put = IDBObjectStore.prototype.put; globalThis.__fails = 0; IDBObjectStore.prototype.put = function () { if (this.name === 'NOTES') { globalThis.__fails++; throw new Error('forced failure') } return put.apply(this, arguments) } })()`)
+	await c.click('#save-note-btn')
+	await waitFor(async () => (await sw.eval('globalThis.__fails')) >= 4, 'the retries')
+	await sleep(2500)
+	assert.equal(await sw.eval('globalThis.__fails'), 4, 'one try and three retries, then it stops')
+	assert.equal((await notes()).length, 0)
+	b.errors.length = 0 // the forced failures are expected
 })

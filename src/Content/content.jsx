@@ -79,6 +79,7 @@ const ContentScript = () => {
 
 	const [ notification, setNotification ] = React.useState(new NotificationHandler)
 	const [ selectedContextItem, setSelectedContextItem ] = React.useState(false)
+	const failures = React.useRef(0)
 
 
 
@@ -107,6 +108,7 @@ const ContentScript = () => {
 		const responseHandler = async () => {
 			if (response.type === 'RESULT' && response.status === '200') {
 				const result = response.content
+				failures.current = 0
 
 				if (result?.data && result?.database) {
 					const db = result.data
@@ -121,7 +123,8 @@ const ContentScript = () => {
 					}
 				}
 			} else if (response.status === '400') {
-				// Retry the request 
+				// Retry a few times; a request that keeps failing (the background reports errors) must not loop.
+				if (++failures.current > 3) return
 
         			await makeRequest({ 
 					type: response.content.type == 'GET_DATABASE' 
@@ -129,7 +132,8 @@ const ContentScript = () => {
 						: response.content.type, 
 					database: response.content.database,
 					data: response.content?.data,
-					store: response.content?.store
+					store: response.content?.store,
+					id: response.content?.id
 				})
 			}
 		}
