@@ -1,6 +1,7 @@
 import browser from 'webextension-polyfill'
 import DatabaseAdapter from '@universal/Handlers/IdbHandler.js';
 import { BROWSER_TYPE } from './browserType.js'
+import { applyPatch } from '@universal/Handlers/ConfigurationHandlers/patch.js'
 
 export const NOTATE_DB = "notate"
 export const ERROR_LOGGING_DB = "errorLogging"
@@ -155,7 +156,25 @@ export default class CoreService {
 		
 						break;
 					
-					case 'DELETE_DATABASE': 
+					case 'PATCH_DATABASE':
+						// Applies only what the sender changed to the stored record, so a sender
+						// with an out-of-date copy cannot overwrite newer changes.
+						data = message?.content?.data
+						store = message?.content?.store
+
+						if ( data && store && typeof db.updateData === 'function' ) {
+							await db.updateData(store, record => record && applyPatch(record, data))
+							await this.initializeDatabase(target)
+
+							this.sendMessage({
+								type: 'DATABASE',
+								content: { data: db, database: target }
+							}, port)
+						}
+
+						break;
+
+					case 'DELETE_DATABASE':
 						data = message?.content?.data
 						store = message?.content?.store
 		

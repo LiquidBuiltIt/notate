@@ -28,22 +28,14 @@ async function setupUserConfiguration(database) {
 
 async function configurationMergeCheck(database) {
 	try {
-    		// Fetch the current configuration from the database
-    		const currentConfig = database.inventory.USER_CONFIGURATION[0];
+		// Read-merge-write in one transaction, so a user setting saved at the same time is not overwritten
+		await database.updateData('USER_CONFIGURATION', currentConfig => {
+			// If no configuration exists, insert the template
+			if (!currentConfig) return ConfigurationTemplate
 
-    		if (!currentConfig) {
-     			// If no configuration exists, insert the template
-			await database.insertData(ConfigurationTemplate, 'USER_CONFIGURATION');
-      			return;
-		}
-
-    		// Check if a merge is needed
-    		const mergedConfig = checkAndMergeConfig(currentConfig, ConfigurationTemplate);
-
-    		if (mergedConfig) {
-      			// A merge is needed, update the database
-      			await database.insertData(mergedConfig, 'USER_CONFIGURATION');
-    		}
+			// A merged config is returned only when a merge is needed
+			return checkAndMergeConfig(currentConfig, ConfigurationTemplate)
+		})
 	} catch (error) {
     		console.error('Error in config DB merge check:', error);
   	}

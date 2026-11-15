@@ -42,11 +42,9 @@ export default function SearchEngineSelector({  }) {
 	React.useEffect(() =>{
 		const asyncProcessor = async () => {
 			if (config?.Notate?.search) {
-				config.Notate.search.preferredEngine.value = selectedEngineIndex
-
 				await makeRequest({ 
-					type: "POST_DATABASE", 
-					data: config, 
+					type: "PATCH_DATABASE", 
+					data: { Notate: { search: { preferredEngine: { value: selectedEngineIndex } } } }, 
 					store: 'USER_CONFIGURATION',
 					database: USER_CONFIGURATION_DB
 				})

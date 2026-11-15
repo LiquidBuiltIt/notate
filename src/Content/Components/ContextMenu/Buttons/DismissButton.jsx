@@ -12,12 +12,10 @@ export function useDismissOptions() {
     const { CONTEXT_MENU_CONTEXT } = React.useContext(ContextMenuHoverRegionContext);
     const [ , setContextMenuState ] = CONTEXT_MENU_CONTEXT;
     const { 
-        USER_CONFIGURATION_DB_CONTEXT,
         REQUEST_CONTEXT,
         MENU_DISMISSED_CONTEXT
     } = React.useContext(WebContentContext);
     
-    const [ database ] = USER_CONFIGURATION_DB_CONTEXT;
     const [ , makeRequest ] = REQUEST_CONTEXT;
     const [ , setIsMenuDismissed ] = MENU_DISMISSED_CONTEXT;
     
@@ -33,7 +31,7 @@ export function useDismissOptions() {
         setIsMenuDismissed(true);
 
         // Then save the site; Settings > Web Content can show the menu there again
-        dismissForSite(window.location.hostname, database, makeRequest);
+        dismissForSite(window.location.hostname, makeRequest);
     };
     
     const handleDismissForSession = () => {

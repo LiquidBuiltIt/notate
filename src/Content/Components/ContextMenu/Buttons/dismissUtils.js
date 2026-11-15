@@ -16,38 +16,18 @@ export const dismissUntilReload = (setContextMenuState) => {
 /**
  * Dismiss the context menu for a specific site
  * @param {string} site - Current site hostname
- * @param {Object} userconfigurationdb - User configuration database
  * @param {Function} makeRequest - Request function for database updates
  * @returns {Promise<boolean>} Success status
  */
-export const dismissForSite = async (site, userconfigurationdb, makeRequest) => {
+export const dismissForSite = async (site, makeRequest) => {
   try {
-    // Get current configuration or initialize if not present
-    const config = userconfigurationdb?.inventory?.USER_CONFIGURATION?.[0] || {};
-    const currentWebContent = config.WebContent || {};
-    const dismissedSites = currentWebContent.dismissedSites || [];
-    
-    // Only update if site isn't already in the list
-    if (!dismissedSites.includes(site)) {
-      // Update the list in the existing object
-      const updatedSites = [...dismissedSites, site];
-      
-      // Modify the userconfigurationdb directly
-      if (userconfigurationdb?.inventory?.USER_CONFIGURATION?.[0]) {
-        if (!userconfigurationdb.inventory.USER_CONFIGURATION[0].WebContent) {
-          userconfigurationdb.inventory.USER_CONFIGURATION[0].WebContent = {};
-        }
-        userconfigurationdb.inventory.USER_CONFIGURATION[0].WebContent.dismissedSites = updatedSites;
-      }
-      
-      // Send the updated database to the backend
-      makeRequest({ 
-        type: "POST_DATABASE", 
-        data: userconfigurationdb.inventory.USER_CONFIGURATION[0], 
-        store: 'USER_CONFIGURATION',
-        database: 'userConfiguration'
-      });
-    }
+    // Only adds this site; the background adds it to the sites stored now
+    makeRequest({ 
+      type: "PATCH_DATABASE", 
+      data: { WebContent: { dismissedSites: { $add: [site] } } }, 
+      store: 'USER_CONFIGURATION',
+      database: 'userConfiguration'
+    });
     
     return true;
   } catch (error) {
@@ -119,23 +99,13 @@ export const isContextMenuDismissedForSession = () => {
 /**
  * Reset all dismissal settings
  * @param {Function} makeRequest - Request function for database updates
- * @param {Object} userconfigurationdb - User configuration database
  * @returns {Promise<boolean>} Success status
  */
-export const resetDismissalSettings = async (makeRequest, userconfigurationdb) => {
+export const resetDismissalSettings = async (makeRequest) => {
   try {
-    // Modify the userconfigurationdb directly
-    if (userconfigurationdb?.inventory?.USER_CONFIGURATION?.[0]) {
-      if (!userconfigurationdb.inventory.USER_CONFIGURATION[0].WebContent) {
-        userconfigurationdb.inventory.USER_CONFIGURATION[0].WebContent = {};
-      }
-      userconfigurationdb.inventory.USER_CONFIGURATION[0].WebContent.dismissedSites = [];
-    }
-    
-    // Send the updated database to the backend
     makeRequest({ 
-      type: "POST_DATABASE", 
-      data: userconfigurationdb.inventory.USER_CONFIGURATION[0], 
+      type: "PATCH_DATABASE", 
+      data: { WebContent: { dismissedSites: [] } }, 
       store: 'USER_CONFIGURATION',
       database: 'userConfiguration'
     });

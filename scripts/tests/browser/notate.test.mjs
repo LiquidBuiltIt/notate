@@ -225,6 +225,50 @@ test('dismiss "For This Site" hides the menu in new tabs on that site, and Setti
 	assert.deepEqual(b.errors, [])
 })
 
+// ---- Config writes change only what the writer changed ----
+
+// Open Settings on a new tab page and wait until its config is loaded.
+async function openSettings() {
+	const tab = await b.openPage(NEWTAB)
+	const n = ui(tab)
+	await n.click('#settings-widget')
+	await n.appear('#checkbox-option input') // first checkbox: Notate.search.searchNotes
+	return n
+}
+async function toggleSearchNotesAndSave(n) {
+	await n.click('#checkbox-option input')
+	await n.click('#save-settings-button')
+	await waitFor(async () => (await config()).Notate.search.searchNotes.value === 'false', 'searchNotes saved')
+}
+
+test('"For This Site" on a page opened before a settings change keeps that change', async () => {
+	await waitFor(config, 'seeded config')
+	const { c } = await openFixture(b, fx) // loads the config as it is now
+	await toggleSearchNotesAndSave(await openSettings())
+	await dismiss(c, 'For This Site')
+	await waitFor(async () => (await config()).WebContent.dismissedSites?.includes('127.0.0.1'), 'site stored', 3000)
+	assert.equal((await config()).Notate.search.searchNotes.value, 'false', 'the settings change survived')
+})
+
+test('Settings Save keeps a site dismissed after Settings opened', async () => {
+	await waitFor(config, 'seeded config')
+	const n = await openSettings() // loads the config as it is now
+	const { c } = await openFixture(b, fx)
+	await dismiss(c, 'For This Site')
+	await waitFor(async () => (await config()).WebContent.dismissedSites?.includes('127.0.0.1'), 'site stored', 3000)
+	await toggleSearchNotesAndSave(n)
+	assert.deepEqual((await config()).WebContent.dismissedSites, ['127.0.0.1'], 'the dismissed site survived the save')
+})
+
+test('two pages dismissing different sites at the same time both get stored', async () => {
+	await waitFor(config, 'seeded config')
+	const one = await openFixture(b, fx)
+	const two = await openFixture(b, { url: fx.url.replace('127.0.0.1', 'localhost') })
+	await Promise.all([dismiss(one.c, 'For This Site'), dismiss(two.c, 'For This Site')])
+	await waitFor(async () => ((await config()).WebContent.dismissedSites ?? []).length === 2, 'both sites stored', 3000)
+	assert.deepEqual([...(await config()).WebContent.dismissedSites].sort(), ['127.0.0.1', 'localhost'])
+})
+
 // ---- Security hardening ----
 
 test('the content script shadow root is closed to page scripts, and the UI still works', async () => {

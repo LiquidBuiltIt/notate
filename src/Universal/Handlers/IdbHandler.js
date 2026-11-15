@@ -173,7 +173,35 @@ export default class DatabaseAdapter {
     
 
 
-    async deleteData(data, target_store) {        
+    // Reads the store's record, lets `update` change it, and writes it back inside one readwrite
+    // transaction, so no other writer can slip in between. `update` returns the record to store, or nothing to skip the write.
+    async updateData(target_store, update) {
+        const db = await this.connection
+
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([target_store], 'readwrite')
+            const store = transaction.objectStore(target_store)
+
+            const read = store.getAll()
+            let wrote = false
+
+            read.onsuccess = () => {
+                const next = update(read.result[0])
+                if (next) { store.put(next); wrote = true }
+            }
+
+            transaction.oncomplete = async () => {
+                if (wrote) await this.cleanup()
+                resolve('Item updated in DB')
+            }
+
+            transaction.onabort = () => {reject(console.error(`Error updating data: ${transaction.error}`))}
+        })
+    }
+
+
+
+    async deleteData(data, target_store) {
         const db = await this.connection
 
         return new Promise((resolve, reject) => {

@@ -3,6 +3,7 @@ import ConfigurationModule from './Components/Modules/ConfigurationModule.jsx';
 import SettingsBottomBar from './Components/Bars/SettingsBottomBar.jsx';
 import SettingsTopBar from './Components/Bars/SettingsTopBar.jsx';
 import ErrorReporter from './Components/ErrorReporter/ErrorReporter.jsx';
+import { diffPatch } from '@universal/Handlers/ConfigurationHandlers/patch.js';
 
 const NOTATE_DB = "notate"
 const ERROR_LOGGING_DB = "errorLogging"
@@ -29,6 +30,9 @@ export default function Settings({ContextAdapter, targetModule, setterCallback})
 	const [ exitState ] = SETTINGS_CONTEXT.EXIT_CONTEXT
 	const [ settingsState, setSettingsState ] = SETTINGS_CONTEXT.SETTINGS_STATE_CONTEXT 
 
+	// Copy of the settings as they were loaded; the staged settings share objects with the database, so they cannot be the baseline
+	const snapshot = React.useRef(null)
+
 
 	const buildSettingsPage = () => {
 		const result = {};
@@ -39,6 +43,7 @@ export default function Settings({ContextAdapter, targetModule, setterCallback})
 				result[target] = user[target]
 			} )
 
+			snapshot.current = structuredClone(result)
 			setConfiguration(result)
 		}
 	}
@@ -57,15 +62,12 @@ export default function Settings({ContextAdapter, targetModule, setterCallback})
 
 	React.useEffect(()=>{
 		if (saveState) {
-			const user = database?.inventory?.USER_CONFIGURATION[0]
-			const payload = Object.fromEntries(Object.entries(user))
-			
-			targetModule.forEach(module => {
-				payload[module] = configuration[module]
-			})
-			makeRequest({ 
-				type: "POST_DATABASE", 
-				data: payload, 
+			// Send only what the user changed, so settings and sites changed elsewhere since opening are kept
+			const changes = diffPatch(snapshot.current, configuration)
+
+			if (Object.keys(changes).length) makeRequest({ 
+				type: "PATCH_DATABASE", 
+				data: changes, 
 				store: 'USER_CONFIGURATION',
 				database: USER_CONFIGURATION_DB
 			})
