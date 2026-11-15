@@ -98,7 +98,7 @@ export default function Board() {
 		over: new Map(),                       // note id -> volume id | null: filing that is saved but not yet read back
 		gone: new Set(), pending: null, pendingF: null,
 		fresh: new Map(), seen: new Set(), order: [], sig: '', started: false,
-		place: null, expect: 0, ptr: null,   // place: { id } while a just-saved note sticks to the cursor; expect: when the new tab last saved a note; ptr: last pointer position
+		place: null, expect: null, ptr: null, placedAt: 0,   // place: { id } while a just-saved note sticks to the cursor; expect: { created, title } of the note the new tab is saving; ptr: last pointer position
 		queue: [], inflight: false, dirtyN: new Set(), dirtyF: new Set(),
 		P: null, D: null, nEl: new Map(), fEl: new Map(), heldId: null, heldEl: null, trashKey: '', timers: {}
 	}
@@ -323,6 +323,7 @@ export default function Board() {
 		const ids = new Set(ns.map(n => n.id)), bids = new Set(bs.map(b => b.id))
 		for (const id of [...s.n.keys()]) if (!ids.has(id)) s.n.delete(id)
 		for (const id of [...s.f.keys()]) if (!bids.has(id)) s.f.delete(id)
+		if (s.place && !ids.has(s.place.id)) { s.place = s.heldId = null; setHeld(null) }   // the held note was deleted elsewhere
 
 		const tN = new Set(), tF = new Set(), seeded = new Set(), extra = []
 		const isNum = (v) => typeof v === 'number' && Number.isFinite(v)
@@ -358,9 +359,9 @@ export default function Board() {
 
 		// A note the new tab just saved sticks to the cursor. Any other note without a place (made on a web page,
 		// or never placed before the tab closed) goes to a free spot.
-		const arrived = ns.filter(n => !s.n.has(n.id)).map(n => n.id)
-		const mine = !first && !s.place && arrived.length && Date.now() - s.expect < 10000 ? Math.max(...arrived) : null
-		if (mine != null) s.expect = 0
+		const want = s.expect
+		const mine = !first && !s.place && want ? ns.find(n => !s.n.has(n.id) && n.created === want.created && n.title === want.title)?.id ?? null : null
+		if (mine != null) s.expect = null
 		for (const n of ns) if (!s.n.has(n.id)) {
 			if (n.id === mine) {
 				const p = s.ptr ? toBoard(s.ptr.x, s.ptr.y) : centre
@@ -617,10 +618,12 @@ export default function Board() {
 		const tF = new Set()
 		if (fid != null && growIt(fid)) tF.add(fid)
 		applyAll(); save([id], tF, extra); say('Note placed'); bump()
+		s.placedAt = Date.now()
+		requestAnimationFrame(() => front(id))   // the click may have focused a note underneath, which would otherwise come to the front
 	}
 	// Pointer down anywhere: on the board it places the note there (and is not a pan or a click on a note); elsewhere it drops it.
 	const onPlaceDown = (e) => {
-		if (!s.place || e.button) return
+		if (!s.place || e.button || e.target.closest?.('#board-rail')) return   // the zoom rail works while the note stays held
 		if (e.target.closest?.('#board')) { e.stopPropagation(); endPlace(toBoard(e.clientX, e.clientY)) }
 		else endPlace(null)
 	}
@@ -638,7 +641,7 @@ export default function Board() {
 	}
 
 	const onDown = (e) => {
-		if (e.button || s.D) return
+		if (e.button || s.D || Date.now() - s.placedAt < 400) return   // a quick second click is not a click on the note just placed
 		const ne = e.target.closest('.bd-note'), pl = e.target.closest('.bd-plate')
 		s.P = { x: e.clientX, y: e.clientY, id: ne ? Number(ne.dataset.id) : null, fid: pl ? Number(pl.dataset.fid) : null }
 		if (s.P.id != null) front(s.P.id)
@@ -816,7 +819,7 @@ export default function Board() {
 
 	// The search bar asks how many of its matches are off screen.
 	BOARD_API_CONTEXT.current = {
-		expectPlace: () => { s.expect = Date.now() },   // the new tab is saving a note: when it arrives, it follows the cursor
+		expectPlace: (note) => { s.expect = { created: note.created, title: note.title } },   // the new tab is saving this note: when it arrives, it follows the cursor
 		countOutOfView: (ids) => {
 			if (!boardRef.current) return 0   // the search bar renders before the board has mounted
 			const R = rect(), v = s.view
