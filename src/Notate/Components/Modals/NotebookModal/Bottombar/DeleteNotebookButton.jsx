@@ -21,21 +21,6 @@ export default function DeleteNotebookButton() {
 	const [ confMsgState, setConfMsgState ] = React.useContext(ConfirmationMsgContext)
 	const [ notification, setNotification ] = React.useContext(NotificationContext)
 
-	const confirmDeleteAction = async () => {
-		const title = "WARNING: Notebook Contains Notes"
-		const message = "If there were notes created within this notebook, " + 
-				" they WILL be deleted!"
-		const actionName = "Continue"
-
-		const cancelCallback = () => { setStatus(true) }
-
-		await new Promise(resolve => setTimeout(resolve, 100))
-	
-		setConfMsgState(new ConfirmationMsgHandler(title, message, actionName, performDeleteAction, false, cancelCallback))
-
-
-	}
-
 	const performDeleteAction = async () => {
 		await makeRequest({ 
 			type: 'DELETE_DATABASE', 
@@ -52,7 +37,7 @@ export default function DeleteNotebookButton() {
 	const handleDeleteClick = () => {
 		let warn;
 		const title = "Delete Notebook?"
-		const message = "Are you sure you want to delete this notebook?"
+		const message = "The notebook goes, but its notes stay in your Recents."
 		const actionName = "Delete"
 
 		setStatus(false)
@@ -60,7 +45,7 @@ export default function DeleteNotebookButton() {
 		const cancelCallback = () => { setStatus(true) }
 
 
-		setConfMsgState(new ConfirmationMsgHandler(title, message, actionName, confirmDeleteAction, false, cancelCallback ))	
+		setConfMsgState(new ConfirmationMsgHandler(title, message, actionName, performDeleteAction, false, cancelCallback ))	
 
 
 	}

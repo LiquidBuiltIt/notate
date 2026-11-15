@@ -27,15 +27,13 @@ export function useDismissOptions() {
         setIsMenuDismissed(true);
     };
     
-    const handleDismissForSite = async () => {
-        const currentSite = window.location.hostname;
-        
+    const handleDismissForSite = () => {
         // First update the UI immediately
         setContextMenuState(false);
         setIsMenuDismissed(true);
-        
-        // Use session storage instead of database storage
-        dismissForSession();
+
+        // Then save the site; Settings > Web Content can show the menu there again
+        dismissForSite(window.location.hostname, database, makeRequest);
     };
     
     const handleDismissForSession = () => {

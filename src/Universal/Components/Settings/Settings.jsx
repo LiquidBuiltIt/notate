@@ -95,8 +95,28 @@ export default function Settings({ContextAdapter, targetModule, setterCallback})
 
 	
 
+	// Sites hidden with "Dismiss Menu > For This Site". Clearing them is staged like any other setting.
+	const hiddenSites = () => {
+		const sites = database?.inventory?.USER_CONFIGURATION[0]?.WebContent?.dismissedSites || []
+		const cleared = !configuration?.WebContent?.dismissedSites?.length
+		if (!sites.length) return null
+
+		const showAgain = () => {
+			setConfiguration({ ...configuration, WebContent: { ...configuration.WebContent, dismissedSites: [] } })
+		}
+
+		return (
+			<li id="hidden-sites" className="list-none py-3 flex items-baseline justify-between gap-6">
+				<span className="text-[16px] italic text-ink-soft" title={sites.join('\n')}>
+					{ cleared ? 'The menu shows on every site after you save.' : `The menu is hidden on ${sites.length} ${sites.length === 1 ? 'site' : 'sites'}.` }
+				</span>
+				{ !cleared && <button id="show-hidden-sites" onClick={showAgain} className="smallcaps focus-ink border-b border-ink trans-ease hover:text-vermilion-ink hover:border-vermilion">Show again</button> }
+			</li>
+		)
+	}
+
 	return (
-		<div 
+		<div
 		 id="settings-modal-container"
 		 className={`
 			 trans-ease fixed flex left-0 top-0 w-screen h-screen 
@@ -123,6 +143,7 @@ export default function Settings({ContextAdapter, targetModule, setterCallback})
 									{module}</header>
 									<ConfigurationModule
 									module={module}/>
+									{ module === 'WebContent' && hiddenSites() }
 								</ul>
 							)
 						})}

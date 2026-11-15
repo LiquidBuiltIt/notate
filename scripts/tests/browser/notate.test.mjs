@@ -94,6 +94,22 @@ test('notebook with a note in it is saved', async () => {
 	assert.deepEqual(b.errors, [])
 })
 
+test('deleting a notebook keeps its notes, and the warning says so', async () => {
+	await b.post('notate', 'NOTES', { id: 1, title: 'Kept note', content: 'stays', origin: null, color: { name: 'yellow', styles: { card: 'bg-yellow-200', top: 'bg-yellow-400' } }, created: new Date().toString(), modified: new Date().toString() })
+	await b.post('notate', 'NOTEBOOKS', { id: 1, title: 'Doomed book', description: 'x', collection: [1], created: new Date().toString(), modified: new Date().toString() })
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.click('#notebook-card-1')
+	await n.click('#delete-notebook-btn')
+	await n.appear('#confirmation-modal')
+	assert.match(await page.eval(`document.querySelector('#message').textContent`), /notes stay/)
+	await n.click('#action-btn')
+	await waitFor(async () => (await notebooks()).length === 0, 'notebook deleted')
+	await n.gone('#confirmation-modal')
+	assert.deepEqual((await notes()).map((x) => x.title), ['Kept note'])
+	assert.deepEqual(b.errors, [])
+})
+
 test('a settings change persists', async () => {
 	const page = await b.openPage(NEWTAB)
 	const n = ui(page)
@@ -182,10 +198,31 @@ test('the seal stays on screen after a drop inside its corner zone, and when it 
 	assert.deepEqual(b.errors, [])
 })
 
-test('dismiss "For This Site" stores the site in config', { todo: 'dismissForSite() is imported but never called, so the site is not stored' }, async () => {
+test('dismiss "For This Site" hides the menu in new tabs on that site, and Settings can show it again', async () => {
 	const { c } = await openFixture(b, fx)
 	await dismiss(c, 'For This Site')
 	await waitFor(async () => (await config()).WebContent.dismissedSites?.includes('127.0.0.1'), 'site in config.WebContent.dismissedSites', 3000)
+
+	const other = await b.openPage(fx.url) // a new tab, so no session dismissal applies
+	await waitFor(() => other.eval(`!!document.querySelector('#content-script-entry-point')`), 'content script root')
+	await sleep(1500)
+	assert.equal(await ui(other, CONTENT_ROOT, 'content').exists('#context-menu-hover-region'), false, 'hidden in a new tab on the same site')
+
+	const tab = await b.openPage(NEWTAB)
+	const n = ui(tab)
+	await n.click('#settings-widget')
+	await n.appear('#show-hidden-sites')
+	assert.match(await tab.eval(`document.querySelector('#hidden-sites').textContent`), /hidden on 1 site\./)
+	await tab.eval(`document.querySelector('#show-hidden-sites').scrollIntoView({ block: 'center' })`) // the row sits below the fold of the settings pane
+	await n.click('#show-hidden-sites')
+	await n.gone('#show-hidden-sites')
+	await n.click('#save-settings-button')
+	await waitFor(async () => (await config()).WebContent.dismissedSites?.length === 0, 'dismissedSites cleared')
+	assert.equal((await config()).WebContent.behavior.contextMenuPopup.value, 'true', 'other settings untouched')
+
+	const again = await openFixture(b, fx)
+	await again.c.appear('#context-menu-hover-region')
+	assert.deepEqual(b.errors, [])
 })
 
 // ---- Security hardening ----
