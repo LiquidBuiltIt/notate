@@ -1274,7 +1274,7 @@ test('board: a note with no place is given a free one and it is saved', async ()
 	assert.deepEqual(b.errors, [])
 })
 
-test('board: a note made from the search bar lands on the board', async () => {
+test('board: a note made from the search bar is held after Save, and lands on the board when placed', async () => {
 	await seedBoard({ notes: [boardNote(1, 200, 150)] })
 	const { page, n } = await boardPage()
 	await n.hover('#search-bar-tab')
@@ -1283,6 +1283,8 @@ test('board: a note made from the search bar lands on the board', async () => {
 	await n.fill('#input-text-display', 'made on the board')
 	await n.click('#save-btn')
 	const made = await waitFor(async () => (await notes()).find((x) => x.title === 'Fresh'), 'new note saved')
+	await n.appear('#board-held')
+	await page.click(700, 420)
 	await waitFor(async () => (await savedBoard('NOTES', made.id)), 'new note placed')
 	await n.appear(`#board-note-${made.id}`)
 	assert.deepEqual(b.errors, [])
@@ -1418,6 +1420,162 @@ test('board: the page editor, opened before the note was placed, keeps the place
 	await c2.click('#save-note-btn')
 	await waitFor(async () => /and more/.test((await notes())[0].content), 'edit saved')
 	assert.deepEqual((await notes())[0].board, { x: 300, y: 200, r: 0, z: 5 }, 'the position survived the editor save')
+	assert.deepEqual(b.errors, [])
+})
+
+/* ---- board: header, and placing a note after it is saved ---- */
+const setViewport = (page, width, height = 900) => page.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
+const box = (page, sel) => page.eval(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom } })()`)
+const apart = (a, c) => a.r <= c.l || c.r <= a.l || a.b <= c.t || c.b <= a.t
+// The live pan and zoom, read from the world's transform.
+const viewOf = (page) => page.eval(`(() => { const m = new DOMMatrix(getComputedStyle(document.querySelector('#board-world')).transform); const r = document.querySelector('#board').getBoundingClientRect(); return { z: m.a, x: m.e, y: m.f, left: r.left, top: r.top } })()`)
+const onBoard = (v, px, py) => ({ x: (px - v.left - v.x) / v.z, y: (py - v.top - v.y) / v.z })
+const NOTE_W = 224, NOTE_H = 208
+const placedNotes = async () => (await notes()).filter((x) => x.board)
+function assertNoOverlap(list, what) {
+	for (const a of list) for (const c of list) if (a.id < c.id) {
+		const apartX = a.board.x + NOTE_W <= c.board.x || c.board.x + NOTE_W <= a.board.x, apartY = a.board.y + NOTE_H <= c.board.y || c.board.y + NOTE_H <= a.board.y
+		assert.ok(apartX || apartY, `${what}: note ${a.id} and note ${c.id} overlap`)
+	}
+}
+// Types a note into the editor opened by the New note button and presses Save. The pointer ends on the Save button.
+async function saveNewNote(n, title) {
+	await n.hover('#search-bar-tab')
+	await n.click('#new-note-button')
+	await n.fill('#edit-note-title', title)
+	await n.fill('#input-text-display', `body of ${title}`)
+	await n.click('#save-btn')
+	const made = await waitFor(async () => (await notes()).find((x) => x.title === title), `note "${title}" saved`)
+	await n.appear('#board-held')
+	return made
+}
+
+test('board: the header keeps Settings, the counts and the date apart at every width, and shows the v1.2.1 logo', async () => {
+	await seedBoard({ notes: [1, 2, 3, 4].map((i) => boardNote(i, 100 + i * 250, 150)), books: [boardBook(1, 200, 500)] })
+	const { page, n } = await boardPage()
+	await n.appear('#board-note-4')
+	for (const w of [1024, 1280, 1440, 1920]) {
+		await setViewport(page, w)
+		await sleep(250)
+		const [s, c, d, l] = await Promise.all(['#settings-widget', '#board-counts', '#board-date', '#board-logo'].map((sel) => box(page, sel)))
+		assert.ok(apart(s, c), `Settings and the counts overlap at ${w}`)
+		assert.ok(apart(c, d), `the counts and the date overlap at ${w}`)
+		assert.ok(apart(l, d), `the logo and the date overlap at ${w}`)
+		assert.ok(s.r <= w && s.l >= 0, `Settings is on screen at ${w}`)
+	}
+	assert.ok(await page.eval(`!!document.querySelector('#settings-widget').closest('.bd-top')`), 'Settings is in the header, not floating over it')
+	// The logo is the file the extension has shipped since v1.2.1 (its sha-256 is that of the v1.2.1 blob).
+	const logo = await page.eval(`(async () => { const img = document.querySelector('#board-logo'); const bytes = await (await fetch(img.src)).arrayBuffer(); const h = await crypto.subtle.digest('SHA-256', bytes); return { src: img.getAttribute('src'), ok: img.naturalWidth > 0, sha: [...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('') } })()`)
+	assert.equal(logo.src, './Designs/notate-logo.svg')
+	assert.ok(logo.ok, 'the logo loads')
+	assert.equal(logo.sha, '71641128061539929bd0d616e396d94b23b8432390ba1be56f249a4897a3d7f7')
+	assert.deepEqual(b.errors, [])
+})
+
+test('board: the "new notes land here" marker is gone, and a click on the paper leaves nothing behind', async () => {
+	await seedBoard({ notes: [boardNote(1, 200, 150)] })
+	const { page, n } = await boardPage()
+	await n.appear('#board-note-1')
+	await page.click(900, 500)
+	await sleep(400)
+	assert.ok(!(await n.exists('#bd-mark')) && !(await n.exists('.bd-mark')))
+	assert.ok(!(await n.text()).toLowerCase().includes('new notes land here'))
+	assert.deepEqual(b.errors, [])
+})
+
+test('board: a saved note follows the cursor, and one click places it at that board point under pan and zoom', async () => {
+	await seedBoard({ notes: [boardNote(1, 200, 150), boardNote(2, 500, 150)] })
+	await patchConfig({ Notate: { board: { view: { x: -120, y: -40, z: .7 } } } })
+	const { page, n } = await boardPage()
+	await n.appear('#board-note-2')
+	const made = await saveNewNote(n, 'Placed by click')
+	assert.ok(await n.exists('#board-placing'), 'the hint shows while placing')
+	assert.match(await page.eval(`document.querySelector('#board-placing').textContent`), /Click to place/)
+	assert.equal((await notes()).find((x) => x.id === made.id).board, undefined, 'nothing is saved until the note is placed')
+	const v = await viewOf(page)
+	assert.ok(Math.abs(v.z - .7) < .01 && v.x < 0, 'the board is zoomed and panned')
+	await page.mouse('mouseMoved', 700, 420)
+	await sleep(150)
+	const held = await box(page, '#board-held')
+	assert.ok(Math.abs(held.l - (700 - NOTE_W / 2 * v.z)) < 10, `the note hangs at the cursor (left ${held.l})`)
+	await page.click(700, 420)
+	const spot = onBoard(v, 700, 420)
+	const want = { x: Math.round(spot.x - NOTE_W / 2), y: Math.round(spot.y - 36) }
+	const saved = await waitFor(async () => (await notes()).find((x) => x.id === made.id)?.board, 'placed note saved')
+	assert.deepEqual({ x: saved.x, y: saved.y }, want, 'saved at the clicked board point')
+	await n.gone('#board-placing')
+	await n.appear(`#board-note-${made.id}`)
+	await n.gone('#board-held')
+	assert.ok(!(await n.exists('#note-modal')), 'the click placed the note and opened nothing')
+	assert.deepEqual(b.errors, [])
+})
+
+test('board: Esc drops the saved note into a free spot, even with the cursor over another note', async () => {
+	await seedBoard({ notes: [boardNote(1, 200, 150), boardNote(2, 500, 150)] })
+	const { page, n } = await boardPage()
+	await n.appear('#board-note-2')
+	const made = await saveNewNote(n, 'Dropped by Esc')
+	const on = await centre(page, '#board-note-1')
+	await page.mouse('mouseMoved', on.x, on.y)
+	await sleep(150)
+	await pressKey(page, 'Escape')
+	const saved = await waitFor(async () => (await notes()).find((x) => x.id === made.id)?.board, 'dropped note saved')
+	assert.ok(Number.isFinite(saved.x) && Number.isFinite(saved.y))
+	await n.gone('#board-placing')
+	assertNoOverlap(await placedNotes(), 'after Esc')
+	assert.deepEqual(b.errors, [])
+})
+
+test('board: "/note" follows the same path: Esc, or a click outside the board, drops it into a free spot', async () => {
+	await seedBoard({ notes: [boardNote(1, 200, 150), boardNote(2, 500, 150)] })
+	const { page, n } = await boardPage()
+	await n.appear('#board-note-2')
+	const on = await centre(page, '#board-note-2')
+	for (const [title, drop] of [['Slash one', () => pressKey(page, 'Escape')], ['Slash two', async () => { const h = await centre(page, '#board-date'); await page.click(h.x, h.y) }]]) {
+		await page.mouse('mouseMoved', on.x, on.y)
+		await n.fill('#searchInput', `/note "${title}"`)
+		await waitFor(async () => (await n.text()).toLowerCase().includes('create note'), 'status line for the command')
+		await pressKey(page, 'Enter')
+		const made = await waitFor(async () => (await notes()).find((x) => x.title === title), `${title} saved`)
+		await n.appear('#board-held')
+		assert.equal((await notes()).find((x) => x.id === made.id).board, undefined, 'not placed yet')
+		await drop()
+		await waitFor(async () => (await notes()).find((x) => x.id === made.id)?.board, `${title} placed`)
+		await n.gone('#board-held')
+	}
+	assert.equal((await placedNotes()).length, 4)
+	assertNoOverlap(await placedNotes(), 'after "/note"')
+	assert.deepEqual(b.errors, [])
+})
+
+test('board: a note saved on the new tab but never placed appears in a free spot on the next load', async () => {
+	await seedBoard({ notes: [boardNote(1, 200, 150), boardNote(2, 500, 150)] })
+	const { page, n } = await boardPage()
+	await n.appear('#board-note-2')
+	const made = await saveNewNote(n, 'Left hanging')
+	assert.equal((await notes()).find((x) => x.id === made.id).board, undefined)
+	await page.send('Page.reload')
+	await n.appear(`#board-note-${made.id}`)
+	await waitFor(async () => (await notes()).find((x) => x.id === made.id)?.board, 'free spot saved')
+	assert.ok(!(await n.exists('#board-held')) && !(await n.exists('#board-placing')), 'a reload does not start placing')
+	assertNoOverlap(await placedNotes(), 'after the reload')
+	assert.deepEqual(b.errors, [])
+})
+
+test('board: a note made on a web page lands in a free spot, without placing', async () => {
+	await seedBoard({ notes: [boardNote(1, 200, 150)] })
+	const { c } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.click('#new-note-btn')
+	await c.fill('#edit-title', 'From a page')
+	await c.fill('#input-text-display', 'written on a web page')
+	await c.click('#save-note-btn')
+	const made = await waitFor(async () => (await notes()).find((x) => x.title === 'From a page'), 'page note saved')
+	const { n } = await boardPage()
+	await n.appear(`#board-note-${made.id}`)
+	await waitFor(async () => (await notes()).find((x) => x.id === made.id)?.board, 'free spot saved')
+	assert.ok(!(await n.exists('#board-held')) && !(await n.exists('#board-placing')))
+	assertNoOverlap(await placedNotes(), 'page note')
 	assert.deepEqual(b.errors, [])
 })
 

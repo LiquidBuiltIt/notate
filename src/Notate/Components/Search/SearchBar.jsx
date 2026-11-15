@@ -156,6 +156,7 @@ export default function SearchBar() {
 			const name = configuration?.inventory?.USER_CONFIGURATION?.[0]?.Notate?.noteModal?.preferredColor?.value
 			// Same stored shape the note editor writes.
 			if (Object.hasOwn(NoteColors, name)) note.color = { name, styles: NoteColors[name] }
+			BOARD_API_CONTEXT.current?.expectPlace()
 			makeRequest({ type: 'POST_DATABASE', data: note, store: 'NOTES', database: NOTATE_DB })
 		} else {
 			makeRequest({ type: 'POST_DATABASE', data: new NotebookHandler.Notebook(arg), store: 'NOTEBOOKS', database: NOTATE_DB })

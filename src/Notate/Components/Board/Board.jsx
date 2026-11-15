@@ -25,6 +25,7 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const isTyping = (el) => /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName) || !!el?.isContentEditable
 const NEW_MS = 1700
+const HOLD_Y = 36   // a note held for placing hangs this far below the cursor
 
 
 function NoteEl({ note, home, tokens, faded, className = '', style, clone, refCb }) {
@@ -86,7 +87,6 @@ export default function Board() {
 	const boardRef = React.useRef(null)
 	const worldRef = React.useRef(null)
 	const handRef = React.useRef(null)
-	const markRef = React.useRef(null)
 	const zoomRef = React.useRef(null)
 	const liveRef = React.useRef(null)
 
@@ -97,7 +97,8 @@ export default function Board() {
 		zTop: 10, sheet: { w: 3200, h: 2000 }, view: { x: 0, y: 0, z: 1 },
 		over: new Map(),                       // note id -> volume id | null: filing that is saved but not yet read back
 		gone: new Set(), pending: null, pendingF: null,
-		fresh: new Map(), seen: new Set(), order: [], sig: '', started: false, mark: null,
+		fresh: new Map(), seen: new Set(), order: [], sig: '', started: false,
+		place: null, expect: 0, ptr: null,   // place: { id } while a just-saved note sticks to the cursor; expect: when the new tab last saved a note; ptr: last pointer position
 		queue: [], inflight: false, dirtyN: new Set(), dirtyF: new Set(),
 		P: null, D: null, nEl: new Map(), fEl: new Map(), heldId: null, heldEl: null, trashKey: '', timers: {}
 	}
@@ -252,7 +253,7 @@ export default function Board() {
 	const applyView = (glide, persist = true) => {
 		const v = s.view, t = `translate(${v.x}px, ${v.y}px) scale(${v.z})`
 		for (const el of [worldRef.current, handRef.current]) { el.classList.toggle('bd-glide', !!glide); el.style.transform = t }
-		worldRef.current.style.setProperty('--iz', B.clamp(1 / v.z, 1, 2))   // names and the mark stay readable zoomed out
+		worldRef.current.style.setProperty('--iz', B.clamp(1 / v.z, 1, 2))   // names stay readable zoomed out
 		zoomRef.current.textContent = `${Math.round(v.z * 100)}%`
 		if (persist) saveViewSoon()
 	}
@@ -303,6 +304,8 @@ export default function Board() {
 		Object.assign(f, g)
 		return true
 	}
+	// Everything a new note must stay clear of, except one note (the one being placed).
+	const occupied = (skip) => B.occupancy([...s.n].filter(([id]) => id !== skip).map(([, m]) => ({ x: m.x, y: m.y, w: B.NW, h: B.NH })).concat([...s.f.values()].map(B.frameBlock)))
 	const front = (id) => { const m = s.n.get(id); if (m) { m.z = ++s.zTop; writeNote(id); if (s.heldId === id) writeHeld(id, s.D?.rot) } }
 	const say = (t) => { if (liveRef.current) liveRef.current.textContent = t }
 
@@ -310,13 +313,6 @@ export default function Board() {
 		clearTimeout(s.timers.toast)
 		setToast({ text, undo, on: true })
 		s.timers.toast = setTimeout(() => setToast(t => t && { ...t, on: false }), undo ? 5200 : 2800)
-	}
-	const hideMark = () => { s.mark = null; markRef.current?.classList.remove('bd-on') }
-	const setMark = (b) => {
-		const el = markRef.current
-		s.mark = b; el.style.left = `${b.x}px`; el.style.top = `${b.y}px`
-		el.classList.remove('bd-on'); void el.offsetWidth; el.classList.add('bd-on')
-		clearTimeout(s.timers.mark); s.timers.mark = setTimeout(hideMark, 8000)
 	}
 
 
@@ -349,7 +345,7 @@ export default function Board() {
 		}
 
 		refreshSheet()
-		const taken = B.occupancy([...s.n.values()].map(m => ({ x: m.x, y: m.y, w: B.NW, h: B.NH })).concat([...s.f.values()].map(B.frameBlock)))
+		const taken = occupied(s.place?.id)
 		const centre = viewCentre()
 
 		for (const bk of bs) if (!s.f.has(bk.id)) {
@@ -360,28 +356,32 @@ export default function Board() {
 			refreshSheet()
 		}
 
-		let mark = s.mark
+		// A note the new tab just saved sticks to the cursor. Any other note without a place (made on a web page,
+		// or never placed before the tab closed) goes to a free spot.
+		const arrived = ns.filter(n => !s.n.has(n.id)).map(n => n.id)
+		const mine = !first && !s.place && arrived.length && Date.now() - s.expect < 10000 ? Math.max(...arrived) : null
+		if (mine != null) s.expect = 0
 		for (const n of ns) if (!s.n.has(n.id)) {
+			if (n.id === mine) {
+				const p = s.ptr ? toBoard(s.ptr.x, s.ptr.y) : centre
+				s.n.set(n.id, { r: B.rotationFor(n.id), z: ++s.zTop, x: p.x - B.NW / 2, y: p.y - HOLD_Y })
+				s.place = { id: n.id }; s.heldId = n.id; s.seen.add(n.id)
+				continue
+			}
 			let home = homeOf(n.id), fid = home != null && s.f.has(home) ? home : null
 			const base = { r: B.rotationFor(n.id), z: ++s.zTop }
-			if (fid == null) {
-				// A note made while the board was showing lands at the last click mark, filed if the mark is inside a volume.
-				const into = mark ? frameAt(mark.x, mark.y) : null
-				if (into != null) { fid = into; extra.push(...refile(n.id, into)) }
-			}
 			if (fid != null) {
 				const pos = B.slotInFrame(s.f.get(fid), membersOf(fid).map(m => s.n.get(m.id)))
 				s.n.set(n.id, { ...base, ...pos })
 			} else {
-				const anchor = mark ? { x: mark.x, y: mark.y + B.NH / 2 - 36 } : centre
-				const pos = B.placeFree(taken, B.NW, B.NH, anchor, s.sheet)
+				const pos = B.placeFree(taken, B.NW, B.NH, centre, s.sheet)
 				s.n.set(n.id, { ...base, ...pos })
 			}
 			const placed = s.n.get(n.id)
 			taken.add({ x: placed.x, y: placed.y, w: B.NW, h: B.NH })
-			if (mark) { hideMark(); mark = null }
 			tN.add(n.id)
 		}
+		if (mine != null) { setHeld({ id: mine, phase: 'lift' }); say('Click to place the note, or press Escape') }
 
 		// Old data: a filed note outside its volume is slotted in. Notes already placed in one are left alone.
 		for (const n of ns) if (seeded.has(n.id) && !tN.has(n.id)) {
@@ -593,7 +593,38 @@ export default function Board() {
 		if (d.kind === 'frame') return endFrame(drop)
 		s.D = null; rootRef.current.classList.remove('bd-panning')
 	}
-	const stopDrag = () => { s.P = null; if (s.D) endDrag(false) }
+	const stopDrag = () => { s.P = null; if (s.place) endPlace(null); if (s.D) endDrag(false) }
+
+	/* ---- placing: a note saved on the new tab sticks to the cursor until it is clicked down or dropped ---- */
+	const followPlace = () => {
+		const id = s.place.id, m = s.n.get(id), b = toBoard(s.ptr.x, s.ptr.y)
+		m.x = b.x - B.NW / 2; m.y = b.y - HOLD_Y
+		writeHeld(id)
+	}
+	// b: the board point that was clicked, or null to drop the note into the nearest free spot.
+	const endPlace = (b) => {
+		const id = s.place.id, m = s.n.get(id)
+		s.place = null
+		settleHeld(id)
+		let extra = [], fid = null
+		if (b) {
+			m.x = Math.round(B.clamp(b.x - B.NW / 2, 0, s.sheet.w - B.NW)); m.y = Math.round(B.clamp(b.y - HOLD_Y, B.TOP_MARGIN, s.sheet.h - B.NH))
+			fid = frameAt(b.x, b.y)
+			if (fid != null) extra = refile(id, fid)
+		} else {
+			Object.assign(m, B.placeFree(occupied(id), B.NW, B.NH, { x: m.x + B.NW / 2, y: m.y + B.NH / 2 }, s.sheet))
+		}
+		const tF = new Set()
+		if (fid != null && growIt(fid)) tF.add(fid)
+		applyAll(); save([id], tF, extra); say('Note placed'); bump()
+	}
+	// Pointer down anywhere: on the board it places the note there (and is not a pan or a click on a note); elsewhere it drops it.
+	const onPlaceDown = (e) => {
+		if (!s.place || e.button) return
+		if (e.target.closest?.('#board')) { e.stopPropagation(); endPlace(toBoard(e.clientX, e.clientY)) }
+		else endPlace(null)
+	}
+	const onPointer = (e) => { s.ptr = { x: e.clientX, y: e.clientY }; if (s.place) followPlace() }
 
 	const openNote = (id) => {
 		const note = L.current.noteMap.get(id)
@@ -631,13 +662,12 @@ export default function Board() {
 			aim(d.x, d.y, d)
 		}
 	}
-	const onUp = (e) => {
+	const onUp = () => {
 		const p = s.P; s.P = null
 		if (s.D) { endDrag(true); return }
 		if (!p) return
 		if (p.id != null) openNote(p.id)
 		else if (p.fid != null) openNotebook(p.fid)
-		else setMark(toBoard(e.clientX, e.clientY))
 	}
 	const onCancel = () => { s.P = null; if (s.D) endDrag(false) }
 	const onWheel = (e) => {
@@ -734,6 +764,7 @@ export default function Board() {
 
 	/* ---- keys that work anywhere on the page ---- */
 	const onGlobalKey = (e) => {
+		if (e.key === 'Escape' && s.place) { endPlace(null); return }
 		if (L.current.modalOpen) return
 		const ae = document.activeElement
 		if (e.key === 'Escape') {
@@ -748,7 +779,7 @@ export default function Board() {
 		else if (e.key === 't' || e.key === 'T') tidy()
 	}
 
-	A.current = { failed, flushAll: () => { flushDirty(); if (s.viewDue) sendView() }, onDown, onMove, onUp, onCancel, onWheel, onBoardKey, onFocusIn, onFocusOut, onGlobalKey,
+	A.current = { failed, flushAll: () => { flushDirty(); if (s.viewDue) sendView() }, onDown, onMove, onUp, onCancel, onWheel, onBoardKey, onFocusIn, onFocusOut, onGlobalKey, onPointer, onPlaceDown,
 		onResize: () => { clampView(); applyView(false, false) } }
 
 
@@ -760,7 +791,8 @@ export default function Board() {
 			[board, 'pointercancel', call('onCancel')], [board, 'wheel', call('onWheel'), { passive: false }],
 			[board, 'keydown', call('onBoardKey')], [board, 'focusin', call('onFocusIn')], [board, 'focusout', call('onFocusOut')],
 			[board, 'scroll', () => { board.scrollTop = board.scrollLeft = 0 }],   // focus must not scroll the viewport; the view pans instead
-			[window, 'resize', call('onResize')], [document, 'keydown', call('onGlobalKey')]
+			[window, 'resize', call('onResize')], [document, 'keydown', call('onGlobalKey')],
+			[window, 'pointermove', call('onPointer')], [window, 'pointerdown', call('onPlaceDown'), true]
 		]
 		on.forEach(([el, type, fn, opt]) => el.addEventListener(type, fn, opt))
 		return () => {
@@ -784,6 +816,7 @@ export default function Board() {
 
 	// The search bar asks how many of its matches are off screen.
 	BOARD_API_CONTEXT.current = {
+		expectPlace: () => { s.expect = Date.now() },   // the new tab is saving a note: when it arrives, it follows the cursor
 		countOutOfView: (ids) => {
 			if (!boardRef.current) return 0   // the search bar renders before the board has mounted
 			const R = rect(), v = s.view
@@ -818,13 +851,14 @@ export default function Board() {
 		<div className="bd-root" ref={rootRef}>
 			<header className="bd-top">
 				<div className="bd-brand">
-					<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill="none" stroke="#1B1A17" strokeWidth="1.1" strokeDasharray="4 2"/><text x="15" y="21" textAnchor="middle" fontFamily="notate-playfair" fontStyle="italic" fontSize="17" fill="#1B1A17">N</text></svg>
+					<img id="board-logo" src="./Designs/notate-logo.svg" alt="" className="bd-logo"/>
 					<span className="smallcaps">Notate</span>
 				</div>
 				<h1 className="bd-date" id="board-date">{weekday}, <span className="bd-d2">{day}</span> {month}<span className="bd-dot">.</span></h1>
 				<div className="bd-tr">
 					<span className="bd-hint">Drag the paper to pan &nbsp;&middot;&nbsp; Ctrl + wheel to zoom</span>
 					<span className="bd-counts smallcaps" id="board-counts">{plural(notes.length, 'note')} &nbsp;&middot;&nbsp; {plural(books.length, 'volume')}</span>
+					<span id="board-settings-slot"></span>
 				</div>
 			</header>
 
@@ -861,7 +895,6 @@ export default function Board() {
 							faded={tokens.length > 0 && !noteMatches(note, tokens)} className={noteClass(id)} style={fresh?.delay ? { animationDelay: `${fresh.delay}ms` } : undefined}/>
 					})}
 
-					<div id="bd-mark" ref={markRef} className="bd-mark" aria-hidden="true"><span className="smallcaps">New notes land here</span></div>
 				</div>
 			</main>
 
@@ -881,6 +914,8 @@ export default function Board() {
 			{ nothingFound && (
 				<div id="board-empty" className="bd-empty">Nothing in your notes for &ldquo;{searchTerm.trim()}&rdquo;<small className="smallcaps">&crarr; search the web instead</small></div>
 			)}
+
+			{ s.place && <div id="board-placing" className="bd-placing smallcaps" role="status">Click to place &nbsp;&middot;&nbsp; Esc to drop anywhere</div> }
 
 			{ toast && (
 				<div id="board-toast" className={`bd-toast ${toast.on ? 'bd-on' : ''}`} role="status" aria-live="polite">

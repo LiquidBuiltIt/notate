@@ -223,8 +223,9 @@
 .bd-root :focus-visible { outline: 2px solid var(--verm); outline-offset: 2px; }
 .bd-root.bd-panning, .bd-root.bd-panning * { cursor: grabbing !important; user-select: none; }
 
-.bd-top { position: fixed; left: 0; right: 0; top: 0; height: var(--top); z-index: 8; display: flex; align-items: center; gap: 26px; padding: 0 96px 0 32px; background: var(--paper); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.bd-top { position: fixed; left: 0; right: 0; top: 0; height: var(--top); z-index: 8; display: flex; align-items: center; gap: 26px; padding: 0 32px; background: var(--paper); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
 .bd-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; height: 44px; padding-right: 26px; border-right: 1px solid var(--edge); }
+.bd-logo { display: block; height: 44px; width: auto; mix-blend-mode: multiply; }
 .bd-date { margin: 0; font: 900 italic 40px/1 var(--bd-display); letter-spacing: -.01em; white-space: nowrap; }
 .bd-date .bd-d2 { font-weight: 600; font-size: .5em; color: var(--soft); letter-spacing: 0; margin: 0 .1em; }
 .bd-dot { color: var(--verm); font-style: normal; }
@@ -285,12 +286,6 @@
 .bd-fe { position: absolute; inset: 44px 20px 20px; margin: 0; display: grid; place-items: center; border: 1px dashed var(--faint); font-style: italic; color: var(--faint); pointer-events: none; }
 .bd-fe[hidden] { display: none; }
 
-.bd-mark { position: absolute; z-index: 9000; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 1px solid var(--verm); border-radius: 50%; pointer-events: none; opacity: 0; scale: var(--iz, 1); transition: opacity .3s; }
-.bd-mark::before, .bd-mark::after { content: ""; position: absolute; background: var(--verm); }
-.bd-mark::before { left: 14px; top: -9px; bottom: -9px; width: 1px; }
-.bd-mark::after { top: 14px; left: -9px; right: -9px; height: 1px; }
-.bd-mark span { position: absolute; left: 24px; top: 24px; color: var(--vink); white-space: nowrap; }
-.bd-mark.bd-on { opacity: 1; animation: bd-ping .45s cubic-bezier(.22,1.3,.36,1); }
 
 .bd-rail { position: fixed; right: 20px; top: calc(50% + var(--top) / 2); translate: 0 -50%; z-index: 9; width: 62px; display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--ink); box-shadow: 4px 4px 0 0 var(--ink); }
 .bd-rail > * { display: grid; place-items: center; min-height: 42px; border-top: 1px solid var(--edge); }
@@ -303,6 +298,7 @@
 .bd-rail .bd-tidy { background: var(--ink); color: var(--paper); border-top-color: var(--ink); }
 .bd-rail .bd-tidy:hover { background: var(--ink); box-shadow: inset 0 -3px 0 var(--verm); }
 
+.bd-placing { position: fixed; left: 0; right: 0; top: calc(var(--top) + 18px); margin: 0 auto; width: fit-content; z-index: 61; background: var(--ink); color: var(--paper); padding: 11px 18px; box-shadow: 4px 4px 0 0 var(--verm); pointer-events: none; white-space: nowrap; }
 .bd-toast { position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content; bottom: 9.5rem; z-index: 60; background: var(--ink); color: var(--paper); padding: 13px 20px; font-style: italic; font-size: 18px; box-shadow: 4px 4px 0 0 var(--verm); opacity: 0; transform: translateY(10px); pointer-events: none; transition: opacity .25s, transform .25s; max-width: min(34rem, 80vw); }
 .bd-toast.bd-on { opacity: 1; transform: none; pointer-events: auto; }
 .bd-toast .bd-undo { margin-left: 14px; padding: 4px 0 3px; border-bottom: 1px solid var(--verm); color: var(--paper); font-style: normal; }
@@ -313,7 +309,6 @@
 @keyframes bd-gone { to { opacity: 0; transform: scale(.9); } }
 @keyframes bd-flash { 0%, 40% { outline: 2px solid var(--verm); outline-offset: 4px; } 100% { outline: 2px solid transparent; outline-offset: 4px; } }
 @keyframes bd-land { 0% { opacity: 0; scale: 1.2; transform: translateY(-18px); } 45% { opacity: 1; scale: .97; transform: none; } 72% { scale: 1.012; } 100% { scale: 1; } }
-@keyframes bd-ping { from { scale: calc(var(--iz, 1) * 2.2); opacity: 0; } to { scale: var(--iz, 1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
 	.bd-root *, .bd-root *::before, .bd-root *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
 }

@@ -9,7 +9,7 @@ import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextIn
 import { NoteModalContext } from './NoteModal.jsx'
 
 export default function NoteModalBottombar({onExit}) {
-	const { NOTE_CONTEXT, REQUEST_CONTEXT } = React.useContext(NotateContext)
+	const { NOTE_CONTEXT, REQUEST_CONTEXT, BOARD_API_CONTEXT } = React.useContext(NotateContext)
 	const [note, setNote ] = NOTE_CONTEXT
 	const [ request, makeRequest ] = REQUEST_CONTEXT 
 
@@ -41,6 +41,7 @@ export default function NoteModalBottombar({onExit}) {
   	      note.content = sanitizeHtml(content);	
 
   	      await onExit();
+	      if (!note.id) BOARD_API_CONTEXT.current?.expectPlace()   // on the board, a new note follows the cursor until it is placed
 	      // An existing note patches only what the editor owns, so a position saved from the board meanwhile is kept.
   	      await makeRequest(note.id
 		      ? { type: 'PATCH_DATABASE', id: note.id, data: { title: note.title, content: note.content, ...(note.color && { color: note.color }) }, store: 'NOTES', database: NOTATE_DB }
