@@ -40,7 +40,7 @@ const Key = ({ k, children, optional }) => (
 export default function SearchBar() {
 	const {
 		SEARCH_TERM_CONTEXT, NOTATE_DB_CONTEXT, USER_CONFIGURATION_DB_CONTEXT, REQUEST_CONTEXT,
-		NOTE_CONTEXT, NOTEBOOK_CONTEXT, DRAG_TO_TRASH_STATE_CONTEXT, SETTINGS_OPEN_CONTEXT, BOARD_API_CONTEXT
+		NOTE_CONTEXT, NOTEBOOK_CONTEXT, DRAG_TO_TRASH_STATE_CONTEXT, SETTINGS_OPEN_CONTEXT, WHATS_NEW_OPEN_CONTEXT, BOARD_API_CONTEXT
 	} = React.useContext(NotateContext)
 	const [ confMsgState ] = React.useContext(ConfirmationMsgContext)
 	const [ , setSearchTerm ] = SEARCH_TERM_CONTEXT
@@ -51,6 +51,7 @@ export default function SearchBar() {
 	const [ selectedNotebook, setSelectedNotebook ] = NOTEBOOK_CONTEXT
 	const [ dragging ] = DRAG_TO_TRASH_STATE_CONTEXT
 	const [ settingsOpen ] = SETTINGS_OPEN_CONTEXT
+	const [ whatsNewOpen ] = WHATS_NEW_OPEN_CONTEXT
 
 	const [ value, setValue ] = React.useState('')
 	const [ selected, setSelected ] = React.useState(0)
@@ -65,7 +66,7 @@ export default function SearchBar() {
 	const chipRef = React.useRef(null)
 	const menuRef = React.useRef(null)
 
-	const modalOpen = !!(selectedNote || selectedNotebook || confMsgState || settingsOpen)
+	const modalOpen = !!(selectedNote || selectedNotebook || confMsgState || settingsOpen || whatsNewOpen)
 
 	/* The engine lives in the stored settings, so Settings and the bar always agree. */
 	const configured = configuration?.inventory?.USER_CONFIGURATION?.[0]?.Notate?.search?.preferredEngine?.value

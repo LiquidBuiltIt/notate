@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { hasEntriesFor } from './changelog.mjs';
 import { CONFIG_DIR, CWS_TOKEN_FILE, PUBLISH_OK_STATES, credentialRoot, VERSION_SOURCE, git, readClientSecret, versionOf, uploadOutcome } from './helpers.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -102,6 +103,13 @@ async function submitToStore(token, itemName) {
 
 async function preflight() {
   console.log('\nPre-flight checks\n');
+
+  // First, so a missing changelog fails before any credential read or network call.
+  const changelogVersion = versionOf(read(join(root, VERSION_SOURCE)));
+  if (!hasEntriesFor(read(join(root, 'CHANGELOG.md')), changelogVersion)) {
+    die(`CHANGELOG.md has no "## ${changelogVersion}" section with bullets. Write the release notes first.`);
+  }
+  ok(`CHANGELOG.md has notes for v${changelogVersion}`);
 
   for (const path of [join(credRoot, CWS_TOKEN_FILE), join(CONFIG_DIR, 'CWS_PUBLISHER_ID')]) {
     if (!existsSync(path)) die(`${path} not found. See the header of this script.`);

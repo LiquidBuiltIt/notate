@@ -25,6 +25,9 @@ BUILD_DIR=$ROOT/$BUILD_TARGET/$BROWSER_TARGET
 cp -r $ASSETS/. $BUILD_DIR
 cp $STATIC/$MANIFEST $BUILD_DIR/manifest.json
 
+# Released sections of CHANGELOG.md for the What's new panel. Unreleased never ships.
+node $ROOT/scripts/release/changelog.mjs $ROOT/CHANGELOG.md $BUILD_DIR/changelog.json
+
 #if [ $BROWSER_TARGET = 'chrome' ]; then 
 #	python $MANIFEST_BUILDER --root $ROOT --build-dir $BUILD_DIR
 #fi

@@ -65,7 +65,7 @@ function NoteEl({ note, home, tokens, faded, className = '', style, clone, refCb
 export default function Board() {
 	const {
 		NOTE_CONTEXT, NOTEBOOK_CONTEXT, SEARCH_TERM_CONTEXT, RECENT_NOTES_STATE_CONTEXT, DRAG_TO_TRASH_STATE_CONTEXT,
-		NOTATE_DB_CONTEXT, USER_CONFIGURATION_DB_CONTEXT, MODAL_STATE_CONTEXT, SETTINGS_OPEN_CONTEXT, BOARD_API_CONTEXT
+		NOTATE_DB_CONTEXT, USER_CONFIGURATION_DB_CONTEXT, MODAL_STATE_CONTEXT, SETTINGS_OPEN_CONTEXT, WHATS_NEW_OPEN_CONTEXT, BOARD_API_CONTEXT
 	} = React.useContext(NotateContext)
 	const [ selectedNote, setSelectedNote ] = NOTE_CONTEXT
 	const [ selectedNotebook, setSelectedNotebook ] = NOTEBOOK_CONTEXT
@@ -76,6 +76,7 @@ export default function Board() {
 	const [ configuration, setConfiguration ] = USER_CONFIGURATION_DB_CONTEXT
 	const [ modalState, setModalState ] = MODAL_STATE_CONTEXT
 	const [ settingsOpen ] = SETTINGS_OPEN_CONTEXT
+	const [ whatsNewOpen ] = WHATS_NEW_OPEN_CONTEXT
 	const [ confMsgState, setConfMsgState ] = React.useContext(ConfirmationMsgContext)
 	const [ notification, setNotification ] = React.useContext(NotificationContext)
 
@@ -120,7 +121,7 @@ export default function Board() {
 
 	const L = React.useRef({})
 	L.current = { notes, books, noteMap, bookMap, homes, dbHomes, selectedNote, selectedNotebook,
-		modalOpen: !!(selectedNote || selectedNotebook || confMsgState || settingsOpen) }
+		modalOpen: !!(selectedNote || selectedNotebook || confMsgState || settingsOpen || whatsNewOpen) }
 
 	const A = React.useRef({})
 

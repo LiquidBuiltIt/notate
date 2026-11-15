@@ -12,12 +12,16 @@
  * Requires a clean working tree on `main`. `--force` skips the branch check
  * only, for running from a worktree. A dirty tree always aborts.
  *
+ * The bullets under `## Unreleased` in CHANGELOG.md move into a `## X.Y.Z — date`
+ * section, with the blurb as its summary line. An empty Unreleased only warns.
+ *
  * Tagging happens in `npm run publish`, so tags exist only for shipped versions.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cutUnreleased } from './changelog.mjs';
 import { VERSION_SOURCE, VERSION_TARGETS, git, versionOf, nextVersion, setVersion, bumpLockfile, assertCleanMain } from './helpers.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -51,23 +55,28 @@ if (bumpType === 'rollback') {
 
 if (!blurb) abort(`A release blurb is required: npm run version.bump ${bumpType} "short summary"`);
 
-let current, next, lockContent;
+let current, next, lockContent, changelog, changelogWarning;
 try {
   assertCleanMain(root, { force });
   current = versionOf(read(VERSION_SOURCE));
   next = nextVersion(current, bumpType);
   // Computed before any write, so a malformed lockfile leaves the tree untouched.
   lockContent = bumpLockfile(read('package-lock.json'), next);
+  const cut = cutUnreleased(read('CHANGELOG.md'), next, new Date().toLocaleDateString('en-CA'), blurb);
+  if (cut.warning) changelogWarning = cut.warning;
+  else changelog = cut.content;
 } catch (err) {
   abort(err.message);
 }
 
 for (const rel of VERSION_TARGETS) writeFileSync(join(root, rel), setVersion(read(rel), next));
 writeFileSync(join(root, 'package-lock.json'), lockContent);
+if (changelog) writeFileSync(join(root, 'CHANGELOG.md'), changelog);
 
-git(root, 'add', '--', ...VERSION_TARGETS, 'package-lock.json');
+git(root, 'add', '--', ...VERSION_TARGETS, 'package-lock.json', ...(changelog ? ['CHANGELOG.md'] : []));
 git(root, 'commit', '-m', `v${next} — ${blurb}`);
 
+if (changelogWarning) console.warn(`WARNING: ${changelogWarning} Write the bullets in CHANGELOG.md before you publish.`);
 console.log(`Committed v${next} (was ${current}). To ship:`);
 console.log('  1. Run the production build sealed, then commit dist/');
 console.log('  2. npm run publish -- --dry');

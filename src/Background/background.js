@@ -3,6 +3,7 @@ import browser from 'webextension-polyfill'
 import CoreService from './Utils/coreService.js'
 import { spawnNotateTab, bootstrapApplication, declareEnvironmentVariables } from './Utils/eventActions.js'
 import Environment from './Utils/environment.js'
+import { seenVersionOnInstall } from '@universal/Changelog/changelog.js'
 import DevTools from '@dev/devutils.js'
 
 
@@ -53,7 +54,14 @@ EVENT LISTENER
 	Fires on Chrome startup. Is one of 2 chrome event listeners
 	that fires bootstrapApplication().
 */
-browser.runtime.onInstalled.addListener(async ()=> {
+browser.runtime.onInstalled.addListener(async (details)=> {
+	// What's new dot: a fresh install has seen everything, an update from an older build has not.
+	try {
+		const { lastSeenVersion } = await browser.storage.local.get('lastSeenVersion')
+		const seen = seenVersionOnInstall(details, lastSeenVersion, browser.runtime.getManifest().version)
+		if (seen) await browser.storage.local.set({ lastSeenVersion: seen })
+	} catch (e) { console.error('lastSeenVersion not stored', e) }
+
 	await bootstrapApplication(BackgroundService, env)
 	await declareEnvironmentVariables(BackgroundService, env)
 

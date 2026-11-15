@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom'
 import Settings from '@universal/Components/Settings/Settings.jsx'
 import { NotateContext } from '@notate/Notate.jsx';
+import WhatsNewWidget from './WhatsNewWidget.jsx'
 
 export default function SettingsWidget() {
 	const NOTATE_CONTEXT = React.useContext(NotateContext)
@@ -28,7 +29,7 @@ export default function SettingsWidget() {
 		type="button"
 		aria-label="Settings"
 		title="Settings"
-		className={`smallcaps focus-ink ${slot ? '' : 'absolute top-5 right-6 sm:right-12 xl:right-16 z-button'} flex items-center gap-2 pb-1 border-b border-ink text-ink trans-ease hover:text-vermilion-ink hover:border-vermilion`}
+		className={`smallcaps focus-ink flex items-center gap-2 pb-1 border-b border-ink text-ink trans-ease hover:text-vermilion-ink hover:border-vermilion`}
 		onClick={handleSettingsWidgetClick}>
 			<span aria-hidden="true" className="text-[15px] leading-none">&sect;</span>Settings
 		</button>
@@ -36,7 +37,9 @@ export default function SettingsWidget() {
 
 	return (
 		<>
-			{ slot ? createPortal(button, slot) : button }
+			{ slot
+				? createPortal(<><WhatsNewWidget/>{button}</>, slot)
+				: <div className="absolute top-5 right-6 sm:right-12 xl:right-16 z-button flex items-center gap-8"><WhatsNewWidget/>{button}</div> }
 			{
 				widgetState && 
 					<Settings

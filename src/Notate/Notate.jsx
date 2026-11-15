@@ -51,6 +51,7 @@ export default function Notate(){
 		USER_CONFIGURATION_DB_CONTEXT: React.useState(null),
 		SCROLL_STATE_CONTEXT: React.useState(true),
 		SETTINGS_OPEN_CONTEXT: React.useState(false),
+		WHATS_NEW_OPEN_CONTEXT: React.useState(false),
 		BOARD_API_CONTEXT: React.useRef(null),
 		CONF_MSG_CONTEXT: React.useState(false),
 		MODAL_STATE_CONTEXT: React.useState(false),
