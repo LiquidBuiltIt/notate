@@ -232,11 +232,13 @@ export default class CoreService {
 			const insert = 'insertData'
 			const remove = 'deleteData'
 
-			if ( error.message.includes(insert) || error.message.includes(remove) ) {
+			if ( error?.message?.includes(insert) || error?.message?.includes(remove) ) {   // IdbHandler rejects with undefined after console.error
 				console.log('current DB: ', this.databases.notatedb)
 			}
 
 			await this.generateErrorLog(error, { function: 'databaseRequest' })
+			// Tell the sender it failed (a reply without data), so it does not wait forever.
+			if (typeof port === 'object') await this.sendMessage({ type: 'DATABASE', content: {} }, port)
 		}
 	}
 

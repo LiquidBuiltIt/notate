@@ -177,6 +177,8 @@ export default class DatabaseAdapter {
     // transaction, so no other writer can slip in between. `update` returns the record to store, or nothing to skip the write.
     // Without `id` it reads the store's first record (the configuration); with `id` it reads that record (a note or notebook).
     async updateData(target_store, update, id) {
+        // Only the configuration is a single record; elsewhere a missing id must not patch whichever record comes first.
+        if (id === undefined && target_store !== 'USER_CONFIGURATION') throw new Error(`updateData needs a record id for ${target_store}`)
         const db = await this.connection
 
         return new Promise((resolve, reject) => {

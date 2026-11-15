@@ -102,6 +102,10 @@ export default function useRequest() {
 			}
 	
 			port.postMessage(message)
+
+			// No reply must not mean waiting forever: a closed port or a slow service worker counts as a failure.
+			const giveUp = setTimeout(() => resolve(false), 20000)
+			port.onDisconnect.addListener(() => { clearTimeout(giveUp); resolve(false) })
 	
 			port.onMessage.addListener( message => {
 				if (BROWSER_TYPE === 'firefox') {

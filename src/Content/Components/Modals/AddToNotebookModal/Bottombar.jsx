@@ -23,7 +23,7 @@ export default function Bottombar() {
 				await makeRequest({
 					type: 'PATCH_DATABASE',
 					id: tx.id,
-					data: { collection: { $add: tx.collection } },
+					data: { collection: { $add: tx.added } },
 					store: 'NOTEBOOKS',
 					database: NOTATE_DB 
 				})

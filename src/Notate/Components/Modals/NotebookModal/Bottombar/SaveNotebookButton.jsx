@@ -32,7 +32,7 @@ export default function SaveNotebookButton() {
 			setNotification(notification.showInfo('Notebook Saved'))
 			// An existing notebook patches only what the editor owns, so a frame position saved from the board meanwhile is kept.
 			await makeRequest(notebook.id
-				? { type: 'PATCH_DATABASE', id: notebook.id, data: { title, description, collection: { $add: collection, $remove: initialNotebookState.current.collection.filter(id => !collection.includes(id)) } }, store: 'NOTEBOOKS', database: NOTATE_DB }
+				? { type: 'PATCH_DATABASE', id: notebook.id, data: { title, description, collection: { $add: collection.filter(id => !initialNotebookState.current.collection.includes(id)), $remove: initialNotebookState.current.collection.filter(id => !collection.includes(id)) } }, store: 'NOTEBOOKS', database: NOTATE_DB }
 				: { type: 'POST_DATABASE', data: notebook, store: 'NOTEBOOKS', database: NOTATE_DB })
 			await EXIT_MODAL()
 		} catch (e) {

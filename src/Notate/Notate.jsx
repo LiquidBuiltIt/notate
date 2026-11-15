@@ -78,6 +78,7 @@ export default function Notate(){
 
 	const [ devbool, setDevbool ] = React.useState(false)
 	
+	const failures = React.useRef(0)
 	const notateInitialized = React.useRef(false)
 	const userconfigurationIntialized = React.useRef(false)
 	
@@ -127,6 +128,7 @@ export default function Notate(){
 			if (response.type === 'RESULT') {
       				if (response.status === '200') {
         				const result = response.content;
+        				failures.current = 0
 
         				if (result?.data && result?.database) {
         	  				const db = result.data;
@@ -148,7 +150,8 @@ export default function Notate(){
 					console.error('response: ', response)
         				console.error('Request failed');
 
-        				// Optionally, you could retry the request here
+        				// Retry a few times; a request that keeps failing (the background now reports errors) must not loop.
+        				if (++failures.current > 3) return
         				await makeRequest({ 
 						type: response.content.type == 'GET_DATABASE' 
 							? 'RELOAD_DATABASE' 

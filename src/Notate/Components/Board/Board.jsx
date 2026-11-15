@@ -1,4 +1,5 @@
 import React from 'react'
+import browser from 'webextension-polyfill'
 import { NotateContext } from '@notate/Notate.jsx'
 import { NOTATE_DB, USER_CONFIGURATION_DB } from '@background/background.js'
 import useRequest from '@universal/Hooks/useRequest/useRequest.jsx'
@@ -141,7 +142,7 @@ export default function Board() {
 			if (data && name === NOTATE_DB) setDatabase(data)
 			else if (data && name === USER_CONFIGURATION_DB) setConfiguration(data)
 		} else {
-			setNotification(notification.showError())
+			showToast('That change could not be saved')   // the queue moves on, so later changes still save
 		}
 		pump()
 	}, [resp])
@@ -173,13 +174,16 @@ export default function Board() {
 
 	const saveViewSoon = () => {
 		clearTimeout(s.timers.view)
-		s.timers.view = setTimeout(() => {
-			const v = s.view
-			enqueue({
-				type: 'PATCH_DATABASE', store: 'USER_CONFIGURATION', database: USER_CONFIGURATION_DB,
-				data: { Notate: { board: { view: { x: Math.round(v.x), y: Math.round(v.y), z: B.round(v.z, 3) } } } }
-			})
-		}, 400)
+		s.viewDue = true
+		s.timers.view = setTimeout(sendView, 400)
+	}
+	const sendView = () => {
+		s.viewDue = false
+		const v = s.view
+		enqueue({
+			type: 'PATCH_DATABASE', store: 'USER_CONFIGURATION', database: USER_CONFIGURATION_DB,
+			data: { Notate: { board: { view: { x: Math.round(v.x), y: Math.round(v.y), z: B.round(v.z, 3) } } } }
+		})
 	}
 
 	// Filing: a note is held by one volume. Returns the volume patches; `s.over` shows the result at once.
@@ -334,13 +338,14 @@ export default function Board() {
 		}
 
 		refreshSheet()
-		const taken = () => [...s.n.values()].map(m => ({ x: m.x, y: m.y, w: B.NW, h: B.NH })).concat([...s.f.values()].map(B.frameBlock))
+		const taken = [...s.n.values()].map(m => ({ x: m.x, y: m.y, w: B.NW, h: B.NH })).concat([...s.f.values()].map(B.frameBlock))
 		const centre = viewCentre()
 
 		for (const bk of bs) if (!s.f.has(bk.id)) {
 			const size = B.defaultFrameSize((bk.collection ?? []).filter(id => ids.has(id)).length)
-			const spot = B.placeFree(taken(), size.w + 16, size.h + 60, centre, s.sheet)
+			const spot = B.placeFree(taken, size.w + 16, size.h + 60, centre, s.sheet)
 			s.f.set(bk.id, { x: spot.x + 8, y: spot.y + 52, ...size }); tF.add(bk.id)
+			taken.push(B.frameBlock(s.f.get(bk.id)))
 			refreshSheet()
 		}
 
@@ -358,9 +363,11 @@ export default function Board() {
 				s.n.set(n.id, { ...base, ...pos })
 			} else {
 				const anchor = mark ? { x: mark.x, y: mark.y + B.NH / 2 - 36 } : centre
-				const pos = B.placeFree(taken(), B.NW, B.NH, anchor, s.sheet)
+				const pos = B.placeFree(taken, B.NW, B.NH, anchor, s.sheet)
 				s.n.set(n.id, { ...base, ...pos })
 			}
+			const placed = s.n.get(n.id)
+			taken.push({ x: placed.x, y: placed.y, w: B.NW, h: B.NH })
 			if (mark) { hideMark(); mark = null }
 			tN.add(n.id)
 		}
@@ -730,7 +737,7 @@ export default function Board() {
 		else if (e.key === 't' || e.key === 'T') tidy()
 	}
 
-	A.current = { onDown, onMove, onUp, onCancel, onWheel, onBoardKey, onFocusIn, onFocusOut, onGlobalKey,
+	A.current = { flushAll: () => { flushDirty(); if (s.viewDue) sendView() }, onDown, onMove, onUp, onCancel, onWheel, onBoardKey, onFocusIn, onFocusOut, onGlobalKey,
 		onResize: () => { clampView(); applyView(false, false) } }
 
 
@@ -747,7 +754,15 @@ export default function Board() {
 		on.forEach(([el, type, fn, opt]) => el.addEventListener(type, fn, opt))
 		return () => {
 			on.forEach(([el, type, fn, opt]) => el.removeEventListener(type, fn, opt))
-			Object.values(S.current.timers).forEach(clearTimeout)
+			// This board's request hook goes with it, so unsaved changes are sent straight (fire and forget).
+			const s = S.current
+			s.inflight = true
+			A.current.flushAll()
+			s.queue.splice(0).forEach(r => {
+				const port = browser.runtime.connect({ name: 'DATABASE_CONNECTION' })
+				port.postMessage({ type: r.type, content: { database: r.database, store: r.store, data: r.data } })
+			})
+			Object.values(s.timers).forEach(clearTimeout)
 			clearAim(); setDragging(false)
 		}
 	}, [])
@@ -765,6 +780,7 @@ export default function Board() {
 	// The search bar asks how many of its matches are off screen.
 	BOARD_API_CONTEXT.current = {
 		countOutOfView: (ids) => {
+			if (!boardRef.current) return 0   // the search bar renders before the board has mounted
 			const R = rect(), v = s.view
 			let n = 0
 			ids.forEach(id => {

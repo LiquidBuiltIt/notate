@@ -22,7 +22,7 @@ export default function NotebookCollection() {
 		const current = queued ?? notebook
 
 		if (!current.collection.includes(note.id)) {
-			const updated = { ...notebook, collection: [...current.collection, note.id] }
+			const updated = { ...notebook, collection: [...current.collection, note.id], added: [...(queued?.added ?? []), note.id] }
 			add2Queue(queue => ([...queue.filter( (item) => item.id !== notebook.id ), updated]))
 		}
 	}
