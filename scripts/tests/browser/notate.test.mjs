@@ -14,13 +14,18 @@ afterEach(async () => { await b.close(); fx.close() })
 const config = async () => (await b.idb()).USER_CONFIGURATION_DB?.USER_CONFIGURATION?.[0]
 const notes = async () => (await b.idb()).NOTATE_DB?.NOTES ?? []
 const notebooks = async () => (await b.idb()).NOTATE_DB?.NOTEBOOKS ?? []
+const pressKey = async (page, key, extra = {}) => {
+	const text = key === 'Enter' ? '\r' : undefined
+	await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key, text, ...extra })
+	await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key, ...extra })
+}
 
 // Create a note through the new tab page UI.
 async function newTabNote(n, title, body) {
 	const page = await b.openPage(NEWTAB)
 	const n_ = ui(page)
-	await n_.hover('#new-item-btn-container')
-	await n_.click('button#new-note-button')
+	await n_.hover('#search-bar-tab')
+	await n_.click('#new-note-button')
 	await n_.fill('#edit-note-title', title)
 	await n_.fill('#input-text-display', body)
 	await n_.click('#save-btn')
@@ -77,8 +82,10 @@ test('note created on the new tab page is saved and survives a reload', async ()
 test('notebook with a note in it is saved', async () => {
 	const { page, n } = await newTabNote(null, 'Booked note', 'goes in a notebook')
 	const [note] = await notes()
-	await n.hover('#new-item-btn-container')
-	await n.click('#new-notebook-button')
+	await n.fill('#searchInput', '/notebook')
+	await pressKey(page, 'Enter') // completes the command
+	await pressKey(page, 'Enter') // runs it: no title opens the blank notebook modal
+	await n.appear('#notebook-title')
 	await n.fill('#notebook-title', 'My book')
 	await n.fill('#notebook-description', 'About things')
 	// Notes join a notebook by drag and drop: replay the drop with the note as the payload.
@@ -776,4 +783,194 @@ test('attributes named like Object.prototype members are dropped without a throw
 	const stored = await editorState(await openPlantedEditor(html))
 	assert.deepEqual(stored.attrs.filter((a) => a !== 'a.style'), ['a.href'], stored.html)
 	assert.deepEqual(stored.tags, ['a'])
+})
+
+
+/* ---- bottom search bar ---- */
+
+const stamp = new Date().toString()
+const plainNote = (id, title, content, origin = null) => ({ id, title, content, origin, color: { name: 'yellow', styles: { card: 'bg-yellow-200', top: 'bg-yellow-400' } }, created: stamp, modified: stamp })
+const cardOpacity = (page, id) => page.eval(`getComputedStyle(document.querySelector('#note-card-${id}')).opacity`)
+const faded = async (page, id) => Number(await cardOpacity(page, id)) < 0.5
+
+test('search bar: "/note" with a title creates a note', async () => {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.fill('#searchInput', '/note "Typed in the bar"')
+	await waitFor(async () => (await n.text()).toLowerCase().includes('create note'), 'status line for the command')
+	await pressKey(page, 'Enter')
+	const [saved] = await waitFor(async () => { const l = await notes(); return l.length && l }, 'note in IndexedDB')
+	assert.equal(saved.title, 'Typed in the bar')
+	await waitFor(async () => (await n.text()).toLowerCase().includes('note created'), 'status notice')
+	assert.equal(await page.eval(`document.querySelector('#searchInput').value`), '')
+	await waitFor(async () => (await n.text()).includes('Typed in the bar'), 'note card on the page')
+	assert.deepEqual(b.errors, [])
+})
+
+test('search bar: "/notebook" with a title creates a notebook', async () => {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.fill('#searchInput', '/notebook "Bar volume"')
+	await pressKey(page, 'Enter')
+	const [book] = await waitFor(async () => { const l = await notebooks(); return l.length && l }, 'notebook in IndexedDB')
+	assert.equal(book.title, 'Bar volume')
+	assert.deepEqual(b.errors, [])
+})
+
+test('search bar: the command row shows the vermilion left bar', async () => {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.fill('#searchInput', '/no')
+	await n.appear('#search-command-note')
+	assert.equal(await page.eval(`getComputedStyle(document.querySelector('#search-command-note')).borderLeftColor`), await page.eval(`(() => { const e = document.createElement('i'); e.className = 'border-l-vermilion border-l'; document.body.append(e); const c = getComputedStyle(e).borderLeftColor; e.remove(); return c })()`))
+})
+
+test('search bar: matching reads content, origin and volume, and the rest fade', async () => {
+	await b.post('notate', 'NOTES', plainNote(1, 'Alpha', '<div>garden <b>tomatoes</b></div>'))
+	await b.post('notate', 'NOTES', plainNote(2, 'Beta', 'nothing here', 'https://harvest.example/page'))
+	await b.post('notate', 'NOTES', plainNote(3, 'Gamma', 'unrelated words'))
+	await b.post('notate', 'NOTES', plainNote(4, 'Filed', 'stored in a volume with zebra'))
+	await b.post('notate', 'NOTEBOOKS', { id: 1, title: 'Savanna', description: 'x', collection: [4], created: stamp, modified: stamp })
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.appear('#note-card-3')
+
+	await n.fill('#searchInput', 'tomatoes')
+	await waitFor(async () => (await faded(page, 3)) && (await faded(page, 2)) && !(await faded(page, 1)), 'content match')
+
+	await page.eval(`(() => { const i = document.querySelector('#searchInput'); i.focus(); i.select() })()`)
+	await page.type('harvest.example')
+	await waitFor(async () => (await faded(page, 1)) && !(await faded(page, 2)), 'origin match')
+
+	await page.eval(`(() => { const i = document.querySelector('#searchInput'); i.focus(); i.select() })()`)
+	await page.type('zebra')
+	await waitFor(async () => (await faded(page, 1)) && (await faded(page, 2)), 'only the volume matches')
+	assert.equal(await page.eval(`getComputedStyle(document.querySelector('#notebook-card-1')).opacity`), '1', 'volume stays')
+	assert.ok(!(await n.text()).includes('Nothing in your notes'), 'no empty message while a volume matches')
+
+	await page.eval(`(() => { const i = document.querySelector('#searchInput'); i.focus(); i.select() })()`)
+	await page.type('qqqq')
+	await n.appear('#no-items-found-container')
+	assert.deepEqual(b.errors, [])
+})
+
+test('search bar: the term survives a saved edit', async () => {
+	await b.post('notate', 'NOTES', plainNote(1, 'Alpha', 'garden tomatoes'))
+	await b.post('notate', 'NOTES', plainNote(2, 'Beta', 'plain words'))
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.appear('#note-card-2')
+	await n.fill('#searchInput', 'tomatoes')
+	await waitFor(() => faded(page, 2), 'non-matching card fades')
+	await n.click('#note-card-1')
+	await n.fill('#edit-note-title', ' edited')
+	await n.click('#save-btn')
+	await waitFor(async () => (await notes()).some((x) => x.title.includes('edited')), 'edit saved')
+	await n.gone('#save-btn')
+	await sleep(500)
+	assert.equal(await page.eval(`document.querySelector('#searchInput').value`), 'tomatoes')
+	assert.ok(await faded(page, 2), 'the other card is still faded')
+	assert.ok(!(await faded(page, 1)), 'the edited card still matches')
+	assert.deepEqual(b.errors, [])
+})
+
+test('search bar: an engine pick is stored by patch and leaves other settings alone', async () => {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	const before = await waitFor(config, 'seeded config')
+	assert.equal(before.Notate.search.preferredEngine.value, 'perplexityai')
+	await n.hover('#search-bar-tab')
+	await n.click('#search-engine-chip')
+	await n.appear('#search-engine-menu')
+	await n.click('#search-engine-duckduckgo')
+	await waitFor(async () => (await config()).Notate.search.preferredEngine.value === 'duckduckgo', 'engine saved')
+	const after = await config()
+	assert.equal(after.Notate.search.searchNotes.value, before.Notate.search.searchNotes.value, 'searchNotes untouched')
+	assert.equal(after.WebContent.behavior.contextMenuPopup.value, 'true', 'other sections untouched')
+	assert.equal((await b.idb()).USER_CONFIGURATION_DB.USER_CONFIGURATION.length, 1, 'still one config record')
+	assert.equal(await page.eval(`document.querySelector('#search-engine-chip').dataset.engine`), 'duckduckgo')
+	await page.send('Page.reload')
+	await n.appear('#search-engine-chip')
+	await waitFor(async () => (await page.eval(`document.querySelector('#search-engine-chip').dataset.engine`)) === 'duckduckgo', 'engine after reload')
+	// The icons are real files in the build.
+	await n.hover('#search-bar-tab')
+	await waitFor(() => page.eval(`(() => { const i = document.querySelector('#search-engine-chip img'); return i.complete && i.naturalWidth > 0 })()`), 'chip icon loaded')
+	assert.deepEqual(b.errors.filter((e) => !e.includes('Favicons')), [])
+})
+
+test('search bar: Enter opens the chosen engine in the current tab', async () => {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await waitFor(config, 'seeded config')
+	// Pick DuckDuckGo with the keyboard: Alt+E, move to the option, Enter.
+	await page.eval(`document.querySelector('#searchInput').focus()`)
+	await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'e', code: 'KeyE', modifiers: 1, windowsVirtualKeyCode: 69 })
+	await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'e', code: 'KeyE', modifiers: 1, windowsVirtualKeyCode: 69 })
+	await n.appear('#search-engine-menu')
+	await page.eval(`document.querySelector('#search-engine-duckduckgo').focus()`)
+	await pressKey(page, 'Enter')
+	await waitFor(async () => (await config()).Notate.search.preferredEngine.value === 'duckduckgo', 'engine saved')
+	await n.gone('#search-engine-menu')
+	// The test browser has no network: answer the engine request ourselves and note the URL.
+	await page.send('Fetch.enable', { patterns: [{ urlPattern: '*duckduckgo.com*' }] })
+	const seen = new Promise((resolve) => b.cdp.on((m) => {
+		if (m.sessionId === page.sessionId && m.method === 'Fetch.requestPaused') {
+			resolve(m.params.request.url)
+			page.send('Fetch.fulfillRequest', { requestId: m.params.requestId, responseCode: 200, body: Buffer.from('<title>engine</title>').toString('base64') }).catch(() => {})
+		}
+	}))
+	await n.fill('#searchInput', 'two words')
+	await pressKey(page, 'Enter')
+	assert.equal(await Promise.race([seen, sleep(10000).then(() => 'no request')]), 'https://duckduckgo.com/?q=two%20words')
+})
+
+test('search bar: "/" raises the bar, but not while typing in another field or with a modal open', async () => {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.appear('#searchInput')
+	const rising = () => page.eval(`document.querySelector('#search-bar-dock').classList.contains('up')`)
+	assert.equal(await rising(), false, 'tucked at rest')
+	// The hover zone beside the tab raises it too.
+	const spot = await page.eval(`(() => { const r = document.querySelector('#search-bar-hot').getBoundingClientRect(); return { x: r.left + 8, y: r.bottom - 8 } })()`)
+	assert.equal(await page.eval(`document.elementFromPoint(${spot.x}, ${spot.y})?.id`), 'search-bar-hot')
+	await page.mouse('mouseMoved', spot.x, spot.y)
+	await waitFor(rising, 'bar raised by the hover zone')
+	await page.mouse('mouseMoved', 100, 300)
+	await waitFor(async () => !(await rising()), 'bar tucks after the pointer leaves')
+	await pressKey(page, '/', { text: '/' })
+	await waitFor(async () => (await page.eval(`document.activeElement.id`)) === 'searchInput', 'focus on the bar')
+	await waitFor(rising, 'bar raised')
+	await pressKey(page, 'Escape')
+	await waitFor(async () => !(await rising()), 'tucks after Esc')
+	// A modal blocks the key.
+	await n.hover('#search-bar-tab')
+	await n.click('#new-note-button')
+	await n.appear('#edit-note-title')
+	await page.eval(`document.activeElement.blur()`)
+	await pressKey(page, '/', { text: '/' })
+	assert.notEqual(await page.eval(`document.activeElement.id`), 'searchInput')
+})
+
+test('search bar: a drag tucks the bar and raises the trash, and both return afterwards', async () => {
+	await b.post('notate', 'NOTES', plainNote(1, 'Draggable', 'x'))
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.appear('#note-card-1')
+	await n.hover('#search-bar-tab')
+	await waitFor(() => page.eval(`document.querySelector('#search-bar-dock').classList.contains('up')`), 'bar raised')
+	await page.eval(`(() => {
+		const dt = new DataTransfer(); dt.setData('text/plain', '{}')
+		document.querySelector('#note-card-1').dispatchEvent(new DragEvent('dragstart', { dataTransfer: dt, bubbles: true }))
+	})()`)
+	await waitFor(() => page.eval(`document.querySelector('#search-bar-dock').classList.contains('dragging')`), 'bar tucks')
+	await waitFor(() => page.eval(`document.querySelector('#drag-to-trash-hover-region').classList.contains('on')`), 'trash rises')
+	await page.eval(`(() => {
+		const dt = new DataTransfer()
+		document.querySelector('#drag-to-trash-handler').dispatchEvent(new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true }))
+	})()`)
+	await waitFor(() => page.eval(`document.querySelector('#drag-to-trash-hover-region').classList.contains('over')`), 'over-trash state')
+	await page.eval(`document.querySelector('#note-card-1').dispatchEvent(new DragEvent('dragend', { bubbles: true }))`)
+	await waitFor(async () => !(await page.eval(`document.querySelector('#drag-to-trash-hover-region').classList.contains('on')`)), 'trash tucks')
+	assert.equal(await page.eval(`document.querySelector('#search-bar-dock').classList.contains('dragging')`), false)
+	assert.deepEqual(b.errors, [])
 })

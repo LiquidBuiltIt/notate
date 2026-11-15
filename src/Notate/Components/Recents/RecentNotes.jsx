@@ -161,7 +161,7 @@ export default function RecentNotes({ searchTerm }) {
 		<div 
 		 id="recent-notes" 
 	  	 className={`
-		 	w-full flex-grow flex flex-col mt-14 pb-6 trans-ease-all
+		 	w-full flex-grow flex flex-col pb-6 trans-ease-all
 			${ hoverState ? "bg-vermilion-wash" : "" }
 		 `}
 		 onDrop={handleNoteDrop}

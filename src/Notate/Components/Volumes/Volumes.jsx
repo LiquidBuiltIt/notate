@@ -3,6 +3,7 @@ import { NOTATE_DB } from '@background/background.js'
 import { NotateContext } from '@notate/Notate.jsx';
 import { NotificationContext } from '@universal/Components/NotificationMessenger.jsx';
 import NotebookCard from '@universal/Components/NotebookCard.jsx';
+import { tokensOf, volumeMatches } from '@notate/Components/Search/matching.js';
 
 // The notebooks, as a table of contents under the masthead. Volume numbers follow creation order.
 export default function Volumes() {
@@ -20,9 +21,11 @@ export default function Volumes() {
 	const inventory = database?.inventory
 	const volumes = React.useMemo(() => (inventory?.NOTEBOOKS ?? [])
 		.slice().sort((a, b) => a.id - b.id)
-		.map((notebook, i) => ({ notebook, volume: i + 1 }))
-		.filter(({ notebook }) => notebook.title.toLowerCase().includes(searchTerm.toLowerCase())),
-		[inventory, searchTerm])
+		.map((notebook, i) => ({ notebook, volume: i + 1 })),
+		[inventory])
+
+	// A search fades the volumes that do not match; it never removes them.
+	const tokens = React.useMemo(() => tokensOf(searchTerm), [searchTerm])
 
 	const handleNotebookClick = (notebook) => {
 		if (!selectedNote) {
@@ -59,13 +62,15 @@ export default function Volumes() {
 					 key={notebook.id}
 					 notebook={notebook}
 					 volume={volume}
+					 tokens={tokens}
+					 faded={tokens.length > 0 && !volumeMatches(notebook, inventory?.NOTES, tokens)}
 					 inventory={inventory?.NOTES}
 					 onNotebookClick={() => handleNotebookClick(notebook)}
 					 updatesDispatcher={handleDrop}
 					/>
 				)) : (
 					<p className={`py-4 text-[16px] italic ${theme.text.sub || ""}`}>
-						{ searchTerm ? 'No volume matches that search.' : <>No volumes yet. Choose <span className="not-italic smallcaps text-vermilion-ink">+ New</span>, then Notebook.</> }
+						No volumes yet. Type <span className="not-italic smallcaps text-vermilion-ink">/notebook</span> in the search bar.
 					</p>
 				)}
 			</div>

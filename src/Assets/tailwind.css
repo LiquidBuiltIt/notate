@@ -114,6 +114,96 @@
 	.alice-regular {
 		font-family: 'alice-regular', sans-serif;
 	}
+
+	/* The docked search bar and its drop-to-trash twin. Motion is copied from
+	   mockups/search-bar.html: a slip of paper fed up from below the page edge. */
+	.dock-hot {
+		position: fixed; left: 50%; bottom: 0; z-index: 49;
+		width: min(16rem, 90vw); height: 3rem; transform: translateX(-50%);
+	}
+
+	.dock {
+		position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; margin: 0 auto;
+		width: min(46rem, calc(100vw - 5rem)); padding-bottom: 1.25rem;
+		transform: translateY(100%);
+		transition: transform .2s cubic-bezier(.5, 0, .75, 0);
+	}
+	.dock.up {
+		transform: none;
+		transition: transform .36s cubic-bezier(.22, 1.3, .36, 1);
+	}
+	/* A note or volume is in hand: the bar tucks fully, past its tab, and the trash takes its place. */
+	.dock.dragging, .dock.up.dragging {
+		transform: translateY(calc(100% + 3rem)); pointer-events: none;
+	}
+
+	.dock-slip {
+		position: relative; padding: 14px 22px 16px;
+		border: 1px solid theme('colors.ink.DEFAULT');
+		transform-origin: 50% 100%; rotate: -.5deg; box-shadow: 0 0 0 0 theme('colors.ink.DEFAULT');
+		transition: rotate .2s ease-in, box-shadow .06s;
+	}
+	.dock.up .dock-slip {
+		rotate: 0deg; box-shadow: 4px 4px 0 0 theme('colors.ink.DEFAULT');
+		transition: rotate .36s cubic-bezier(.22, 1.3, .36, 1), box-shadow .12s ease-out .26s;
+	}
+
+	/* The index tab: the lip that stays visible while the bar is tucked. */
+	.dock-tab {
+		position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%);
+		padding: 9px 18px 8px; white-space: nowrap; cursor: pointer;
+		border: 1px solid theme('colors.ink.DEFAULT'); border-bottom: 0;
+		opacity: 1; transition: opacity .2s ease-out .15s;
+	}
+	.dock.up .dock-tab { opacity: 0; pointer-events: none; transition: opacity .08s; }
+
+	/* Ink in: the label, status and placeholder appear just after the slip lands. */
+	.dock-ink, .dock-input::placeholder { opacity: 0; transition: opacity .08s; }
+	.dock.up .dock-ink, .dock.up .dock-input::placeholder { opacity: 1; transition: opacity .22s ease-out .14s; }
+
+	.dock-draw {
+		position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
+		background: theme('colors.vermilion.DEFAULT'); transform: scaleX(0); transform-origin: left;
+		transition: transform .1s ease-in;
+	}
+	.dock.up .dock-draw { transform: scaleX(1); transition: transform .2s ease-out .24s; }
+	.dock-field:focus-within .dock-draw { height: 3px; }
+
+	.trash-zone {
+		position: fixed; z-index: 55; left: 50%; bottom: 0; transform: translateX(-50%);
+		width: min(34rem, 92vw); height: 14rem; pointer-events: none;
+		visibility: hidden; transition: visibility 0s .5s;
+	}
+	.trash-zone.on { visibility: visible; transition: none; }
+
+	.trash-box {
+		position: absolute; left: 0; right: 0; bottom: 2rem; height: 6rem; pointer-events: auto;
+		transform: translateY(200%); transition: transform .2s cubic-bezier(.5, 0, .75, 0);
+	}
+	.trash-zone.on .trash-box {
+		transform: none; transition: transform .36s cubic-bezier(.22, 1.3, .36, 1) .08s;
+	}
+
+	.trash-slip {
+		position: relative; height: 100%; rotate: -.5deg; box-shadow: 0 0 0 0 theme('colors.ink.DEFAULT');
+		transition: rotate .2s ease-in, box-shadow .06s, background-color .2s, color .2s;
+	}
+	.trash-zone.on .trash-slip {
+		rotate: 0deg; box-shadow: 4px 4px 0 0 theme('colors.ink.DEFAULT');
+		transition: rotate .36s cubic-bezier(.22, 1.3, .36, 1) .08s, box-shadow .12s ease-out .34s, background-color .2s, color .2s;
+	}
+	.trash-zone.over .trash-slip { box-shadow: none; }
+
+	.trash-draw {
+		position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+		background: theme('colors.vermilion.DEFAULT'); transform: scaleX(0); transform-origin: left;
+		transition: transform .1s ease-in;
+	}
+	.trash-zone.on .trash-draw { transform: scaleX(1); transition: transform .2s ease-out .34s; }
+
+	@media (prefers-reduced-motion: reduce) {
+		.dock, .dock *, .dock-hot, .trash-zone, .trash-zone * { transition: none !important; }
+	}
 }
 
 

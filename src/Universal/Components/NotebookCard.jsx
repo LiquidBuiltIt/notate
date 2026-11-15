@@ -1,5 +1,6 @@
 import React from 'react';
 import noteSwatch from '@universal/Utils/noteSwatch.js';
+import Marked from '@universal/Components/Marked.jsx';
 
 const ROMAN = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
 // Set while a notebook (not a note) is dragged, so rows can refuse it before the drop.
@@ -10,8 +11,10 @@ const toRoman = (n) => ROMAN.reduce((out, [v, s]) => { while (n >= v) { out += s
    volume:    1-based position, shown as a roman numeral
    inventory: the stored notes, used for the count and the colour ticks
    pending:   notes dropped here but not saved yet (in-page sheet)
+   faded:     a search is active and this volume does not match
+   tokens:    the search words to mark
    Row and drag payload ids are used by the browser tests; keep them. */
-export default function NotebookCard({ notebook, volume = 1, onNotebookClick, updatesDispatcher, inventory, pending = 0 }) {
+export default function NotebookCard({ notebook, volume = 1, onNotebookClick, updatesDispatcher, inventory, pending = 0, faded = false, tokens = [] }) {
 	const [ over, setOver ] = React.useState(false)
 
 	const notes = React.useMemo(() => {
@@ -69,7 +72,8 @@ export default function NotebookCard({ notebook, volume = 1, onNotebookClick, up
 	return (
 		<div
 		 id="notebook-card-container"
-		 className={`group font-serif ${ interactive ? "cursor-pointer" : "" }`}
+		 className={`group font-serif transition-opacity duration-300 ${ interactive ? "cursor-pointer" : "" } ${ faded ? "opacity-30" : "" }`}
+		 data-match={tokens.length > 0 && !faded ? "true" : undefined}
 		 onDragStart={dragHandler}
 		 draggable={interactive}
 		>
@@ -93,7 +97,7 @@ export default function NotebookCard({ notebook, volume = 1, onNotebookClick, up
 
 				<div className="min-w-0 flex-grow">
 					<div className="flex items-baseline gap-2">
-						<h3 className="min-w-0 truncate font-display italic font-semibold text-[22px] leading-tight text-ink decoration-vermilion decoration-2 underline-offset-4 group-hover:underline">{notebook.title}</h3>
+						<h3 className="min-w-0 truncate font-display italic font-semibold text-[22px] leading-tight text-ink decoration-vermilion decoration-2 underline-offset-4 group-hover:underline"><Marked text={notebook.title} tokens={tokens}/></h3>
 						<span className="flex-grow min-w-[1rem] translate-y-[-3px] border-b border-dotted border-ink-soft" aria-hidden="true"></span>
 						<span className="oldstyle shrink-0 text-[15px] leading-none text-ink whitespace-nowrap">
 							{count} {count === 1 ? 'note' : 'notes'}
@@ -102,7 +106,7 @@ export default function NotebookCard({ notebook, volume = 1, onNotebookClick, up
 					</div>
 
 					{notebook.description && (
-						<p className="mt-1 text-[15px] italic leading-snug text-ink-soft line-clamp-2 break-words">{notebook.description}</p>
+						<p className="mt-1 text-[15px] italic leading-snug text-ink-soft line-clamp-2 break-words"><Marked text={notebook.description} tokens={tokens}/></p>
 					)}
 
 					<div className="mt-2 flex items-center justify-between gap-3 h-[14px]">

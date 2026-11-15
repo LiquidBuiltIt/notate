@@ -28,14 +28,13 @@ export default function NotebookModal() {
 
 	const disableSelectFeatures = (state) => {
 		const toBeDisabled = {
-			newItemButton: document.getElementById("new-item-btn-container"),
 			searchBar: document.getElementById("search-bar-container"),
 			dragToTrash: document.getElementById("drag-to-trash-event-listener")
 		} 
 
 		Object.values(toBeDisabled).forEach((feature) => { 
-			if (state) feature.classList.add('pointer-events-none')
-			else feature.classList.remove('pointer-events-none')})
+			if (state) feature?.classList.add('pointer-events-none')
+			else feature?.classList.remove('pointer-events-none')})
 
 		
 	}

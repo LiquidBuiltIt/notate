@@ -8,7 +8,6 @@ import Masthead from './Masthead.jsx';
 import Volumes from './Components/Volumes/Volumes.jsx';
 import SearchBar from './Components/Search/SearchBar.jsx';
 import RecentNotes from './Components/Recents/RecentNotes.jsx';
-import NewItemButton from './Components/Recents/NewItemBtn.jsx';
 import NotebookModal from './Components/Modals/NotebookModal/NotebookModal.jsx';
 import NoteModal from './Components/Modals/NoteModal/NoteModal.jsx';
 import NotificationMsg, { NotificationContext } from '@universal/Components/NotificationMessenger.jsx';
@@ -57,7 +56,7 @@ export default function Notate(){
 
 	const [selectedNote, setSelectedNote] = NOTATE_CONTEXT.NOTE_CONTEXT 
 	const [selectedNotebook, setSelectedNotebook] = NOTATE_CONTEXT.NOTEBOOK_CONTEXT 
-	const [searchTerm, setSearchTerm] = NOTATE_CONTEXT.SEARCH_TERM_CONTEXT 
+	const [searchTerm] = NOTATE_CONTEXT.SEARCH_TERM_CONTEXT 
 	const [ notatedb, setNotate ] = NOTATE_CONTEXT.NOTATE_DB_CONTEXT
 	const [ userconfigurationdb, setUserConfiguration ] = NOTATE_CONTEXT.USER_CONFIGURATION_DB_CONTEXT
 	const [ scrollState, setScrollState ] = NOTATE_CONTEXT.SCROLL_STATE_CONTEXT 
@@ -74,9 +73,6 @@ export default function Notate(){
 	const notateInitialized = React.useRef(false)
 	const userconfigurationIntialized = React.useRef(false)
 	
-	  /* Internal Component Functions */
-	  const handleSearch = (term) => { setSearchTerm(term) };
-
 
 	/* useEffect Hooks */
   	React.useEffect(() => {
@@ -194,13 +190,6 @@ export default function Notate(){
 
 						{/* wide screens: the page is locked and only the notes scroll, in their own box */}
 						<div id="notate-content" className="xl:col-span-7 pt-14 xl:pt-24 min-w-0 xl:flex xl:flex-col xl:min-h-0">
-						  	<div id="search-section" 
-						  	className="flex items-end gap-6 animate-rise"
-						  	style={{ animationDelay: '480ms' }}>
-								<SearchBar onSearch={handleSearch} />
-								<NewItemButton/>
-						  	</div>
-
 							<div id="notate-scroll" className="xl:flex-1 xl:min-h-0 xl:overflow-y-auto xl:-mr-16 xl:pr-16 xl:pb-28">
 								<RecentNotes searchTerm={searchTerm} />
 							</div>
@@ -210,6 +199,7 @@ export default function Notate(){
 						{ confMsgState && <ConfirmationMsg/> }
 					  	{ selectedNotebook && !selectedNote && <NotebookModal/> }
 
+					  	<SearchBar/>
 					  	<DragToTrashWidget/>
 						<NotificationMsg/>
 
