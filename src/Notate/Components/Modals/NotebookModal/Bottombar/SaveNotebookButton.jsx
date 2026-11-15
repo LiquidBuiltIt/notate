@@ -30,12 +30,10 @@ export default function SaveNotebookButton() {
 			notebook.description = description
 			notebook.collection = collection
 			setNotification(notification.showInfo('Notebook Saved'))
-			await makeRequest({ 
-				type: 'POST_DATABASE', 
-				data: notebook, 
-				store: 'NOTEBOOKS',
-				database: NOTATE_DB
-			})
+			// An existing notebook patches only what the editor owns, so a frame position saved from the board meanwhile is kept.
+			await makeRequest(notebook.id
+				? { type: 'PATCH_DATABASE', id: notebook.id, data: { title, description, collection: { $add: collection, $remove: initialNotebookState.current.collection.filter(id => !collection.includes(id)) } }, store: 'NOTEBOOKS', database: NOTATE_DB }
+				: { type: 'POST_DATABASE', data: notebook, store: 'NOTEBOOKS', database: NOTATE_DB })
 			await EXIT_MODAL()
 		} catch (e) {
 			console.error(`Error saving notebook: ${e}`)

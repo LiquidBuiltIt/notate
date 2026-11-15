@@ -15,6 +15,8 @@ import NotificationHandler from '@universal/Handlers/NotificationHandler.js';
 import ConfirmationMsg, { ConfirmationMsgContext }  from './Components/Modals/ConfirmationModal/ConfirmationMsg.jsx';
 import DragToTrashWidget from './Components/Widgets/DragToTrashWidget.jsx';
 import SettingsWidget from './Components/Widgets/SettingsWidget.jsx'
+import Board from './Components/Board/Board.jsx'
+import { isBoardOn } from './Components/Board/boardMath.js'
 
 import DevActionButton from './dev-action-button.jsx'
 
@@ -49,6 +51,7 @@ export default function Notate(){
 		USER_CONFIGURATION_DB_CONTEXT: React.useState(null),
 		SCROLL_STATE_CONTEXT: React.useState(true),
 		SETTINGS_OPEN_CONTEXT: React.useState(false),
+		BOARD_API_CONTEXT: React.useRef(null),
 		CONF_MSG_CONTEXT: React.useState(false),
 		MODAL_STATE_CONTEXT: React.useState(false),
 		REQUEST_CONTEXT: useRequest(),
@@ -63,6 +66,10 @@ export default function Notate(){
 	const [ scrollState, setScrollState ] = NOTATE_CONTEXT.SCROLL_STATE_CONTEXT 
 	const [ confMsgState, setConfMsgState ] = NOTATE_CONTEXT.CONF_MSG_CONTEXT
 	const [ recentsState, setRecentsState ] = NOTATE_CONTEXT.RECENT_NOTES_STATE_CONTEXT
+
+	// Nothing is drawn until the saved settings are in, so the layout never flashes the wrong one.
+	const configReady = !!userconfigurationdb?.inventory
+	const boardOn = isBoardOn(userconfigurationdb)
 
 	const theme = NOTATE_CONTEXT.THEME_CONTEXT 
 	const [ response, makeRequest, processing ] = NOTATE_CONTEXT.REQUEST_CONTEXT 
@@ -148,7 +155,8 @@ export default function Notate(){
 							: response.content.type, 
 						database: response.content.database,
 						data: response.content?.data,
-						store: response.content?.store
+						store: response.content?.store,
+						id: response.content?.id
 					})
       				}
     			}
@@ -181,6 +189,7 @@ export default function Notate(){
 						<NotificationContext.Provider value={[ notification, setNotification ]}>
 					  	<ConfirmationMsgContext.Provider value={[confMsgState, setConfMsgState]}>
 
+						{ configReady && !boardOn && <>
 						<Masthead 
 						 theme={theme} 
 						 noteCount={notatedb?.inventory?.NOTES?.length ?? 0} 
@@ -195,13 +204,15 @@ export default function Notate(){
 								<RecentNotes searchTerm={searchTerm} />
 							</div>
 						</div>
+						</> }
+						{ configReady && boardOn && <Board/> }
 
 						{selectedNote && !selectedNotebook && <NoteModal/>}
 						{ confMsgState && <ConfirmationMsg/> }
 					  	{ selectedNotebook && !selectedNote && <NotebookModal/> }
 
 					  	<SearchBar/>
-					  	<DragToTrashWidget/>
+					  	<DragToTrashWidget key={`${configReady}-${boardOn}`}/>
 						<NotificationMsg/>
 
 					

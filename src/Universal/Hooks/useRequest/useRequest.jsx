@@ -45,7 +45,8 @@ export default function useRequest() {
 						database: database,
 						type: request.type,
 						data: request?.data,
-						store: request?.store
+						store: request?.store,
+						id: request?.id
 					} 
 				})
 			}
@@ -71,6 +72,7 @@ export default function useRequest() {
 			if (type === POST || DELETE && request?.data && request?.store) {
 				payload.data = request.data
 				payload.store = request.store
+				if (request.id !== undefined) payload.id = request.id
 			}
 	
 			const response = await messageBackgroundScript(payload)
@@ -85,7 +87,7 @@ export default function useRequest() {
 	
 	const messageBackgroundScript = React.useMemo(() => async (payload) => {
 		return new Promise( ( resolve, reject )=>{
-			const { type, database, data, store } = payload
+			const { type, database, data, store, id } = payload
 			
 			const port = browser.runtime.connect({ name: 'DATABASE_CONNECTION' })
 			const message = {
@@ -96,6 +98,7 @@ export default function useRequest() {
 			if (data && store) {
 				message.content.data = data
 				message.content.store = store
+				if (id !== undefined) message.content.id = id
 			}
 	
 			port.postMessage(message)

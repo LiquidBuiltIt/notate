@@ -113,6 +113,13 @@ export default function DragToTrashHandler() {
 		return () => window.removeEventListener('dragover', handleOver)
 	},[hoverState])
 
+	// The board drags with the pointer, not the browser's drag and drop, so it reports where the pointer is.
+	React.useEffect(()=>{
+		const handleBoard = (e) => { setSelfState(!!e.detail?.near); setDeleteHoverState(!!e.detail?.over) }
+		window.addEventListener('notate:trash-over', handleBoard)
+		return () => window.removeEventListener('notate:trash-over', handleBoard)
+	},[])
+
 	return (
 		<div id="drag-to-trash-event-listener"
 			className="fixed flex flex-col left-0 w-full items-center">

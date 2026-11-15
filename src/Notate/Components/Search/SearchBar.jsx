@@ -7,6 +7,7 @@ import NotebookHandler from '@universal/Handlers/NotebookHandler.js'
 import { NoteColors } from '@notate/Components/Modals/NoteModal/Components/NoteColorProvider.js'
 import { searchEngineProviders } from './searchEngineProviders.js'
 import { tokensOf, noteMatches, volumeMatches, looseNotes } from './matching.js'
+import { isBoardOn } from '@notate/Components/Board/boardMath.js'
 
 const DEFAULT_ENGINE = 'perplexityai'
 const COMMANDS = [
@@ -39,7 +40,7 @@ const Key = ({ k, children, optional }) => (
 export default function SearchBar() {
 	const {
 		SEARCH_TERM_CONTEXT, NOTATE_DB_CONTEXT, USER_CONFIGURATION_DB_CONTEXT, REQUEST_CONTEXT,
-		NOTE_CONTEXT, NOTEBOOK_CONTEXT, DRAG_TO_TRASH_STATE_CONTEXT, SETTINGS_OPEN_CONTEXT
+		NOTE_CONTEXT, NOTEBOOK_CONTEXT, DRAG_TO_TRASH_STATE_CONTEXT, SETTINGS_OPEN_CONTEXT, BOARD_API_CONTEXT
 	} = React.useContext(NotateContext)
 	const [ confMsgState ] = React.useContext(ConfirmationMsgContext)
 	const [ , setSearchTerm ] = SEARCH_TERM_CONTEXT
@@ -76,10 +77,13 @@ export default function SearchBar() {
 	const tokens = React.useMemo(() => slash ? [] : tokensOf(value), [value, slash])
 	const notes = database?.inventory?.NOTES ?? []
 	const notebooks = database?.inventory?.NOTEBOOKS ?? []
-	const noteHits = React.useMemo(
-		() => looseNotes(notes, notebooks).filter(note => noteMatches(note, tokens)).length,
-		[notes, notebooks, tokens]
+	// The board shows every note on the sheet; the grid shows only the loose ones.
+	const board = isBoardOn(configuration)
+	const hitIds = React.useMemo(
+		() => (board ? notes : looseNotes(notes, notebooks)).filter(note => noteMatches(note, tokens)).map(note => note.id),
+		[notes, notebooks, tokens, board]
 	)
+	const noteHits = hitIds.length
 	const volumeHits = React.useMemo(
 		() => notebooks.filter(notebook => volumeMatches(notebook, notes, tokens)).length,
 		[notes, notebooks, tokens]
@@ -229,7 +233,7 @@ export default function SearchBar() {
 			setSelected((Math.min(selected, rows.length - 1) + (key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length)
 		} else if (key === 'ArrowDown' && !slash) {
 			event.preventDefault()
-			const card = document.querySelector('#recent-notes-grid [id^="note-card-"][tabindex="0"]')
+			const card = document.querySelector('#recent-notes-grid [id^="note-card-"][tabindex="0"], #board-world .bd-note[tabindex="0"]')
 			if (card) card.focus()
 			else setMenuOpen(true)
 		}
@@ -283,7 +287,10 @@ export default function SearchBar() {
 		else if (menuOpen) status = 'Choose where Enter searches'
 		else if (!tokens.length) status = `${plural(notes.length, 'note')} · ${plural(notebooks.length, 'volume')}`
 		else if (nothingFound) { status = `No notes match — Enter searches ${engine.name}`; warn = true }
-		else status = `${plural(noteHits, 'note')} · ${plural(volumeHits, 'volume')} · Enter searches ${engine.name}`
+		else {
+			const away = board ? BOARD_API_CONTEXT?.current?.countOutOfView(hitIds) ?? 0 : 0
+			status = `${plural(noteHits, 'note')} · ${plural(volumeHits, 'volume')}${away ? ` · ${away} out of view` : ''} · Enter searches ${engine.name}`
+		}
 
 		if (tokens.length) keys = <>{noteHits > 0 && <Key k={"↓"} optional>matches</Key>}<Key k="Esc">clear</Key></>
 		else keys = focusWithin ? <><Key k="/">commands</Key><Key k="Alt E" optional>engine</Key><Key k="Esc">close</Key></> : <Key k="/">focus</Key>

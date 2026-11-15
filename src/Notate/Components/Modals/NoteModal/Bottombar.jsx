@@ -41,12 +41,10 @@ export default function NoteModalBottombar({onExit}) {
   	      note.content = sanitizeHtml(content);	
 
   	      await onExit();
-  	      await makeRequest({ 
-		      type: 'POST_DATABASE', 
-		      data: note, 
-		      store: 'NOTES', 
-		      database: NOTATE_DB
-	      })
+	      // An existing note patches only what the editor owns, so a position saved from the board meanwhile is kept.
+  	      await makeRequest(note.id
+		      ? { type: 'PATCH_DATABASE', id: note.id, data: { title: note.title, content: note.content, ...(note.color && { color: note.color }) }, store: 'NOTES', database: NOTATE_DB }
+		      : { type: 'POST_DATABASE', data: note, store: 'NOTES', database: NOTATE_DB })
 
   	      setNotification(notification.showInfo('Note Saved'))
 

@@ -175,18 +175,19 @@ export default class DatabaseAdapter {
 
     // Reads the store's record, lets `update` change it, and writes it back inside one readwrite
     // transaction, so no other writer can slip in between. `update` returns the record to store, or nothing to skip the write.
-    async updateData(target_store, update) {
+    // Without `id` it reads the store's first record (the configuration); with `id` it reads that record (a note or notebook).
+    async updateData(target_store, update, id) {
         const db = await this.connection
 
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([target_store], 'readwrite')
             const store = transaction.objectStore(target_store)
 
-            const read = store.getAll()
+            const read = id === undefined ? store.getAll() : store.get(id)
             let wrote = false
 
             read.onsuccess = () => {
-                const next = update(read.result[0])
+                const next = update(id === undefined ? read.result[0] : read.result)
                 if (next) { store.put(next); wrote = true }
             }
 

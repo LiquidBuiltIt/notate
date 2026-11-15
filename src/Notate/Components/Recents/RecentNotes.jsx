@@ -95,15 +95,10 @@ export default function RecentNotes({ searchTerm }) {
 					const id = parseInt(noteDragState)
 					const [ target ] = database.inventory.NOTEBOOKS.filter( notebook => notebook.id === id )
 
-					target.collection = target.collection.filter( id => {
-						if (id !== note.id) return id
-					})
-
-					
-
 					await makeRequest({
-						type: 'POST_DATABASE',
-						data: target,
+						type: 'PATCH_DATABASE',
+						id: target.id,
+						data: { collection: { $remove: [note.id] } },
 						store: 'NOTEBOOKS',
 						database: NOTATE_DB
 					})

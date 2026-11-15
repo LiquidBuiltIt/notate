@@ -88,7 +88,7 @@ export default function ConfigurationSubModule({name, module, parent}) {
 					{moduleArray && moduleArray.map( (sub,key) => {
 						if (sub.length == 2) {
 							const enabled = sub[1].enabled
-							const configTitle = convertCamelToCapitalized(sub[0])
+							const configTitle = sub[1].title ?? convertCamelToCapitalized(sub[0])
 							const configOptions = sub[1]
 							const optionType = buildOptionSelector(sub)
 

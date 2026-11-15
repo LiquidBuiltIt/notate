@@ -5,7 +5,7 @@ import Marked from '@universal/Components/Marked.jsx';
 const ROMAN = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
 // Set while a notebook (not a note) is dragged, so rows can refuse it before the drop.
 const NOTEBOOK_DRAG_TYPE = 'application/x-notate-notebook'
-const toRoman = (n) => ROMAN.reduce((out, [v, s]) => { while (n >= v) { out += s; n -= v } return out }, '')
+export const toRoman = (n) => ROMAN.reduce((out, [v, s]) => { while (n >= v) { out += s; n -= v } return out }, '')
 
 /* One volume in the table of contents: a ruled row.
    volume:    1-based position, shown as a roman numeral

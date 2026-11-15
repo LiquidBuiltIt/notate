@@ -163,7 +163,9 @@ export default class CoreService {
 						store = message?.content?.store
 
 						if ( data && store && typeof db.updateData === 'function' ) {
-							await db.updateData(store, record => record && applyPatch(record, data))
+							// { $each: [{ id, data }] } patches several records, each in its own transaction
+							const patches = Array.isArray(data.$each) ? data.$each : [{ id: message?.content?.id, data }]
+							for (const patch of patches) await db.updateData(store, record => record && applyPatch(record, patch.data), patch.id)
 							await this.initializeDatabase(target)
 
 							this.sendMessage({

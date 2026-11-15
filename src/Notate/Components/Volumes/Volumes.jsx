@@ -38,8 +38,9 @@ export default function Volumes() {
 		if (notebook.collection.includes(note.id)) return
 		try {
 			await makeRequest({
-				type: 'POST_DATABASE',
-				data: { ...notebook, collection: [...notebook.collection, note.id] },
+				type: 'PATCH_DATABASE',
+				id: notebook.id,
+				data: { collection: { $add: [note.id] } },
 				store: 'NOTEBOOKS',
 				database: NOTATE_DB
 			})

@@ -21,8 +21,9 @@ export default function Bottombar() {
 		if (queue.length > 0) {
 			queue.forEach( async tx => {
 				await makeRequest({
-					type: 'POST_DATABASE',
-					data: tx,
+					type: 'PATCH_DATABASE',
+					id: tx.id,
+					data: { collection: { $add: tx.collection } },
 					store: 'NOTEBOOKS',
 					database: NOTATE_DB 
 				})

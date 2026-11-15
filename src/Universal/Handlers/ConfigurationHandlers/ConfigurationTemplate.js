@@ -26,6 +26,13 @@ export const ConfigurationTemplate = {
 				description:"Sets wallpaper for Notate.",
 				options: ["darkWood", "corkBoard", "marbleChessBoard", "notePaper"],
 				enabled: true
+			},
+			boardLayout: {
+				title: "Board layout (preview)",
+				value: "false",
+				description: "Board layout (preview). Replaces the notes grid and the volumes list with a board of notes you can place anywhere.",
+				options: ["true", "false"],
+				enabled: true
 			}
 		},
 		noteModal: {
