@@ -98,6 +98,7 @@ test('the button sits next to Settings in the grid layout and in the board layou
 	await n.appear('#board')
 	await n.appear('#whats-new-widget')
 	assert.ok(await board.eval(`!!document.querySelector('#board-settings-slot #whats-new-widget') && document.querySelector('#whats-new-widget').nextElementSibling === document.querySelector('#settings-widget')`), 'board: in the header slot, beside Settings')
+	assert.ok(await board.eval(`Math.abs(document.querySelector('#whats-new-widget').getBoundingClientRect().top - document.querySelector('#settings-widget').getBoundingClientRect().top) < 4`), 'board: What\'s new and Settings sit in one row')
 	await n.click('#whats-new-widget')
 	await n.appear('#whats-new-modal')
 	await n.click('#whats-new-close')
