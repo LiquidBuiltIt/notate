@@ -26,6 +26,8 @@ All notable changes to Notate are documented in this file.
 
 ## Unreleased
 
+- **No more related notes bar.** The bar at the top of web pages is gone, so it no longer covers site menus. Find your notes from the new tab.
+
 ## 2.0.0 — 2026-11-16
 
 *A new printed-paper look, a search bar with commands, and a board layout to try.*

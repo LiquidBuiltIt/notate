@@ -4,7 +4,6 @@ import useRequest from '@universal/Hooks/useRequest/useRequest.jsx'
 
 import DevTools from '@dev/devutils.js'
 
-import RelatedNotesViewer from './Components/RelatedNotesViewer/RelatedNotesViewer.jsx'
 import Modal from './Components/Modals/Modal.jsx'
 import NoteEditor, {NoteEditorContext} from './Components/NoteEditor/NoteEditor.jsx'
 import ContextMenuHoverRegion from './Components/HoverRegions/ContextMenuHoverRegion.jsx';
@@ -150,8 +149,6 @@ const ContentScript = () => {
 		className="relative font-sans text-black z-content-script">
 			<WebContentContext.Provider value={CONTENT_SCRIPT_CONTEXT}>
 				<NotificationContext.Provider value={[ notification, setNotification ]}>
-
-					<RelatedNotesViewer/>
 
 					{ notification?.active && <NotificationMsg/> }
 

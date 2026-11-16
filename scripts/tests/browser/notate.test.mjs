@@ -336,42 +336,6 @@ test('scripted clicks cannot save a note from the page editor', async () => {
 	await waitFor(async () => (await notes()).length === 1, 'real click saves')
 })
 
-test('scripted clicks cannot reveal the related notes, pick a view, or open a note', async () => {
-	const { c } = await openFixture(b, fx)
-	await openContextMenu(c)
-	await c.click('#new-note-btn')
-	await c.fill('#edit-title', 'Related')
-	await c.fill('#input-text-display', 'body')
-	await c.click('#save-note-btn')
-	await waitFor(async () => (await notes()).length === 1, 'note saved')
-	// A fresh tab: the related notes are loaded from the saved note.
-	const { c: c2 } = await openFixture(b, fx)
-	await c2.appear('#reveal-related-notes-btn')
-
-	await c2.scriptedClick('#reveal-related-notes-btn')
-	await sleep(500)
-	assert.equal(await c2.exists('#related-notes-navigation'), false, 'scripted click did not reveal')
-	await c2.hover('#related-notes-hover-region')
-	await c2.click('#reveal-related-notes-btn')
-	await c2.appear('#related-notes-navigation')
-
-	await c2.scriptedClick('#cycle-forwards-btn')
-	await sleep(500)
-	assert.match(await c2.text(), /Related By URL View/, 'scripted click did not change the view')
-	await c2.click('#cycle-forwards-btn')
-	await waitFor(async () => (await c2.text()).includes("Suggestion View"), 'real click changes the view')
-	await c2.click('#cycle-backwards-btn')
-	await waitFor(async () => (await c2.text()).includes('Related By URL View'), 'back to URL view')
-
-	await c2.appear('#related-note-title')
-	await c2.scriptedClick('[id^="related-note-heading-"]')
-	await sleep(800)
-	assert.equal(await c2.exists('#edit-title'), false, 'scripted click did not open the note')
-	await c2.hover('#related-note-title')
-	await c2.click('#related-note-title')
-	await c2.appear('#edit-title')
-})
-
 // Notes whose content is attacker-shaped HTML must show as inert text.
 async function plantNote(content, extra = {}) {
 	await b.serviceWorker()
@@ -1419,31 +1383,6 @@ test('board: a save the background cannot do is reported, and later moves still 
 	const two = await n.center('#board-note-2')
 	await drag(page, two, { x: two.x, y: two.y + 220 })
 	await waitFor(async () => (await savedBoard('NOTES', 2)).y > 300, 'a later move saves')
-	assert.deepEqual(b.errors, [])
-})
-
-test('board: the page editor, opened before the note was placed, keeps the place when it saves', async () => {
-	await waitFor(config, 'seeded config')
-	const { c } = await openFixture(b, fx)
-	await openContextMenu(c)
-	await c.click('#new-note-btn')
-	await c.fill('#edit-title', 'Page note')
-	await c.fill('#input-text-display', 'written on a web page')
-	await c.click('#save-note-btn')
-	const [saved] = await waitFor(async () => { const x = await notes(); return x.length && x }, 'note in IndexedDB')
-	// A second page opens the note in its editor, then the board places the note.
-	const { c: c2 } = await openFixture(b, fx)
-	await c2.hover('#related-notes-hover-region')
-	await c2.click('#reveal-related-notes-btn')
-	await c2.appear('#related-note-title')
-	await c2.hover('#related-note-title')
-	await c2.click('#related-note-title')
-	await c2.appear('#edit-title')
-	await patchRecord('NOTES', saved.id, { board: { x: 300, y: 200, r: 0, z: 5 } })
-	await c2.fill('#input-text-display', ' and more')
-	await c2.click('#save-note-btn')
-	await waitFor(async () => /and more/.test((await notes())[0].content), 'edit saved')
-	assert.deepEqual((await notes())[0].board, { x: 300, y: 200, r: 0, z: 5 }, 'the position survived the editor save')
 	assert.deepEqual(b.errors, [])
 })
 
