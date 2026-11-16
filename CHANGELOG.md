@@ -32,7 +32,8 @@ All notable changes to Notate are documented in this file.
 - **Board layout (preview).** Turn it on in Settings to put notes on a free board. Drag to move, drag the paper to pan, and Ctrl + wheel to zoom. Drop a note on a notebook frame to file it. After you save a new note, click where it should go, or press Esc to drop it in a free spot. It is off by default.
 - **The Notate logo is back.** The hand-drawn logo returns on the in-page button and the new tab.
 - **What's new button.** A new button next to Settings shows what changed in each version. A red dot tells you when an update has news.
-- **Movable Notate button.** Drag the button on web pages to any corner. Notate remembers the corner.
+- **Movable Notate button.** Drag the button on web pages to any corner, or focus it and press the arrow keys. Notate remembers the corner. The hidden button no longer blocks clicks on the page under it.
+- **New wallpapers.** Cork, wood, marble and ruled paper are real textures again, light enough that your notes stay easy to read.
 - **Hidden sites.** Sites you hide with "For This Site" are saved. Settings shows them and lets you turn the menu back on.
 - **Safer settings.** Saving Settings or hiding a site no longer undoes other changes you made at the same time.
 - **Clearer notebook delete.** Deleting a notebook shows one warning that says its notes are kept.

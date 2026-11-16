@@ -1,6 +1,6 @@
 {
   "notePaper": {
-    "background": "paper-grain",
+    "background": "note-paper-bg",
     "text": {
       "h1": "text-ink",
       "h2": "text-ink",
@@ -24,7 +24,7 @@
     "accent": {}
   },
   "corkBoard": {
-    "background": "paper-grain bg-[#E6CF9F]",
+    "background": "cork-board-bg",
     "text": {
       "h1": "text-ink",
       "h2": "text-ink",
@@ -36,7 +36,7 @@
     "accent": {}
   },
   "darkWood": {
-    "background": "paper-grain bg-[#B89A6C]",
+    "background": "dark-wood-bg",
     "text": {
       "h1": "text-ink",
       "h2": "text-ink",
@@ -48,7 +48,7 @@
     "accent": {}
   },
   "marbleChessBoard": {
-    "background": "paper-grain bg-[#E3E8E7]",
+    "background": "marble-chess-board-bg",
     "text": {
       "h1": "text-ink",
       "h2": "text-ink",
