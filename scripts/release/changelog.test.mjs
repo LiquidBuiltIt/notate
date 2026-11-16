@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseSections, headerDate, extractBullets, extractBlurb, releasedChangelogJson, hasEntriesFor, cutUnreleased } from './changelog.mjs';
+import { parseSections, headerDate, extractBullets, extractBlurb, releasedChangelogJson, hasEntriesFor, cutUnreleased, parseQuery, resolveVersion, summarize, compactSection, versionList, sectionsJson, parseArgs } from './changelog.mjs';
 import { compareVersions, sliceSections, hasUnseenNotes, renderBullet, seenVersionOnInstall } from '../../src/Universal/Changelog/changelog.js';
 
 const SAMPLE = `<!-- contract -->
@@ -118,4 +118,66 @@ test('the real CHANGELOG.md has notes for the manifest version and a draft Unrel
 	const { version } = JSON.parse(readFileSync(new URL('../../src/Static/manifest.chrome.json', import.meta.url), 'utf8'));
 	assert.equal(hasEntriesFor(text, version), true);
 	assert.equal(parseSections(text)[0].kind, 'unreleased');
+});
+
+const versionsOf = (text) => parseSections(text).filter((s) => s.kind === 'version');
+
+test('parseQuery pads partial versions and rejects junk', () => {
+	assert.deepEqual(parseQuery('1.2'), [1, 2, 0]);
+	assert.deepEqual(parseQuery('v3'), [3, 0, 0]);
+	assert.deepEqual(parseQuery('1.2.3'), [1, 2, 3]);
+	assert.equal(parseQuery('latest'), null);
+	assert.equal(parseQuery('1.2.3.4'), null);
+});
+
+test('resolveVersion: exact, partial to the newest match, closest with a note', () => {
+	const versions = versionsOf('## 1.10.0 — d\n\n## 1.2.1 — d\n\n## 1.2.0 — d\n');   // newest first
+	assert.equal(resolveVersion(versions, '1.2.1').note, '');
+	assert.equal(resolveVersion(versions, '1.2.0').section.version, '1.2.0');
+	assert.deepEqual([resolveVersion(versions, '1.2').section.version, resolveVersion(versions, '1.2').note], ['1.2.1', '']);
+	assert.equal(resolveVersion(versions, '1').section.version, '1.10.0');
+	const far = resolveVersion(versions, '1.2.9');
+	assert.equal(far.section.version, '1.2.1');
+	assert.match(far.note, /'1\.2\.9' not found — showing closest: 1\.2\.1/);
+	assert.equal(resolveVersion(versions, 'nope'), null);
+	assert.equal(resolveVersion([], '1.2'), null);
+});
+
+test('summarize: the bold phrase, else the first sentence, else the whole text', () => {
+	assert.equal(summarize('**One.** First thing.'), 'One.');
+	assert.equal(summarize('Plain text. More text.'), 'Plain text.');
+	assert.equal(summarize('No stop here'), 'No stop here');
+	assert.equal(summarize('**Unclosed. text'), '**Unclosed.');   // no closing **: first sentence
+});
+
+test('compactSection keeps the header, the blurb and one line per bullet', () => {
+	const raw = versionsOf(SAMPLE).find((s) => s.version === '1.2.1').raw;
+	assert.equal(compactSection(raw), '## 1.2.1 — 2026-11-09 (2 items)\n\n*Security fixes.*\n\n- One.\n- Two.');
+});
+
+test('versionList aligns the rows and leads with Unreleased', () => {
+	const lines = versionList(parseSections(SAMPLE)).split('\n');
+	assert.equal(lines[0], 'Available versions — 3 released + Unreleased');
+	assert.equal(lines[1], '  Unreleased  in flight   (1 item)');
+	assert.equal(lines[2], '  1.2.1       2026-11-09  (2 items)');
+	assert.equal(lines[3], '  1.10.0      2026-12-01  (1 item)');
+	assert.equal(versionList([]), '(no versions)');
+});
+
+test('sectionsJson lists Unreleased too, while the build JSON never does', () => {
+	const all = JSON.parse(sectionsJson(parseSections(SAMPLE))).sections;
+	assert.deepEqual(all.map((s) => s.version), ['Unreleased', '1.2.1', '1.10.0', '1.2.0']);
+	assert.equal(all[0].date, null);
+	assert.equal(all[1].blurb, 'Security fixes.');
+	assert.deepEqual(JSON.parse(releasedChangelogJson(SAMPLE)).sections.map((s) => s.version), ['1.2.1', '1.10.0', '1.2.0']);
+});
+
+test('parseArgs takes the flags before or after the version', () => {
+	assert.deepEqual(parseArgs([]), { help: false, verbose: false, out: undefined, arg: 'latest' });
+	assert.deepEqual(parseArgs(['-v', '1.2']), parseArgs(['1.2', '--verbose']));
+	assert.equal(parseArgs(['1.2', '-v']).verbose, true);
+	assert.equal(parseArgs(['json', '--out', 'x.json']).out, 'x.json');
+	assert.equal(parseArgs(['--out', 'x.json', 'json']).arg, 'json');
+	assert.equal(parseArgs(['json', '--out']).out, null);
+	assert.equal(parseArgs(['--help']).help, true);
 });

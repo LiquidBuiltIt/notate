@@ -1,7 +1,7 @@
 <!--
 CHANGELOG PARSER CONTRACT — read before editing. Parsed by
-scripts/release/changelog.mjs. It is regex-driven: deviate and an entry is
-dropped without an error.
+scripts/release/changelog.mjs (`npm run changelog` reads it from the terminal).
+It is regex-driven: deviate and an entry is dropped without an error.
 
 1. Section headers start with exactly "## " at column 0.
    - Unreleased: exactly `## Unreleased` (any case), nothing else on the line.
