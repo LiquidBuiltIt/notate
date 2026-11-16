@@ -30,8 +30,8 @@
       "h2": "text-ink",
       "h3": "text-[#4A4234]",
       "sub": "text-[#4A4234]",
-      "muted": "text-[#6B614D]",
-      "placeholder": "placeholder:text-[#6B614D]"
+      "muted": "text-[#3F382C]",
+      "placeholder": "placeholder:text-[#3F382C]"
     },
     "accent": {}
   },
@@ -54,8 +54,8 @@
       "h2": "text-ink",
       "h3": "text-[#454C4C]",
       "sub": "text-[#454C4C]",
-      "muted": "text-[#6A7272]",
-      "placeholder": "placeholder:text-[#6A7272]"
+      "muted": "text-[#4A5151]",
+      "placeholder": "placeholder:text-[#4A5151]"
     },
     "accent": {}
   }
