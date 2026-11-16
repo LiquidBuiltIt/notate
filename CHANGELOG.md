@@ -26,6 +26,10 @@ All notable changes to Notate are documented in this file.
 
 ## Unreleased
 
+## 2.0.0 — 2026-11-16
+
+*A new printed-paper look, a search bar with commands, and a board layout to try.*
+
 - **New look.** The new tab page, the in-page menu, the note editor, Settings and every pop-up now share one printed-paper style.
 - **Search bar with commands.** A bar at the bottom of the new tab rises when you hover it or press `/`. Type to find notes, or start with `/note` or `/notebook` to create one.
 - **Search engine picker.** Choose a search engine in the bar and press Enter to search with it.
