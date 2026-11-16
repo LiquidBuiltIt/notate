@@ -27,3 +27,30 @@
 body {
 	overflow-y: overlay;
 }
+
+/* Marginalia: ink scrollbars, and no motion for users who ask for none. */
+* {
+	scrollbar-color: #8F8778 transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+	background-color: #8F8778;
+	border-radius: 0;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background-color: #1B1A17;
+}
+
+::selection {
+	background: #F6D5C9;
+	color: #1B1A17;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation-duration: 1ms !important;
+		animation-delay: 0ms !important;
+		transition-duration: 1ms !important;
+	}
+}
