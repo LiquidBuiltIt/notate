@@ -165,7 +165,7 @@ test('dragging the seal snaps it to the nearest corner, does not open the menu, 
 	const { page, c } = await openFixture(b, fx)
 	await page.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
 	const region = () => page.eval(`(() => { const r = (${CONTENT_ROOT}).querySelector('#context-menu-hover-region').getBoundingClientRect(); return [r.top, r.left] })()`, 'content')
-	await c.hover('#context-menu-hover-region')
+	await c.hover('#context-menu-hover-strip')
 	const s = await c.center('#context-menu-btn')
 	await page.mouse('mousePressed', s.x, s.y, { buttons: 1 })
 	for (let i = 1; i <= 5; i++) await page.mouse('mouseMoved', s.x - (s.x - 100) * i / 5, s.y - (s.y - 150) * i / 5, { buttons: 1 })
@@ -195,13 +195,37 @@ test('the seal stays on screen after a drop inside its corner zone, and when it 
 	}
 	await waitFor(onScreen, 'the focused seal on screen')
 	// Drop away from the seal's final spot but inside the corner zone: the seal still shows.
-	await c.hover('#context-menu-hover-region')
+	await c.hover('#context-menu-hover-strip')
 	const s = await c.center('#context-menu-btn')
 	await page.mouse('mousePressed', s.x, s.y, { buttons: 1 })
 	for (let i = 1; i <= 5; i++) await page.mouse('mouseMoved', s.x - (s.x - 100) * i / 5, s.y - (s.y - 140) * i / 5, { buttons: 1 })
 	await page.mouse('mouseReleased', 100, 140, { buttons: 0 })
 	await sleep(600)
 	assert.equal(await page.eval(`(${CONTENT_ROOT}).querySelector('#context-menu-btn').getBoundingClientRect().top >= 0`, 'content'), true, 'seal is visible after the drop')
+	assert.deepEqual(b.errors, [])
+})
+
+test('the hidden seal lets clicks through to the page, and Arrow keys move the focused seal between corners', async () => {
+	await waitFor(config, 'seeded config')
+	const { page, c } = await openFixture(b, fx)
+	await page.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
+	const hitsSeal = (x, y) => page.eval(`document.elementFromPoint(${x}, ${y})?.id === 'content-script-entry-point'`)
+	assert.equal(await hitsSeal(1440 - 56, 900 - 56), false, 'a point in the old hover zone reaches the page')
+	assert.equal(await hitsSeal(1440 - 56, 900 - 10), true, 'the edge strip still takes the hover')
+	const key = async (k) => {
+		await page.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: k, code: k, windowsVirtualKeyCode: { Tab: 9, ArrowUp: 38, ArrowLeft: 37 }[k] })
+		await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: k, windowsVirtualKeyCode: { Tab: 9, ArrowUp: 38, ArrowLeft: 37 }[k] })
+		await sleep(100)
+	}
+	const region = () => page.eval(`(() => { const r = (${CONTENT_ROOT}).querySelector('#context-menu-hover-region').getBoundingClientRect(); return [r.top, r.left] })()`, 'content')
+	await page.send('Page.bringToFront')
+	for (let i = 0; i < 15 && !(await page.eval(`(${CONTENT_ROOT}).activeElement?.id === 'context-menu-btn'`, 'content')); i++) await key('Tab')
+	await key('ArrowUp')
+	await waitFor(async () => (await region()).join() === `32,${1440 - 112}`, 'seal in the top-right corner')
+	await key('ArrowLeft')
+	await waitFor(async () => (await region()).join() === '32,0', 'seal in the top-left corner')
+	assert.equal(await page.eval(`(${CONTENT_ROOT}).activeElement?.id === 'context-menu-btn'`, 'content'), true, 'focus stays on the seal')
+	assert.equal(await page.eval(`(${CONTENT_ROOT}).querySelector('#context-menu').className.includes('pointer-events-none')`, 'content'), true, 'menu stays closed')
 	assert.deepEqual(b.errors, [])
 })
 

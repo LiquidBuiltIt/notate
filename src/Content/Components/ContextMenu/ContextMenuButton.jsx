@@ -30,11 +30,26 @@ export default function ContextMenuButton () {
 
 	const handlePointerUp = (event) => {
 		if (!drag.current?.moved) return
-		const next = `${event.clientY < window.innerHeight / 2 ? 'top' : 'bottom'}-${event.clientX < window.innerWidth / 2 ? 'left' : 'right'}`
 		setOffset(null)
 		setIsHovered(true)
+		moveTo(`${event.clientY < window.innerHeight / 2 ? 'top' : 'bottom'}-${event.clientX < window.innerWidth / 2 ? 'left' : 'right'}`)
+	}
+
+	const moveTo = (next) => {
 		setCorner(next)
 		chrome.storage.local.set({ sealCorner: next })
+	}
+
+	// Arrow keys move the seal to the adjacent corner; the button stays mounted, so focus stays on it.
+	const handleKeyDown = (event) => {
+		const [ v, h ] = corner.split('-')
+		const next = {
+			ArrowUp: `top-${h}`, ArrowDown: `bottom-${h}`,
+			ArrowLeft: `${v}-left`, ArrowRight: `${v}-right`
+		}[event.key]
+		if (!next) return
+		event.preventDefault()
+		moveTo(next)
 	}
 
 	const handleMenuClick = (event) => {
@@ -43,18 +58,20 @@ export default function ContextMenuButton () {
 		setContextMenuState(true)	
 	}
 
-	const shown = isHovered || contextMenuState
-	const hidden = corner.startsWith('top') ? '-translate-y-[250%] focus-visible:translate-y-[0%]' : 'translate-y-[250%] focus-visible:translate-y-[0%]'
+	// Keyboard focus reveals the seal, so focus is never on an invisible control.
+	const [ focused, setFocused ] = React.useState(false)
+	const shown = isHovered || contextMenuState || focused
+	const hidden = corner.startsWith('top') ? '-translate-y-[250%]' : 'translate-y-[250%]'
 	// Tailwind runs with important: true, so while dragging the translate and transition
 	// classes are dropped; otherwise they beat the inline drag transform.
 
 	return (
 			<button 
 			 id="context-menu-btn"
-			 aria-label="Open the Notate menu"
-			 title="Notate"
+			 aria-label="Open the Notate menu. Arrow keys move it."
+			 title="Notate. Arrow keys move it."
 			 className={`
-				focus-ink group relative flex items-center justify-center rounded-full
+				focus-ink group pointer-events-auto relative flex items-center justify-center rounded-full
 				size-[3.25rem]
 				${ offset ? 'cursor-grabbing' : shown ? 'translate-y-[0%]' : hidden }
 				${ offset || drag.current?.moved ? '' /* also no slide from the drag offset on drop */ : 'transition-transform duration-300 ease-out' }
@@ -65,6 +82,9 @@ export default function ContextMenuButton () {
 			 onPointerUp={handlePointerUp}
 			 onPointerCancel={() => { drag.current = null; setOffset(null) }}
 			 onClick={handleMenuClick}
+			 onKeyDown={handleKeyDown}
+			 onFocus={() => setFocused(true)}
+			 onBlur={() => setFocused(false)}
 			>
 				<span 
 				 id="glow-effect" 

@@ -65,7 +65,7 @@ export default function ContextMenu(){
 		 	absolute w-max flex gap-2 font-serif text-ink
 			${ top ? 'top-[calc(50%+2.1rem)] flex-col-reverse' : 'bottom-[calc(50%+2.1rem)] flex-col' }
 			${ left ? 'left-3.5 items-start' : 'right-3.5 items-end' }
-			${ contextMenuState ? "" : "pointer-events-none" }
+			${ contextMenuState ? "pointer-events-auto" : "pointer-events-none" }
 		`}>
 		{tags.map( (tag, i) => (
 			<div

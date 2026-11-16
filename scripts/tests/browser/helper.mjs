@@ -246,6 +246,6 @@ export async function openFixture(b, fx) {
 
 // Hover the bottom-right corner, click the Notate button, wait for the menu to slide in.
 export async function openContextMenu(c) {
-	await c.hover('#context-menu-hover-region')
+	await c.hover('#context-menu-hover-strip')
 	await c.click('#context-menu-btn')
 }

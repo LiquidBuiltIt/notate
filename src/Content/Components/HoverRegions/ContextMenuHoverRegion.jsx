@@ -138,14 +138,19 @@ export default function ContextMenuHoverRegion() {
 			 id="context-menu-hover-region"
 			 ref={hoverReginonRef}
 			 className={`
-				fixed flex size-[7rem] items-center justify-center transition-opacity duration-300
+				pointer-events-none fixed flex size-[7rem] items-center justify-center transition-opacity duration-300
 				${ corner.startsWith('top') ? 'top-8' : 'bottom-0' /* top-8 clears the related notes ribbon */ }
 				${ corner.endsWith('left') ? 'left-0' : 'right-0' }
 			 `}
 			 onMouseEnter={handleMouseEnter}
 			 onMouseLeave={handleMouseLeave}
 			>
-				<div 
+				{/* The only live part of the region while the seal is hidden: a strip along its screen edge that reaches the shown seal. */}
+				<div
+				 id="context-menu-hover-strip"
+				 className={`pointer-events-auto absolute inset-x-0 h-8 ${ corner.startsWith('top') ? 'top-0' : 'bottom-0' }`}
+				/>
+				<div
 				 id="context-menu-items"
 				 className="w-20 h-20 flex flex-col items-center justify-center relative transition-opacity duration-300"
 				>
