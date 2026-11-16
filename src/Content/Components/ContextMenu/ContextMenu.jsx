@@ -6,6 +6,7 @@ import DismissButton, { DismissOption, useDismissOptions } from './Buttons/Dismi
 
 import AddToNotebookModal from '@content/Components/Modals/AddToNotebookModal/AddToNotebookModal.jsx'
 import SettingsModal from '@content/Components/Modals/SettingsModal/SettingsModal.jsx'
+import PageNotesModal, { usePageNotes } from '@content/Components/Modals/PageNotesModal/PageNotesModal.jsx'
 
 
 /**
@@ -15,7 +16,15 @@ import SettingsModal from '@content/Components/Modals/SettingsModal/SettingsModa
  * in the bottom corners and below it in the top corners.
  */
 export default function ContextMenu(){
-	const items = [{
+	// Shown only when this site has notes.
+	const pageNotes = usePageNotes().reduce( (n, group) => n + group.notes.length, 0 )
+
+	const items = [...(pageNotes ? [{
+		name: 'page-notes',
+		desc: `Notes From This Site (${pageNotes})`,
+		modal: (<PageNotesModal/>),
+		icon: '\u2116',
+	}] : []), {
 		name: 'add-to-notebook',
 		desc: 'Add to your Notebooks',
 		modal: (<AddToNotebookModal/>),

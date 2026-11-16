@@ -3,7 +3,7 @@ import { WebContentContext } from '@content/content.jsx'
 import noteSwatch from '@universal/Utils/noteSwatch.js'
 
 // A footnote entry in the ribbon: superscript number in the note's colour, title, host.
-export default function RelatedNote({note, tagId, index = 0}) {
+export default function RelatedNote({note, tagId, index = 0, onOpen}) {
 	const { NOTE_WINDOW_CONTEXT, NOTE_CONTEXT } = React.useContext(WebContentContext)
 	const [ noteWindowState, setNoteWindowState ] = NOTE_WINDOW_CONTEXT 
 	const [ targetNote, setTargetNote ] = NOTE_CONTEXT
@@ -17,7 +17,7 @@ export default function RelatedNote({note, tagId, index = 0}) {
 		setTimeout( () => setNoteWindowState(true), 50 )
 		
 		setTargetNote(note)
-		
+		onOpen?.()
 	}
 
 	const handleDragStart = (e) => {

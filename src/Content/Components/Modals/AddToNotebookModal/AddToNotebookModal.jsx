@@ -1,28 +1,20 @@
 import React from 'react';
 import { ModalControllerContext } from '../Modal.jsx'
-import { WebContentContext } from '@content/content.jsx'
+import { PageNoteList } from '../PageNotesModal/PageNotesModal.jsx'
 
 import Topbar from './Topbar.jsx'
 import NotebookCollection from './NotebookCollection.jsx'
 import Bottombar from './Bottombar.jsx'
 
 export default function AddToNotebookModal() {
-	const { RELATED_NOTES_CONTEXT } = React.useContext(WebContentContext)
-	const [ headerState, setHeaderState ] = RELATED_NOTES_CONTEXT 
-
-	const { 
-		TRANSITION, 
-		WHITELISTED, } = React.useContext(ModalControllerContext)
+	const { TRANSITION } = React.useContext(ModalControllerContext)
 	const [ isActive, setIsActive ] = TRANSITION 
-	const [ , setWhitelisted ] = WHITELISTED
 
 
 
 
 	React.useEffect(()=> {
 		setIsActive(true)
-		setHeaderState(true)
-		setWhitelisted(["related-notes-viewer"])
 	}, [])
 
 	return (
@@ -39,6 +31,9 @@ export default function AddToNotebookModal() {
 			<header id="modal-topbar" className={`flex-shrink w-full`}>
 				<Topbar/>
 			</header>
+			<section id="page-notes-source" className="flex-shrink-0 max-h-[30%] overflow-y-auto">
+				<PageNoteList/>
+			</section>
 			<main 
 			 id="modal-centerpiece" 
 			 className={`

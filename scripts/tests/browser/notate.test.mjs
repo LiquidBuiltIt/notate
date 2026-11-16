@@ -336,6 +336,41 @@ test('scripted clicks cannot save a note from the page editor', async () => {
 	await waitFor(async () => (await notes()).length === 1, 'real click saves')
 })
 
+test('the menu lists this site\'s notes in a picker, page notes first, and opens one on a real click', async () => {
+	await b.openPage(NEWTAB)
+	const { c: before } = await openFixture(b, fx)
+	await openContextMenu(before)
+	await before.appear('#new-note-btn')
+	assert.equal(await before.exists('#context-item-page-notes'), false, 'no tag while the site has no notes')
+
+	await plantNote('on this page', { id: 1, title: 'Here', origin: '127.0.0.1/' })
+	await plantNote('elsewhere', { id: 2, title: 'There', origin: '127.0.0.1/other' })
+	await plantNote('another site', { id: 3, title: 'Away', origin: 'example.com/' })
+	const { c, page } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.appear('#context-item-page-notes')
+	assert.match(await c.text(), /Notes From This Site \(2\)/)
+	await c.click('#context-item-page-notes')
+	await c.appear('#page-notes-modal #related-note-title')
+	const titles = await page.eval(`[...chrome.dom.openOrClosedShadowRoot(document.querySelector('#content-script-entry-point')).querySelectorAll('#page-notes-list [id="related-note-title"]')].map((e) => e.textContent)`, 'content')
+	assert.deepEqual(titles, ['Here', 'There'], 'page note first, then the site note, never another site')
+
+	await c.scriptedClick('#related-note-heading-1')
+	await sleep(800)
+	assert.equal(await c.exists('#edit-title'), false, 'scripted click did not open the note')
+	await c.hover('#related-note-heading-1')
+	await c.click('#related-note-heading-1')
+	await c.appear('#edit-title')
+	await c.gone('#page-notes-modal')
+
+	// Add to Notebook drags from the same list.
+	const { c: c2 } = await openFixture(b, fx)
+	await openContextMenu(c2)
+	await c2.click('#context-item-add-to-notebook')
+	await c2.appear('#page-notes-source #related-note-heading-2')
+	assert.deepEqual(b.errors, [])
+})
+
 // Notes whose content is attacker-shaped HTML must show as inert text.
 async function plantNote(content, extra = {}) {
 	await b.serviceWorker()
@@ -1383,6 +1418,31 @@ test('board: a save the background cannot do is reported, and later moves still 
 	const two = await n.center('#board-note-2')
 	await drag(page, two, { x: two.x, y: two.y + 220 })
 	await waitFor(async () => (await savedBoard('NOTES', 2)).y > 300, 'a later move saves')
+	assert.deepEqual(b.errors, [])
+})
+
+test('board: the page editor, opened before the note was placed, keeps the place when it saves', async () => {
+	await waitFor(config, 'seeded config')
+	const { c } = await openFixture(b, fx)
+	await openContextMenu(c)
+	await c.click('#new-note-btn')
+	await c.fill('#edit-title', 'Page note')
+	await c.fill('#input-text-display', 'written on a web page')
+	await c.click('#save-note-btn')
+	const [saved] = await waitFor(async () => { const x = await notes(); return x.length && x }, 'note in IndexedDB')
+	// A second page opens the note in its editor, then the board places the note.
+	const { c: c2 } = await openFixture(b, fx)
+	await openContextMenu(c2)
+	await c2.click('#context-item-page-notes')
+	await c2.appear('#related-note-title')
+	await c2.hover('#related-note-title')
+	await c2.click('#related-note-title')
+	await c2.appear('#edit-title')
+	await patchRecord('NOTES', saved.id, { board: { x: 300, y: 200, r: 0, z: 5 } })
+	await c2.fill('#input-text-display', ' and more')
+	await c2.click('#save-note-btn')
+	await waitFor(async () => /and more/.test((await notes())[0].content), 'edit saved')
+	assert.deepEqual((await notes())[0].board, { x: 300, y: 200, r: 0, z: 5 }, 'the position survived the editor save')
 	assert.deepEqual(b.errors, [])
 })
 

@@ -39,7 +39,7 @@ export default function Topbar() {
 				<label id="help-message" className={`
 					font-serif italic text-[15px] text-ink-soft
 				`}>{`
-					Drag a note from the ribbon above onto a volume, then press Save.
+					Drag a note from this site onto a volume, then press Save.
 				`}</label>
 			</section>
 		</header>

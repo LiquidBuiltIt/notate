@@ -26,7 +26,7 @@ All notable changes to Notate are documented in this file.
 
 ## Unreleased
 
-- **No more related notes bar.** The bar at the top of web pages is gone, so it no longer covers site menus. Find your notes from the new tab.
+- **Notes from this site.** The bar at the top of web pages is gone, so it no longer covers site menus. When a site has notes, the Notate menu shows "Notes From This Site" with a count. Click it to pick a note and open it.
 
 ## 2.0.0 — 2026-11-16
 
