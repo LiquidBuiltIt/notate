@@ -234,7 +234,7 @@
 .bd-counts { color: var(--faint); }
 @media (max-width: 1560px) { .bd-hint { display: none; } }
 
-.bd-board { position: fixed; left: 0; right: 0; bottom: 0; top: var(--top); z-index: 1; overflow: hidden; cursor: grab; touch-action: none; user-select: none; background: var(--edge); }
+.bd-board { position: fixed; left: 0; right: 0; bottom: 0; top: var(--top); z-index: 1; overflow: hidden; cursor: grab; touch-action: none; user-select: none; background: transparent; }
 .bd-world { position: absolute; left: 0; top: 0; width: 3200px; height: 2000px; transform-origin: 0 0; background-color: var(--paper); background-image: radial-gradient(circle, rgba(27,26,23,.17) 1px, transparent 1.6px); background-size: 32px 32px; background-position: 16px 16px; box-shadow: 0 0 0 1px var(--ink), 6px 6px 0 1px var(--ink); }
 .bd-world.bd-glide, .bd-handw.bd-glide { transition: transform .55s cubic-bezier(.2,.8,.2,1); }
 .bd-hand { position: fixed; left: 0; right: 0; bottom: 0; top: var(--top); z-index: 60; overflow: hidden; pointer-events: none; }

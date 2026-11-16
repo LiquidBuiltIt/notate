@@ -862,7 +862,7 @@ export default function Board() {
 				<div className="bd-tr">
 					<span className="bd-hint">Drag the paper to pan &nbsp;&middot;&nbsp; Ctrl + wheel to zoom</span>
 					<span className="bd-counts smallcaps" id="board-counts">{plural(notes.length, 'note')} &nbsp;&middot;&nbsp; {plural(books.length, 'volume')}</span>
-					<span id="board-settings-slot"></span>
+					<span id="board-settings-slot" className="flex items-center gap-8"></span>
 				</div>
 			</header>
 
