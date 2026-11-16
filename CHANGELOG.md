@@ -29,7 +29,8 @@ All notable changes to Notate are documented in this file.
 - **New look.** The new tab page, the in-page menu, the note editor, Settings and every pop-up now share one printed-paper style.
 - **Search bar with commands.** A bar at the bottom of the new tab rises when you hover it or press `/`. Type to find notes, or start with `/note` or `/notebook` to create one.
 - **Search engine picker.** Choose a search engine in the bar and press Enter to search with it.
-- **Board layout (preview).** Turn it on in Settings to put notes on a free board. Drag to move, drag the paper to pan, and Ctrl + wheel to zoom. It is off by default.
+- **Board layout (preview).** Turn it on in Settings to put notes on a free board. Drag to move, drag the paper to pan, and Ctrl + wheel to zoom. Drop a note on a notebook frame to file it. After you save a new note, click where it should go, or press Esc to drop it in a free spot. It is off by default.
+- **The Notate logo is back.** The hand-drawn logo returns on the in-page button and the new tab.
 - **What's new button.** A new button next to Settings shows what changed in each version. A red dot tells you when an update has news.
 - **Movable Notate button.** Drag the button on web pages to any corner. Notate remembers the corner.
 - **Hidden sites.** Sites you hide with "For This Site" are saved. Settings shows them and lets you turn the menu back on.
