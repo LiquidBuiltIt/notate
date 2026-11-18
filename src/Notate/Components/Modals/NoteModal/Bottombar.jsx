@@ -4,6 +4,8 @@ import { NotificationContext } from '@universal/Components/NotificationMessenger
 import ConfirmationMsgHandler from '../ConfirmationModal/ConfimrationMsgHandler.js'
 import ConfirmationMsg, { ConfirmationMsgContext } from '../ConfirmationModal/ConfirmationMsg.jsx';
 import { NotateContext  } from '@notate/Notate.jsx';
+import browser from 'webextension-polyfill'
+import { noteExport, download } from '@notate/exportNotes.js'
 
 import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextInput/InputFormatters.js'
 import { NoteModalContext } from './NoteModal.jsx'
@@ -55,6 +57,17 @@ export default function NoteModalBottombar({onExit}) {
   	  }
   	};
 
+	// Exports what the editor shows now, saved or not.
+	const handleExportClick = () => {
+		try {
+			const { name, text } = noteExport({ ...note, title, content }, browser.runtime.id)
+			download(name, new Blob([text], { type: 'text/markdown' }))
+		} catch (error) {
+			console.error('Error exporting note:', error)
+			setNotification(notification.showError())
+		}
+	}
+
 	const handleDeleteClick = () => {
 		const confirmNoteDelete = async () => {
 			await onExit()
@@ -103,12 +116,20 @@ export default function NoteModalBottombar({onExit}) {
 		  	onClick={handleSaveClick}>Save
 			</button>
 
-			<button id="delete-btn"
-			className={`smallcaps focus-ink ml-auto pb-1 border-b trans-ease ${ disabledState ? "border-paper-edge text-ink-faint cursor-not-allowed" : "border-ink text-ink hover:text-vermilion-ink hover:border-vermilion" }`}
-			onClick={handleDeleteClick}
-			disabled={disabledState}>
-				Delete note
-			</button>
+			<div className="ml-auto flex items-center gap-6">
+				<button id="export-note-btn"
+				className="smallcaps focus-ink pb-1 border-b border-ink text-ink trans-ease hover:text-vermilion-ink hover:border-vermilion"
+				onClick={handleExportClick}>
+					Export note
+				</button>
+
+				<button id="delete-btn"
+				className={`smallcaps focus-ink pb-1 border-b trans-ease ${ disabledState ? "border-paper-edge text-ink-faint cursor-not-allowed" : "border-ink text-ink hover:text-vermilion-ink hover:border-vermilion" }`}
+				onClick={handleDeleteClick}
+				disabled={disabledState}>
+					Delete note
+				</button>
+			</div>
 	
 		</div>
 

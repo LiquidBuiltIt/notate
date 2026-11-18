@@ -52,7 +52,7 @@ export default function DeleteNotebookButton() {
 
 	return (
 		<button id="delete-notebook-btn"
-		className="smallcaps focus-ink trans-ease ml-auto whitespace-nowrap pb-1 border-b border-ink text-ink hover:text-vermilion-ink hover:border-vermilion"
+		className="smallcaps focus-ink trans-ease whitespace-nowrap pb-1 border-b border-ink text-ink hover:text-vermilion-ink hover:border-vermilion"
 		onClick={handleDeleteClick}>
 			Delete notebook
 		</button>

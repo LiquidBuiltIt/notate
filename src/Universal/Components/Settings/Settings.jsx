@@ -12,7 +12,7 @@ const USER_CONFIGURATION_DB = "userConfiguration"
 export const SettingsContext = React.createContext()
 
 
-export default function Settings({ContextAdapter, targetModule, setterCallback}) {
+export default function Settings({ContextAdapter, targetModule, setterCallback, extra}) {
 
 	const SETTINGS_CONTEXT = {
 		DATABASE_CONTEXT: ContextAdapter.USER_CONFIGURATION_DB_CONTEXT,
@@ -149,6 +149,13 @@ export default function Settings({ContextAdapter, targetModule, setterCallback})
 								</ul>
 							)
 						})}
+
+						{ extra && (
+							<ul className="space-y-4 mx-4">
+								<header className="smallcaps text-vermilion-ink pb-2 border-b border-ink">Your notes</header>
+								{extra}
+							</ul>
+						)}
 
 						<ErrorReporter/>
 

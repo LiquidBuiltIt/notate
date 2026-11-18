@@ -27,6 +27,9 @@ All notable changes to Notate are documented in this file.
 ## Unreleased
 
 - **Notes from this site.** The bar at the top of web pages is gone, so it no longer covers site menus. When a site has notes, the Notate menu shows "Notes From This Site" with a count. Click it to pick a note and open it.
+- **Export a note.** The note window has an Export note button. It saves the note as a Markdown file you can share. Pictures are kept inside the file.
+- **Export a notebook.** The notebook window has an Export notebook button. It saves the notebook and all its notes as one Markdown file.
+- **Export all notes.** Settings has an Export all notes button. It saves a backup file named `.notate` with a folder for each notebook, one Markdown file for each note, and all your data for a future restore. Export is only on the new tab page, never on a web page.
 - **Smaller pictures.** A picture you drop, paste or pick is shrunk to fit 1600 pixels and saved as WebP when that makes it smaller. The editor has a new button to insert a picture, and you can paste a copied picture. Files over 25 MB and files that are not pictures are refused.
 - **Formats on note cards.** Cards show lists, checkboxes, headings and quotes as plain lines such as `• item` and `☐ task`.
 - **Lists, headings and quotes.** The editor has new buttons for bullet lists, numbered lists, checklists, two heading sizes and quotes. You can also type `- `, `1. `, `[ ] `, `# `, `## ` or `> ` at the start of a line. Click a box to tick it, or press Ctrl + Enter.

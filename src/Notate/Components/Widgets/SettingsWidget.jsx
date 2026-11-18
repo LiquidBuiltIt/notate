@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import Settings from '@universal/Components/Settings/Settings.jsx'
 import { NotateContext } from '@notate/Notate.jsx';
 import WhatsNewWidget from './WhatsNewWidget.jsx'
+import ExportAllItem from './ExportAllItem.jsx'
 
 export default function SettingsWidget() {
 	const NOTATE_CONTEXT = React.useContext(NotateContext)
@@ -46,6 +47,7 @@ export default function SettingsWidget() {
 					 ContextAdapter={NOTATE_CONTEXT}
 					 targetModule={["Notate", "WebContent"]}
 					 setterCallback={setWidgetState}
+					 extra={<ExportAllItem/>}
 					/> 
 			}
 		</>
