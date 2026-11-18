@@ -15,7 +15,7 @@ export default function BottomBar() {
 	const { TITLE_CONTEXT, DESCRIPTION_CONTEXT, COLLECTION_CONTEXT } = React.useContext(NotebookModalContext)
 	const [ notification, setNotification ] = React.useContext(NotificationContext)
 
-	// Exports what the editor shows now, saved or not.
+	// A new notebook has nothing saved to export, so the button is greyed like Delete is hidden.
 	const handleExportClick = () => {
 		try {
 			const { name, text } = notebookExport({ ...notebook, title: TITLE_CONTEXT[0], description: DESCRIPTION_CONTEXT[0], collection: COLLECTION_CONTEXT[0] }, database?.inventory?.NOTES ?? [], browser.runtime.id)
@@ -32,8 +32,9 @@ export default function BottomBar() {
 			<SaveNotebookButton/>
 			<div className="ml-auto flex items-center gap-6">
 				<button id="export-notebook-btn"
-				className="smallcaps focus-ink trans-ease whitespace-nowrap pb-1 border-b border-ink text-ink hover:text-vermilion-ink hover:border-vermilion"
-				onClick={handleExportClick}>
+				className={`smallcaps focus-ink trans-ease whitespace-nowrap pb-1 border-b ${ notebook.id ? "border-ink text-ink hover:text-vermilion-ink hover:border-vermilion" : "border-paper-edge text-ink-faint cursor-not-allowed" }`}
+				onClick={handleExportClick}
+				disabled={!notebook.id}>
 					Export notebook
 				</button>
 				{ !!notebook.id && <DeleteNotebookButton/> }

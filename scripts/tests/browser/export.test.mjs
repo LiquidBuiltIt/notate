@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { launch, startFixture, openFixture, openContextMenu, ui, waitFor, EXT_ID } from './helper.mjs'
+import { launch, startFixture, openFixture, openContextMenu, ui, waitFor, sleep, EXT_ID } from './helper.mjs'
 import { zip } from '../../../src/Universal/Utils/zip.js'
 
 const NEWTAB = `chrome-extension://${EXT_ID}/notate.html`
@@ -113,6 +113,48 @@ test('export notebook: title, description, then each note with its source and he
 	const f = await downloaded()
 	assert.equal(f.name, 'Book onetwo.md')
 	assert.equal(f.bytes.toString(), '# Book: one/two\n\n\\# not a heading\n\nsecond \\*line\\*\n\n## Note B\n\nbeta\n\n## Note A\n\nSource: a.example/\n\n### Part\n\nalpha\n')
+})
+
+const isDisabled = (page, sel) => page.eval(`document.querySelector(${JSON.stringify(sel)}).disabled`)
+
+test('export note: a new, unsaved note has Export greyed like Delete, and a saved note does not', async () => {
+	await plant([{ id: 1, title: 'Saved', content: '<div>text</div>' }])
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.hover('#search-bar-tab')
+	await n.click('#new-note-button')
+	await n.fill('#edit-note-title', 'Draft')
+	await n.fill('#input-text-display', 'typed, not saved')
+	await n.appear('#export-note-btn')
+	assert.equal(await isDisabled(page, '#delete-btn'), true, 'Delete is greyed on a new note')
+	assert.equal(await isDisabled(page, '#export-note-btn'), true, 'so is Export')
+	await waitFor(() => page.eval(`getComputedStyle(document.querySelector('#export-note-btn')).color === getComputedStyle(document.querySelector('#delete-btn')).color`), 'the same look as Delete')
+	await page.eval(`document.querySelector('#export-note-btn').click()`)
+	await sleep(700)
+	assert.deepEqual(readdirSync(dir), [], 'nothing was downloaded')
+	const { page: saved } = await openNote(1)
+	assert.equal(await isDisabled(saved, '#export-note-btn'), false)
+})
+
+test('export notebook: a new, unsaved notebook has Export greyed, and a saved notebook does not', async () => {
+	await plant([], [{ id: 1, title: 'Saved book', collection: [] }])
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.fill('#searchInput', '/notebook')
+	for (let i = 0; i < 2; i++) { // the first Enter completes the command name, the second opens the blank notebook
+		await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', text: '\r' })
+		await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter' })
+		await sleep(500)
+	}
+	await n.appear('#export-notebook-btn')
+	assert.equal(await page.eval(`!document.querySelector('#delete-notebook-btn')`), true, 'a new notebook has no Delete')
+	assert.equal(await isDisabled(page, '#export-notebook-btn'), true)
+	const saved = await b.openPage(NEWTAB)
+	const s = ui(saved)
+	await s.appear('#notebook-card-1')
+	await s.click('#notebook-card-1')
+	await s.appear('#export-notebook-btn')
+	assert.equal(await isDisabled(saved, '#export-notebook-btn'), false)
 })
 
 const KEYS = ['id', 'title', 'color', 'created', 'modified', 'origin', 'notebooks']

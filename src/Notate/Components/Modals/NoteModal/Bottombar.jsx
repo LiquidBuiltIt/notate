@@ -57,7 +57,7 @@ export default function NoteModalBottombar({onExit}) {
   	  }
   	};
 
-	// Exports what the editor shows now, saved or not.
+	// Exports what the editor shows now. A new note has nothing saved to export, so it is greyed like Delete.
 	const handleExportClick = () => {
 		try {
 			const { name, text } = noteExport({ ...note, title, content }, browser.runtime.id)
@@ -118,8 +118,9 @@ export default function NoteModalBottombar({onExit}) {
 
 			<div className="ml-auto flex items-center gap-6">
 				<button id="export-note-btn"
-				className="smallcaps focus-ink pb-1 border-b border-ink text-ink trans-ease hover:text-vermilion-ink hover:border-vermilion"
-				onClick={handleExportClick}>
+				className={`smallcaps focus-ink pb-1 border-b trans-ease ${ !note.id ? "border-paper-edge text-ink-faint cursor-not-allowed" : "border-ink text-ink hover:text-vermilion-ink hover:border-vermilion" }`}
+				onClick={handleExportClick}
+				disabled={!note.id}>
 					Export note
 				</button>
 
