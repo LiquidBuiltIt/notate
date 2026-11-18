@@ -7,7 +7,8 @@ import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
-export const EXT_DIR = resolve(here, '../../../dist/chrome')
+// EXT_DIR points the suite at another build, to show a new test failing on the old one.
+export const EXT_DIR = process.env.EXT_DIR ? resolve(process.env.EXT_DIR) : resolve(here, '../../../dist/chrome')
 // The manifest pins a key, so the extension id is stable.
 export const EXT_ID = 'mienhcnmknnplcaheeelfggdagmighap'
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -248,4 +249,17 @@ export async function openFixture(b, fx) {
 export async function openContextMenu(c) {
 	await c.hover('#context-menu-hover-strip')
 	await c.click('#context-menu-btn')
+}
+
+// A real drag and drop, with trusted events: press on `from`, move until the browser starts the drag, then hand its drag data to `to`.
+export async function dragAndDrop(b, page, from, to) {
+	await page.send('Input.setInterceptDrags', { enabled: true })
+	const started = new Promise((res) => b.cdp.on((m) => { if (m.method === 'Input.dragIntercepted' && m.sessionId === page.sessionId) res(m.params.data) }))
+	await page.mouse('mouseMoved', from.x, from.y)
+	await page.mouse('mousePressed', from.x, from.y)
+	for (let i = 1; i <= 6; i++) await page.mouse('mouseMoved', from.x + ((to.x - from.x) * i) / 6, from.y + ((to.y - from.y) * i) / 6, { buttons: 1 })
+	const data = await started
+	for (const type of ['dragEnter', 'dragOver', 'drop']) await page.send('Input.dispatchDragEvent', { type, x: to.x, y: to.y, data })
+	await page.mouse('mouseReleased', to.x, to.y)
+	await page.send('Input.setInterceptDrags', { enabled: false })
 }

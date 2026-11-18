@@ -2,6 +2,8 @@ import browser from 'webextension-polyfill'
 import DatabaseAdapter from '@universal/Handlers/IdbHandler.js';
 import { BROWSER_TYPE } from './browserType.js'
 import { applyPatch } from '@universal/Handlers/ConfigurationHandlers/patch.js'
+import { isSiteNote } from '@universal/Utils/site.js'
+import { senderKind, siteOf, vetContentRequest, trimForContent, canCreateNote } from './contentPolicy.js'
 
 export const NOTATE_DB = "notate"
 export const ERROR_LOGGING_DB = "errorLogging"
@@ -62,7 +64,46 @@ export default class CoreService {
 	}
 
 
+	// A content script runs inside a web page, so it gets a small fixed set of actions and only its own site's data.
+	// Anything the browser did not tag as this extension's code is refused.
+	async contentRequest(port, message, host) {
+		const reply = (content) => this.sendMessage({ type: 'DATABASE', content }, port)
+		const op = vetContentRequest(message, host)
+		if (!op) return reply({})
+
+		try {
+			const key = op.database === NOTATE_DB ? 'notatedb' : 'userconfigurationdb'
+			if (typeof this.databases[key] !== 'object') await this.initializeDatabase(op.database)
+			const db = this.databases[key]
+
+			let allowed = true
+			if (op.op === 'createNote') {
+				allowed = canCreateNote(await db.getInventory(), host)
+				if (allowed) await db.insertData(op.note, 'NOTES')
+			} else if (op.op === 'editNote') {
+				// Checked inside the write, so the note cannot change between the check and the edit.
+				await db.updateData('NOTES', record => (allowed = isSiteNote(record, host)) && applyPatch(record, op.patch), op.id)
+			} else if (op.op === 'fileNotes') {
+				const { NOTES } = await db.getInventory()
+				allowed = op.ids.every(id => NOTES.some(note => note.id === id && isSiteNote(note, host)))
+				if (allowed) await db.updateData('NOTEBOOKS', record => (allowed = !!record) && applyPatch(record, { collection: { $add: op.ids } }), op.id)
+			} else if (op.op === 'config') {
+				await db.updateData('USER_CONFIGURATION', record => (allowed = !!record) && applyPatch(record, op.patch))
+			}
+
+			if (!allowed) return reply({})
+			reply({ data: trimForContent(op.database, await db.getInventory(), host), database: op.database })
+		} catch (error) {
+			await this.generateErrorLog(error, { function: 'contentRequest' })
+			reply({})
+		}
+	}
+
+
 	async databaseRequest(port, message)  {
+		const kind = senderKind(port?.sender, browser.runtime)
+		if (kind !== 'page') return this.contentRequest(port, message, kind === 'content' ? siteOf(port.sender) : null)
+
 		try {
 			if (
 				(typeof port === 'object') && 

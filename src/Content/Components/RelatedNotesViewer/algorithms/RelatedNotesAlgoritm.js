@@ -1,3 +1,5 @@
+import { originHost } from '../../../../Universal/Utils/site.js'
+
 export const getNoteURLComparison = (database) => {
 	const relatedNotes = {
 		fullMatchList: [],
@@ -21,7 +23,7 @@ export const getNoteURLComparison = (database) => {
 			const origin = item.origin || ''
 
 			if (origin === URL.full) relatedNotes.fullMatchList.push(item)
-			else if (origin.split('/')[0] === URL.domain) relatedNotes.domainMatchList.push(item)
+			else if (originHost(origin) === URL.domain) relatedNotes.domainMatchList.push(item)
 			else relatedNotes.noMatchList.push(item) 
 		})
 
