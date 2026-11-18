@@ -33,7 +33,7 @@ All notable changes to Notate are documented in this file.
 - **Smaller pictures.** A picture you drop, paste or pick is shrunk to fit 1600 pixels. It is saved as WebP when that makes it smaller, and kept as it is otherwise. The editor has a new button to insert a picture, and you can paste a copied picture. Files over 25 MB and files that are not pictures are refused.
 - **Formats on note cards.** Cards show lists, checkboxes, headings and quotes as plain lines such as `• item` and `☐ task`.
 - **Lists, headings and quotes.** The editor has new buttons for bullet lists, numbered lists, checklists, two heading sizes and quotes. You can also type `- `, `1. `, `[ ] `, `# `, `## ` or `> ` at the start of a line. Click a box to tick it, or press Ctrl + Enter.
-- **Safer web pages.** A web page can no longer read your notes from other sites, or change, delete or export them. The Notate menu on a site now gets only that site's notes. Fake clicks and keys made by a page are ignored, and the page cannot see what you type in the note window.
+- **Safer web pages.** A web page can no longer read your notes from other sites, or change, delete or export them. The Notate menu on a site now gets only that site's notes. Fake clicks and keys made by a page are ignored.
 
 ## 2.0.0 — 2026-11-16
 
