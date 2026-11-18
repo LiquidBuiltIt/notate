@@ -33,13 +33,13 @@ const settingOk = (tpl, patch) => keysIn(patch, ['value']) && typeof patch.value
 
 const list = (v, max) => v === undefined || (Array.isArray(v) && v.length <= max)
 
-const dismissedOk = (op, host) => keysIn(op, ['$add', '$remove']) && list(op.$add, 1) && list(op.$remove, MAX_IDS)
-	&& (op.$add ?? []).every((s) => s === host)   // the menu only hides its own site
-	&& (op.$remove ?? []).every((s) => str(s, 253))
+// A site may add or remove only itself, so it cannot see or edit the list of other sites.
+const dismissedOk = (op, host) => keysIn(op, ['$add', '$remove']) && list(op.$add, 1) && list(op.$remove, 1)
+	&& [...(op.$add ?? []), ...(op.$remove ?? [])].every((s) => s === host)
 
 // `path` is the module name one level down (Notate, WebContent), where special keys live, and empty elsewhere.
 const walkConfig = (tpl, patch, host, path) => plain(patch) && Object.entries(patch).every(([key, value]) => {
-	if (path === 'WebContent' && key === 'dismissedSites') return Array.isArray(value) ? value.length === 0 : dismissedOk(value, host)
+	if (path === 'WebContent' && key === 'dismissedSites') return dismissedOk(value, host)
 	if (!own(tpl, key)) return false
 	return own(tpl[key], 'options') ? settingOk(tpl[key], value) : walkConfig(tpl[key], value, host, path ? '' : key)
 })
@@ -85,7 +85,13 @@ export const vetContentRequest = (message, host) => {
 
 // The part of a database a content script may hold: this site's notes, the notebooks as a list (no note text), the settings.
 export const trimForContent = (database, inventory, host) => {
-	if (database === 'userConfiguration') return { inventory: { USER_CONFIGURATION: inventory.USER_CONFIGURATION } }
+	if (database === 'userConfiguration') {
+		// The list of sites where the menu is hidden shows the user's browsing, so only this site's entry is sent.
+		const settings = inventory.USER_CONFIGURATION.map((record) => record?.WebContent?.dismissedSites
+			? { ...record, WebContent: { ...record.WebContent, dismissedSites: record.WebContent.dismissedSites.filter((site) => site === host) } }
+			: record)
+		return { inventory: { USER_CONFIGURATION: settings } }
+	}
 	return { inventory: {
 		NOTES: inventory.NOTES.filter((note) => isSiteNote(note, host)),
 		NOTEBOOKS: inventory.NOTEBOOKS.map(({ id, title, description, collection }) => ({ id, title, description, collection })),

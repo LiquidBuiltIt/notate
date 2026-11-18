@@ -95,6 +95,8 @@ const DENIED = {
 	'add a setting': op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { Evil: { a: 1 } }),
 	'change what a setting offers': op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { WebContent: { behavior: { contextMenuPopup: { options: ['x'] } } } }),
 	'hide the menu on another site': op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { WebContent: { dismissedSites: { $add: ['example.com'] } } }),
+	'empty the hidden sites': op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { WebContent: { dismissedSites: [] } }),
+	'unhide another site': op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { WebContent: { dismissedSites: { $remove: ['example.com'] } } }),
 	'replace the hidden sites': op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { WebContent: { dismissedSites: ['example.com'] } }),
 	'delete a note of this site': op('DELETE_DATABASE', 'notate', 'NOTES', { id: 1 }),
 	'delete a note of another site': op('DELETE_DATABASE', 'notate', 'NOTES', { id: 3 }),
@@ -143,6 +145,19 @@ test('a content script can still create and edit notes of its site, file them, a
 	await asContent(page, op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { WebContent: { behavior: { contextMenuPopup: { value: 'false' } } } }))
 	assert.equal((await config()).WebContent.behavior.contextMenuPopup.value, 'false')
 	assert.deepEqual(b.errors, [])
+})
+
+test('a content script sees and changes only its own entry in the list of sites where the menu is hidden', async () => {
+	await seed()
+	const { page } = await openFixture(b, fx)
+	await asNewTab(op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { WebContent: { dismissedSites: { $add: ['example.com', 'bank.example', HOST] } } }))
+	const hidden = (r) => r.content.data.inventory.USER_CONFIGURATION[0].WebContent.dismissedSites
+	for (const type of ['GET_DATABASE', 'RELOAD_DATABASE']) {
+		assert.deepEqual(hidden(await asContent(page, { type, content: { database: 'userConfiguration' } })), [HOST], `${type}: only this site is listed`)
+	}
+	const reply = await asContent(page, op('PATCH_DATABASE', 'userConfiguration', 'USER_CONFIGURATION', { WebContent: { dismissedSites: { $remove: [HOST] } } }))
+	assert.deepEqual(hidden(reply), [], 'the reply to a write lists only this site')
+	assert.deepEqual((await config()).WebContent.dismissedSites.sort(), ['bank.example', 'example.com'], 'the other sites stay hidden')
 })
 
 test('the new tab page can still do everything: edit any note, patch many, delete, create notebooks, change settings', async () => {
