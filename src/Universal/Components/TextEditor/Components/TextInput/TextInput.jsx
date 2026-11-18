@@ -2,6 +2,7 @@ import React from 'react';
 import * as Format from './InputFormatters.js'
 import { TextInputContext, ShadowRootContext } from '../../TextEditor.jsx';
 import GhostEditor from './firefox.jsx';
+import { insertImageFile } from './images.js';
 import { blockShortcut, toggleCaretItem, toggleChecked, uncheckCaretItem } from './blocks.js';
 
 
@@ -77,34 +78,7 @@ export default function TextInput() {
     		} else {
         		const files = event.dataTransfer.files;
         		if (files && files.length > 0) {
-            			const file = files[0];
-            			if (typeof file.type === 'string') {
-                			const reader = new FileReader();
-                			reader.onload = (e) => {
-                    				const img = new Image();
-                    				img.onload = () => {
-                        				const naturalWidth = img.naturalWidth;
-                        				const naturalHeight = img.naturalHeight;
-                        				const imgElement = document.createElement('img');
-
-                        				imgElement.src = e.target.result;
-                        				imgElement.id = Format.uniqueId('img');
-                        				imgElement.style.width = `${naturalWidth}px`;
-                        				imgElement.style.height = `${naturalHeight}px`;
-                        				imgElement.setAttribute('draggable', 'true');
-                        				imgElement.setAttribute('data-natural-width', naturalWidth);
-                        				imgElement.setAttribute('data-natural-height', naturalHeight);
-
-                        				Format.imageAtCursor(
-								imgElement, root, textDisplayRef, setText, target
-							);
-                    				};
-
-                    				img.src = e.target.result;
-                			}
-
-                			reader.readAsDataURL(file);
-            			}
+            			insertImageFile(files[0], (img) => Format.imageAtCursor(img, root, textDisplayRef, setText, target));
         		}
     		}
 	};
@@ -143,8 +117,11 @@ export default function TextInput() {
 	const handlePaste = (event) => {
 		event.preventDefault()
 		const pastedPlainText = event.clipboardData.getData('text/plain')
+		const image = Array.from(event.clipboardData.files).find((file) => file.type.startsWith('image/'))
 
-		document.execCommand('insertText', false, pastedPlainText)
+		// A copied picture has no text with it. Text stays plain text, so a copied page does not bring its markup.
+		if (image && !pastedPlainText) insertImageFile(image)
+		else document.execCommand('insertText', false, pastedPlainText)
 	}
 
 

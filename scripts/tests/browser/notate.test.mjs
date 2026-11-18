@@ -1,4 +1,5 @@
 import { writeFileSync } from 'node:fs'
+import { deflateSync, crc32 } from 'node:zlib'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test, beforeEach, afterEach } from 'node:test'
@@ -1811,4 +1812,77 @@ test('note cards show lists, checkboxes, headings and quotes as plain lines, wit
 	assert.equal(r.text.trim(), '• one\n• two\n1. x\n2. y\n☐ todo\n☑ done\nHead\n› q\ntail')
 	assert.equal(r.kids, 0, 'no element created in a note card')
 	assert.equal(r.pre, 'pre-line')
+})
+
+// ---- Images: dropped, picked and pasted files go through one helper ----
+
+// A 4000x3000 greyscale gradient PNG, written without any library.
+function bigPng(path) {
+	const w = 4000, h = 3000, raw = Buffer.alloc((w + 1) * h)
+	for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) raw[y * (w + 1) + 1 + x] = (x + y) & 255
+	const chunk = (type, data) => {
+		const body = Buffer.concat([Buffer.from(type), data]), out = Buffer.alloc(body.length + 8)
+		out.writeUInt32BE(data.length, 0); body.copy(out, 4); out.writeUInt32BE(crc32(body), body.length + 4)
+		return out
+	}
+	const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8 // 8-bit greyscale
+	writeFileSync(path, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]))
+}
+// A File made in the page: a canvas PNG, or any text under any type.
+const makeFile = (w, h) => `(async () => { const c = document.createElement('canvas'); c.width = ${w}; c.height = ${h}; const x = c.getContext('2d'); const g = x.createLinearGradient(0, 0, ${w}, ${h})
+	g.addColorStop(0, '#e0451f'); g.addColorStop(1, '#1b1a17'); x.fillStyle = g; x.fillRect(0, 0, ${w}, ${h})
+	return new File([await new Promise((r) => c.toBlob(r, 'image/png'))], 'big.png', { type: 'image/png' }) })()`
+const sendFile = (page, event, fileExpr) => page.eval(`(async () => { const dt = new DataTransfer(); dt.items.add(await ${fileExpr})
+	const ed = document.querySelector('#input-text-display'); ed.focus()
+	ed.dispatchEvent(${event === 'drop' ? `new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })` : `new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })`}) })()`)
+const imagesIn = (page) => page.eval(`[...document.querySelectorAll('#input-text-display img')].map((i) => ({ prefix: i.src.slice(0, 15), size: i.src.length, id: i.id,
+	w: +i.dataset.naturalWidth, h: +i.dataset.naturalHeight, width: i.style.width, max: getComputedStyle(i).maxWidth }))`)
+const assertShrunk = (imgs) => {
+	assert.equal(imgs.length, 1, JSON.stringify(imgs))
+	const [i] = imgs
+	assert.equal(i.prefix, 'data:image/webp')
+	assert.equal(Math.max(i.w, i.h), 1600)
+	assert.equal(i.h, 1200)
+	assert.ok(i.size < 400 * 1024, `the stored image is ${i.size} characters`)
+	assert.match(i.id, /^img-/)
+	assert.equal(i.width, '1600px')
+	assert.equal(i.max, '100%')
+}
+
+for (const how of ['drop', 'paste']) {
+	test(`a 4000x3000 image ${how === 'drop' ? 'dropped on' : 'pasted into'} the editor is saved as a WebP of at most 1600 px`, async () => {
+		const { page, n } = await openNewTabEditor()
+		await sendFile(page, how, makeFile(4000, 3000))
+		await waitFor(async () => (await imagesIn(page)).length, 'image in the editor')
+		assertShrunk(await imagesIn(page))
+		await n.click('#save-btn')
+		const saved = await waitFor(async () => (await notes()).find((x) => x.title === 'Blocks'), 'saved note')
+		assert.match(saved.content, /<img [^>]*src="data:image\/webp;base64,/)
+		assert.deepEqual(b.errors, [])
+	})
+}
+
+test('a 4000x3000 image picked with the toolbar button is saved as a WebP of at most 1600 px', async () => {
+	const { page, n } = await openNewTabEditor()
+	const png = join(tmpdir(), 'notate-big.png')
+	bigPng(png)
+	await page.send('Page.setInterceptFileChooserDialog', { enabled: true })
+	const opened = new Promise((res) => b.cdp.on((m) => { if (m.method === 'Page.fileChooserOpened') res(m.params) }))
+	await n.click('#insert-image-btn')
+	await page.send('DOM.setFileInputFiles', { files: [png], backendNodeId: (await opened).backendNodeId })
+	await waitFor(async () => (await imagesIn(page)).length, 'picked image in the editor')
+	assertShrunk(await imagesIn(page))
+})
+
+test('a text file dropped on the editor inserts nothing, and an SVG becomes a WebP', async () => {
+	const { page } = await openNewTabEditor()
+	await sendFile(page, 'drop', `new File(['hello'], 'a.txt', { type: 'text/plain' })`)
+	await sendFile(page, 'drop', `new File(['<html><img src=x onerror=1></html>'], 'a.html', { type: 'text/html' })`)
+	await sleep(700)
+	assert.equal(await page.eval(`document.querySelector('#input-text-display').innerHTML`), '')
+	await sendFile(page, 'drop', `new File(['<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><rect width="40" height="30" fill="red"/></svg>'], 'a.svg', { type: 'image/svg+xml' })`)
+	await waitFor(async () => (await imagesIn(page)).length, 'svg image in the editor')
+	const [i] = await imagesIn(page)
+	assert.equal(i.prefix, 'data:image/webp')
+	assert.deepEqual([i.w, i.h], [40, 30])
 })

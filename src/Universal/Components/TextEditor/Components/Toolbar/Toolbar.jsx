@@ -1,6 +1,7 @@
 import React from 'react';
 import FontStylingCtrls from './Components/FontStylingCtrls.jsx';
 import BlockFormatCtrls from './Components/BlockFormatCtrls.jsx';
+import InsertImageCtrl from './Components/InsertImageCtrl.jsx';
 import FontSizeCtrls from './Components/FontSizeCtrls.jsx';
 import UndoRedoCtrls from './Components/UndoRedoCtrls.jsx';
 import AlignmentCtrls from './Components/AlignmentCtrls.jsx';
@@ -18,6 +19,7 @@ export default function Toolbar({ControllerComponents}) {
 		  <FontStylingCtrls/>
 		  <FontSizeCtrls/>
 		  <BlockFormatCtrls/>
+		  <InsertImageCtrl/>
 		  <AlignmentCtrls/>
 		  <UndoRedoCtrls/>
 	  </div>

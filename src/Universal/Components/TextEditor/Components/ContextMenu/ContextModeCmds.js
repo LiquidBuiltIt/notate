@@ -1,3 +1,5 @@
+import { pickImage } from '../TextInput/images.js';
+
 
 export const NormalModeCmds = [
 	{
@@ -39,29 +41,7 @@ export const NormalModeCmds = [
 	{
 		type: 'insertImg',
 		name: 'Insert Image',
-		action: () => {
-			const input = document.createElement('input');
-    			input.type = 'file';
-    			input.accept = 'image/*';
-
-    			input.onchange = (event) => {
-      				const file = event.target.files[0];
-
-      				if (file) {
-        				const reader = new FileReader();
-        				reader.onload = (e) => {
-          					const img = document.createElement('img');
-          					img.src = e.target.result;
-          					img.style.maxWidth = '100%';
-          					document.execCommand('insertHTML', false, img.outerHTML);
-        				};
-
-        				reader.readAsDataURL(file);
-      				}
-    			};
-
-    			input.click();
-		}
+		action: pickImage
 	}
 ];
 
