@@ -572,6 +572,91 @@ test('"Insert Image" from the editor context menu still inserts the picked image
 	await waitFor(() => page.eval(`!!${EDITOR}.querySelector('img[src^="data:image/gif"]')`, 'content'), 'picked image in the editor')
 })
 
+// --- The in-page editor keeps every control inside the panel, and a picked image never leaves the editor ---
+const CROOT = 'chrome.dom.openOrClosedShadowRoot(document.querySelector("#content-script-entry-point"))'
+// Controls that are cut off or spill past the panel, and whether the editor scrolls sideways.
+const toolbarFit = (page, root = CROOT, world = 'content') => page.eval(`(() => {
+	const r = ${root}, panel = r.querySelector('#text-editor').getBoundingClientRect(), bar = r.querySelector('#toolbar').getBoundingClientRect()
+	const out = [...r.querySelectorAll('#toolbar button, #toolbar select')].filter((e) => { const b = e.getBoundingClientRect(); return b.left < panel.left || b.right > panel.right || b.bottom > bar.bottom + 1 || !b.width })
+	const ed = r.querySelector('#text-editor')
+	return { cut: out.map((e) => e.id || e.tagName), scrollsSideways: ed.scrollWidth > ed.clientWidth, panel: panel.width }
+})()`, world)
+
+for (const [what, width] of [['at its default size', null], ['when the panel is narrow', '21rem']]) {
+	test(`the page editor toolbar shows every control and no horizontal scroll bar ${what}`, async () => {
+		const { page, c } = await openPageEditor()
+		if (width) await page.eval(`${CROOT}.querySelector('#note-editor').style.setProperty('max-width', ${JSON.stringify(width)}, 'important')`, 'content')
+		await sleep(1000) // the panel animates its width
+		const fit = await toolbarFit(page)
+		assert.deepEqual(fit.cut, [], JSON.stringify(fit))
+		assert.equal(fit.scrollsSideways, false, JSON.stringify(fit))
+		if (width) assert.ok(fit.panel < 400, `the panel is narrow: ${fit.panel}`)
+		assert.ok((await page.eval(`${CROOT}.querySelectorAll('#toolbar button').length`, 'content')) >= 17, 'all the controls are there')
+		// Save sits in the toolbar, not on a row of its own under it.
+		assert.equal(await page.eval(`(() => { const r = ${CROOT}, bar = r.querySelector('#toolbar'), s = r.querySelector('#save-note-btn').getBoundingClientRect(), last = [...bar.querySelectorAll('#default-toolbar-items button, #default-toolbar-items select')].map((e) => e.getBoundingClientRect().bottom).sort((a, z) => z - a)[0]; return bar.contains(r.querySelector('#save-note-btn')) && s.top < last })()`, 'content'), true, 'Save shares a row with the other controls')
+		assert.deepEqual(b.errors, [])
+	})
+}
+
+test('the new tab editor toolbar still fits its window with no horizontal scroll bar', async () => {
+	const { page } = await openNewTabEditor()
+	const fit = await toolbarFit(page, 'document', 'main')
+	assert.deepEqual(fit.cut, [], JSON.stringify(fit))
+	assert.equal(fit.scrollsSideways, false, JSON.stringify(fit))
+})
+
+const caretIn = (page, offset) => page.eval(`(() => { const t = ${EDITOR}.firstChild; const r = document.createRange(); r.setStart(t, ${offset}); r.collapse(true); const s = document.getSelection(); s.removeAllRanges(); s.addRange(r) })()`, 'content')
+const pageImgs = (page) => page.eval(`document.querySelectorAll('img').length`)
+async function pickInPage(page, open, during) {
+	const png = join(tmpdir(), 'notate-small.png')
+	writeFileSync(png, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'))
+	await page.send('Page.setInterceptFileChooserDialog', { enabled: true })
+	const opened = new Promise((res) => b.cdp.on((m) => { if (m.method === 'Page.fileChooserOpened') res(m.params) }))
+	await open()
+	const { backendNodeId } = await opened
+	await during?.()
+	await page.send('DOM.setFileInputFiles', { files: [png], backendNodeId })
+	await waitFor(() => page.eval(`!!${EDITOR}.querySelector('img[src^="data:image/png"]')`, 'content'), 'picked image in the page editor')
+}
+const hostileField = (page) => page.eval(`(() => { const d = document.createElement('div'); d.id = 'hostile'; d.contentEditable = 'true'; d.textContent = 'page'; document.body.append(d) })()`)
+const selectHostile = (page) => page.eval(`(() => { const r = document.createRange(); r.setStart(document.querySelector('#hostile').firstChild, 2); r.collapse(true); const s = getSelection(); s.removeAllRanges(); s.addRange(r) })()`)
+const assertPageClean = async (page) => {
+	assert.equal(await page.eval(`document.querySelector('#hostile').innerHTML`), 'page', 'the page field got nothing')
+	assert.equal(await pageImgs(page), 0, 'no picture in the page')
+}
+
+for (const [how, open] of [['toolbar button', (c) => () => c.click('#insert-image-btn')], ['context menu Insert Image', (c, page) => async () => { const { x, y } = await c.center('#input-text-display'); await page.rightClick(x, y); await c.click('#insertImg') }]]) {
+	test(`an image picked with the ${how} in the page editor goes into the editor, even when the page moves the selection`, async () => {
+		const { page, c } = await openPageEditor()
+		await page.type('after')
+		await hostileField(page)
+		await pickInPage(page, open(c, page), () => selectHostile(page))
+		await assertPageClean(page)
+		assert.match(await editorHtml(page), /^before(\s|&nbsp;)*(<img [^>]*>)?.*$/)
+		assert.equal(await page.eval(`${EDITOR}.querySelectorAll('img').length`, 'content'), 1)
+		assert.deepEqual(b.errors, [])
+	})
+}
+
+test('an image picked with the toolbar button in the page editor lands at the saved caret', async () => {
+	const { page, c } = await openPageEditor()
+	await page.type('after')
+	await caretIn(page, 3)
+	await hostileField(page)
+	await pickInPage(page, () => c.click('#insert-image-btn'), () => selectHostile(page))
+	await assertPageClean(page)
+	assert.match(await editorHtml(page), /^bef<img [^>]*>ore(\s|&nbsp;)after$/)
+})
+
+test('an image picked in the page editor with the caret outside it is appended to the editor, not the page', async () => {
+	const { page, c } = await openPageEditor()
+	await hostileField(page)
+	await selectHostile(page)
+	await pickInPage(page, () => page.eval(`${CROOT}.querySelector('#insert-image-btn').click()`, 'content'))
+	await assertPageClean(page)
+	assert.match(await editorHtml(page), /^before(\s|&nbsp;)<img [^>]*>$/)
+})
+
 test('scripted clicks cannot close the page editor window', async () => {
 	const { page, c } = await openPageEditor()
 	const closeBtn = '#editor-window-ctrl-center > button:last-child'

@@ -15,7 +15,7 @@ export default function Toolbar({ControllerComponents}) {
 	 // Keep the editor's selection when a toolbar button is pressed (the font size select still opens).
 	 onMouseDown={(e) => { if (e.target instanceof Element && e.target.closest('button')) e.preventDefault() }}>
 	  <div id="default-toolbar-items"
-	  	className="flex flex-grow gap-2 items-center">
+	  	className="flex flex-1 basis-0 min-w-0 flex-wrap gap-x-2 gap-y-1 items-center">
 		  <FontStylingCtrls/>
 		  <FontSizeCtrls/>
 		  <BlockFormatCtrls/>
