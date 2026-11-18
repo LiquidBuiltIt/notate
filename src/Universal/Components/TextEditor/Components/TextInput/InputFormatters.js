@@ -15,13 +15,14 @@ const [bodyOf, childNodesOf, nodeTypeOf, dataOf, localNameOf, namespaceOf, owner
 	getter(Node, 'parentNode'), getter(Node, 'firstChild'), getter(Element, 'outerHTML'),
 ]
 const IS_VALUE = /^<[^\s>]+ is=/
-const KEEP_TAGS = new Set(['b', 'i', 'u', 'strike', 's', 'p', 'span', 'font', 'div', 'br', 'a', 'img'])
+const KEEP_TAGS = new Set(['b', 'i', 'u', 'strike', 's', 'p', 'span', 'font', 'div', 'br', 'a', 'img', 'ul', 'ol', 'li', 'h1', 'h2', 'blockquote'])
 const DROP_TAGS = new Set(['script', 'style', 'template', 'iframe', 'object', 'embed', 'svg', 'math', 'form'])
 const KEEP_STYLES = ['text-align', 'width', 'height', 'max-width', 'white-space', 'color', 'font-weight', 'font-style', 'text-decoration', 'font-size']
 const KEEP_ATTRS = {
 	a: { href: (v) => URL.canParse(v) && ['http:', 'https:'].includes(new URL(v).protocol) },
 	img: { src: (v) => v.startsWith('data:image/'), id: (v) => /^img-/.test(v), draggable: () => true, 'data-natural-width': () => true, 'data-natural-height': () => true },
 	font: { size: (v) => /^[1-7]$/.test(v) },
+	li: { 'data-checked': (v) => v === 'true' || v === 'false' },
 }
 
 const cleanStyle = (value, doc) => {

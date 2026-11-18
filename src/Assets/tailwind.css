@@ -313,3 +313,16 @@
 @media (prefers-reduced-motion: reduce) {
 	.bd-root *, .bd-root *::before, .bd-root *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
 }
+
+/* Note editor: Preflight strips list, heading and quote styles, so the block formats are drawn here. */
+#input-text-display ul, #input-text-display ol { margin: .3em 0; padding-left: 1.5em; }
+#input-text-display ul { list-style: disc; }
+#input-text-display ol { list-style: decimal; }
+#input-text-display li::marker { color: #B8321A; }
+#input-text-display li[data-checked] { list-style: none; position: relative; }
+#input-text-display li[data-checked]::before { content: '\2610'; position: absolute; left: -1.5em; width: 1.5em; text-align: center; color: #B8321A; cursor: pointer; }
+#input-text-display li[data-checked="true"]::before { content: '\2611'; }
+#input-text-display li[data-checked="true"] { text-decoration: line-through; opacity: .55; }
+#input-text-display h1 { margin: .5em 0 .2em; font-size: 1.6em; font-weight: 600; line-height: 1.2; }
+#input-text-display h2 { margin: .5em 0 .2em; font-size: 1.3em; font-weight: 600; line-height: 1.25; }
+#input-text-display blockquote { margin: .4em 0; padding-left: 1em; border-left: 3px solid #E0451F; font-style: italic; }

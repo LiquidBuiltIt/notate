@@ -1660,3 +1660,142 @@ test('a web-page save that keeps failing is retried three times and then stops',
 	assert.equal((await notes()).length, 0)
 	b.errors.length = 0 // the forced failures are expected
 })
+
+// ---- Block formats: lists, checkbox, headings, quote ----
+
+async function openNewTabEditor() {
+	const page = await b.openPage(NEWTAB)
+	const n = ui(page)
+	await n.hover('#search-bar-tab')
+	await n.click('#new-note-button')
+	await n.fill('#edit-note-title', 'Blocks')
+	await n.appear('#input-text-display')
+	await page.eval(`document.querySelector('#input-text-display').focus()`)
+	return { page, n }
+}
+const SPACE = { key: ' ', code: 'Space', text: ' ', windowsVirtualKeyCode: 32 }
+const pressSpace = async (page) => {
+	await page.send('Input.dispatchKeyEvent', { type: 'keyDown', ...SPACE })
+	await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: ' ', code: 'Space', windowsVirtualKeyCode: 32 })
+}
+const CTRL = 2
+const shortcutLine = async (page, prefix, text) => { await page.type(prefix); await pressSpace(page); await page.type(text) }
+// Each block of a stored note as [tag, data-checked, text].
+const blocksOf = (html) => b.reader().then((r) => r.eval(`(() => {
+	const d = new DOMParser().parseFromString(${JSON.stringify(html)}, 'text/html')
+	return [...d.querySelectorAll('li, h1, h2, blockquote')].map((e) => [e.parentElement.localName === 'ol' ? 'ol>li' : e.localName, e.getAttribute('data-checked'), e.textContent.trim()])
+})()`))
+
+test('typed shortcuts make lists, a checkbox, headings and a quote that survive save and reopen', async () => {
+	const { page, n } = await openNewTabEditor()
+	await shortcutLine(page, '-', 'bullet'); await pressKey(page, 'Enter'); await pressKey(page, 'Enter')
+	await shortcutLine(page, '1.', 'one'); await pressKey(page, 'Enter'); await pressKey(page, 'Enter')
+	await shortcutLine(page, '[ ]', 'todo'); await pressKey(page, 'Enter'); await page.type('second')
+	await pressKey(page, 'Enter', { modifiers: CTRL }) // Ctrl+Enter ticks the item the caret is in
+	await pressKey(page, 'Enter'); await pressKey(page, 'Enter')
+	await shortcutLine(page, '#', 'Big'); await pressKey(page, 'Enter')
+	await shortcutLine(page, '##', 'Small'); await pressKey(page, 'Enter')
+	await shortcutLine(page, '>', 'said')
+	await n.click('#save-btn')
+	const saved = await waitFor(async () => (await notes()).find((x) => x.title === 'Blocks'), 'saved note')
+	const expected = [['li', null, 'bullet'], ['ol>li', null, 'one'], ['li', 'false', 'todo'], ['li', 'true', 'second'], ['h1', null, 'Big'], ['h2', null, 'Small'], ['blockquote', null, 'said']]
+	assert.deepEqual(await blocksOf(saved.content), expected, saved.content)
+	assert.doesNotMatch(saved.content, /<input|\[ \]|&gt;/, 'the typed prefixes are gone')
+	// Reopen: the blocks come back from the stored note.
+	const page2 = await b.openPage(NEWTAB)
+	await ui(page2).click('#note-card-1')
+	await waitFor(() => page2.eval(`document.querySelector('#input-text-display')?.querySelector('blockquote')`), 'editor filled with the note')
+	const s = await editorState(page2)
+	assert.deepEqual(['ul', 'ol', 'li', 'h1', 'h2', 'blockquote'].filter((t) => !s.tags.includes(t)), [], s.html)
+	assert.deepEqual(b.errors, [])
+})
+
+test('a click on the box flips a checkbox item, and Enter starts the next item unchecked', async () => {
+	const { page, n } = await openNewTabEditor()
+	const checks = () => page.eval(`[...document.querySelectorAll('#input-text-display li')].map((e) => e.getAttribute('data-checked'))`)
+	await shortcutLine(page, '[ ]', 'first')
+	await pressKey(page, 'Enter', { modifiers: CTRL })
+	assert.deepEqual(await checks(), ['true'])
+	await pressKey(page, 'Enter')
+	await page.type('second')
+	assert.deepEqual(await checks(), ['true', 'false'], 'the new item is not copied as checked')
+	await n.center('#input-text-display') // the modal has stopped sliding in
+	const box = await page.eval(`(() => { const r = document.querySelector('#input-text-display li').getBoundingClientRect(); return { x: r.left - 8, y: r.top + r.height / 2 } })()`)
+	await page.click(box.x, box.y)
+	await waitFor(async () => (await checks())[0] === 'false', 'the first item unticked by a click on its box')
+	await page.click(box.x + 40, box.y) // a click on the text does not flip it
+	await sleep(300)
+	assert.deepEqual(await checks(), ['false', 'false'])
+})
+
+test('block shortcuts and the checklist button also work in the editor on a web page', async () => {
+	const { page, c } = await openPageEditor()
+	await pressKey(page, 'Enter')
+	await shortcutLine(page, '-', 'item')
+	await pressKey(page, 'Enter'); await pressKey(page, 'Enter')
+	await c.click('#checklist-btn')
+	await page.type('todo')
+	const html = await editorHtml(page)
+	assert.match(html, /<ul[^>]*><li[^>]*>item<\/li>/, html)
+	assert.match(html, /<li[^>]*data-checked="false"[^>]*>todo/, html)
+	assert.doesNotMatch(html, /- item/, html)
+	assert.deepEqual(b.errors, [])
+})
+
+test('every block toolbar button formats the line and a second press reverts it', async () => {
+	const { page, n } = await openNewTabEditor()
+	const buttons = ['bullet-list-btn', 'numbered-list-btn', 'checklist-btn', 'heading-1-btn', 'heading-2-btn', 'quote-btn']
+	for (const [i, id] of buttons.entries()) {
+		await n.click(`#${id}`)
+		await page.type(`line${i}`)
+		if (i < buttons.length - 1) { await pressKey(page, 'Enter'); if (i < 3) await pressKey(page, 'Enter') }
+	}
+	await n.click('#save-btn')
+	const saved = await waitFor(async () => (await notes()).find((x) => x.title === 'Blocks'), 'saved note')
+	assert.deepEqual(await blocksOf(saved.content), [['li', null, 'line0'], ['ol>li', null, 'line1'], ['li', 'false', 'line2'], ['h1', null, 'line3'], ['h2', null, 'line4'], ['blockquote', null, 'line5']], saved.content)
+	// Pressing a button a second time on the same line undoes the format.
+	const page2 = await b.openPage(NEWTAB)
+	await ui(page2).click('#note-card-1')
+	await waitFor(() => page2.eval(`document.querySelector('#input-text-display')?.querySelector('h1')`), 'editor filled with the note')
+	await page2.eval(`(() => { const h = document.querySelector('#input-text-display h1'); getSelection().collapse(h.firstChild, 2) })()`)
+	await ui(page2).click('#heading-1-btn')
+	await waitFor(async () => !(await page2.eval(`!!document.querySelector('#input-text-display h1')`)), 'heading reverted')
+	assert.match(await page2.eval(`document.querySelector('#input-text-display').textContent`), /line3/)
+})
+
+test('hostile block markup in a stored note loses every attribute except data-checked true or false', async () => {
+	const page = await openPlantedEditor('<ul><li data-checked="javascript:1" onclick="window.__pwn=1">a</li><li data-checked="true" class="x" id="y">b</li><li data-checked="x">c</li></ul>'
+		+ '<ol start="5" type="a" reversed><li value="9">d</li></ol><h1 style="position:fixed" onclick="window.__pwn=2">e</h1><h2 class="z">f</h2><blockquote cite="http://127.0.0.1:1/beacon" style="background:url(http://127.0.0.1:1/beacon)">g</blockquote>')
+	await sleep(500)
+	const s = await editorState(page)
+	for (const t of ['ul', 'ol', 'li', 'h1', 'h2', 'blockquote']) assert.ok(s.tags.includes(t), `${t} kept: ${s.html}`)
+	assert.doesNotMatch(s.html, /onclick|javascript|class=|id=|start=|type=|reversed|value=|cite=|position|background|x"/, s.html)
+	assert.deepEqual(await page.eval(`[...document.querySelectorAll('#input-text-display li[data-checked]')].map((e) => e.getAttribute('data-checked'))`), ['true'])
+	assert.equal(s.pwn, null)
+	assert.equal(s.beacons, 0, 'nothing was requested')
+})
+
+test('pasted HTML with list items, inputs and handlers brings only its text', async () => {
+	const { page } = await openNewTabEditor()
+	await page.eval(`(() => {
+		const dt = new DataTransfer()
+		dt.setData('text/html', '<ul><li data-checked="true" onclick="window.__pwn=1"><input type=checkbox>html</li></ul>')
+		dt.setData('text/plain', 'only text')
+		document.querySelector('#input-text-display').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }))
+	})()`)
+	await sleep(300)
+	const s = await editorState(page)
+	assert.deepEqual(s.tags, [], s.html)
+	assert.equal(s.text, 'only text')
+	assert.equal(s.pwn, null)
+})
+
+test('a page script cannot put a data-checked value other than true or false into the page editor', async () => {
+	const { page, c } = await openPageEditor()
+	await page.eval(`document.execCommand('insertHTML', false, '<ul><li data-checked="x" onclick="window.__root=this.getRootNode()">z</li><li data-checked="true">t</li></ul>')`)
+	await sleep(500)
+	const html = await editorHtml(page)
+	assert.doesNotMatch(html, /data-checked="x"|onclick/, html)
+	assert.match(html, /data-checked="true"/)
+	await assertHeld(page, c, 'data-checked')
+})

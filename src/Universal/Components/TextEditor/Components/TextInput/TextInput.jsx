@@ -2,6 +2,7 @@ import React from 'react';
 import * as Format from './InputFormatters.js'
 import { TextInputContext, ShadowRootContext } from '../../TextEditor.jsx';
 import GhostEditor from './firefox.jsx';
+import { blockShortcut, toggleCaretItem, toggleChecked, uncheckCaretItem } from './blocks.js';
 
 
 export const TEXT_EDITOR_ID = 'input-text-display'
@@ -21,6 +22,11 @@ export default function TextInput() {
 
 	const handleChange = (event) => {
 		const target = event.target
+
+		// Chrome copies data-checked when Enter splits an item: the new item starts unchecked.
+		if (event.nativeEvent.inputType === 'insertParagraph' && root) {
+			uncheckCaretItem(root)
+		}
 
 		// If the walker throws, the observer fails closed and sets the text; nothing unchecked is read here.
 		try { Format.sanitizeTree(target) } catch { return }
@@ -105,12 +111,19 @@ export default function TextInput() {
 
 
   	const handleKeyDown = (event) => {
+		if (event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing && root) {
+			try { if (blockShortcut(root)) event.preventDefault() } catch {}
+		}
+
       		if (event.key === 'Tab') {
       			event.preventDefault();
       			document.execCommand('insertText', true, '\t');
     		} else if (event.ctrlKey && event.key === 'z') {
       			event.preventDefault();
       			document.execCommand('undo', false, null);
+    		} else if (event.ctrlKey && event.key === 'Enter') {
+			event.preventDefault()
+			if (root) toggleCaretItem(root)
     		} else if (event.ctrlKey && event.key === 'y') {
       			event.preventDefault();
  			document.execCommand('redo', false, null);
@@ -120,6 +133,12 @@ export default function TextInput() {
 
     		try { setText(Format.readClean(event.target)) } catch {}
 	};
+
+	// A click in the box left of a checkbox item flips it.
+	const handleClick = (event) => {
+		const li = event.target instanceof Element && event.target.closest('li[data-checked]')
+		if (li && event.clientX < li.getBoundingClientRect().left) toggleChecked(li)
+	}
 
 	const handlePaste = (event) => {
 		event.preventDefault()
@@ -190,6 +209,7 @@ export default function TextInput() {
         		 onInput={handleChange}
 			 onPaste={handlePaste}
 			 onKeyDown={handleKeyDown}
+			 onClick={handleClick}
 			 onDragOver={handleDragOver}
 			 onDragStart={handleDragStart}
 			 onDrop={handleDrop}
