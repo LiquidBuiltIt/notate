@@ -1,8 +1,11 @@
 import React from 'react';
 import { Image } from 'lucide-react';
+import { ShadowRootContext } from '../../../TextEditor.jsx';
 import { pickImage } from '../../TextInput/images.js';
 
 export default function InsertImageCtrl() {
+	const [shadowRootElement] = React.useContext(ShadowRootContext);
+
 	return (
 	<div id="insert-image-controls"
 	      className="flex gap-[2px]">
@@ -11,7 +14,7 @@ export default function InsertImageCtrl() {
 	        aria-label="Insert image"
 	        title="Insert image"
 	        className="focus-ink flex items-center justify-center size-7 rounded-none font-serif text-[17px] leading-none text-ink transition duration-150 ease-out hover:bg-paper-deep active:bg-ink active:text-paper"
-	        onClick={pickImage}
+	        onClick={() => pickImage(shadowRootElement || document)}
 	      >
 	        <Image className="size-4" aria-hidden="true"/>
 	      </button>

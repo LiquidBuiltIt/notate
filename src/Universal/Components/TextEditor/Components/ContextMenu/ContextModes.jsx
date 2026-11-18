@@ -1,13 +1,16 @@
 import React, { useContext } from 'react'
 import { ContextMenuStateContext } from './ContextMenu.jsx'
 import { NormalModeCmds, SelectionModeCmds } from './ContextModeCmds.js'
+import { ShadowRootContext } from '../../TextEditor.jsx'
 
 
 export function NormalMode() {
 	const [ active, setActive ] = useContext(ContextMenuStateContext)	
 
+	const [ shadowRootElement ] = useContext(ShadowRootContext)
+
 	const consumeAction = (action) => {
-		action()	
+		action(shadowRootElement || document)
 		setActive(false)
 	}
 
@@ -41,8 +44,10 @@ export function NormalMode() {
 export function SelectionMode() {
 	const [ active, setActive ] = useContext(ContextMenuStateContext)	
 
+	const [ shadowRootElement ] = useContext(ShadowRootContext)
+
 	const consumeAction = (action) => {
-		action()	
+		action(shadowRootElement || document)
 		setActive(false)
 	}
 

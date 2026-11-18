@@ -1,7 +1,8 @@
 import { TEXT_EDITOR_ID } from './TextInput.jsx'
 
-// Block formats (lists, checkbox, headings, quote). All of them go through execCommand, so Ctrl+Z undoes them.
+// Block formats (lists, checkbox, headings, quote). Making a block goes through execCommand, so Ctrl+Z undoes it.
 // A checkbox is a list item with data-checked; the box is drawn by CSS and is never an <input>.
+// Ticking or unticking sets the attribute directly, so it is not in the undo history.
 const TAGS = { h1: 'h1', h2: 'h2', quote: 'blockquote' }
 const SHORTCUTS = { '-': 'ul', '*': 'ul', '1.': 'ol', '[ ]': 'check', '#': 'h1', '##': 'h2', '>': 'quote' }
 const BLOCK_TAGS = new Set(['br', 'div', 'p', 'ul', 'ol', 'h1', 'h2', 'blockquote'])
@@ -35,7 +36,9 @@ export const toggleCaretItem = (root) => {
 	return !!li
 }
 
-export const uncheckCaretItem = (root) => caretIn(root, 'li[data-checked]')?.setAttribute('data-checked', 'false')
+// Chrome copies data-checked when Enter splits an item. Taken at keydown and applied after the input, these make only the new items start unchecked.
+export const checkboxItems = (editor) => new Set(editor.querySelectorAll('li[data-checked]'))
+export const uncheckNewItems = (editor, before) => editor.querySelectorAll('li[data-checked]').forEach((li) => { if (!before.has(li)) li.setAttribute('data-checked', 'false') })
 
 // Typing Space after "-", "1.", "[ ]", "#" ... at the start of a line turns the line into that block. Returns true when it did.
 export const blockShortcut = (root) => {

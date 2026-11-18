@@ -1886,3 +1886,109 @@ test('a text file dropped on the editor inserts nothing, and an SVG becomes a We
 	assert.equal(i.prefix, 'data:image/webp')
 	assert.deepEqual([i.w, i.h], [40, 30])
 })
+
+// --- Fixes from the security review of the editor formats ---
+const EDITOR_SEL = '#input-text-display'
+const svgFile = (w, h) => `new File(['<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="red"/></svg>'], 'a.svg', { type: 'image/svg+xml' })`
+// A contenteditable that belongs to the web page, outside the editor.
+const addHostileField = (page) => page.eval(`(() => { const d = document.createElement('div'); d.id = 'hostile'; d.contentEditable = 'true'; d.textContent = 'page'; document.body.append(d); return true })()`)
+const selectIn = (page, selector, offset) => page.eval(`(() => { const t = document.querySelector(${JSON.stringify(selector)}).firstChild; const r = document.createRange(); r.setStart(t, ${offset}); r.collapse(true)
+	const s = getSelection(); s.removeAllRanges(); s.addRange(r) })()`)
+async function pickWhile(page, whileOpen) {
+	const png = join(tmpdir(), 'notate-small.png')
+	writeFileSync(png, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'))
+	await page.send('Page.setInterceptFileChooserDialog', { enabled: true })
+	const opened = new Promise((res) => b.cdp.on((m) => { if (m.method === 'Page.fileChooserOpened') res(m.params) }))
+	await whileOpen.open()
+	const { backendNodeId } = await opened
+	await whileOpen.during?.()
+	await page.send('DOM.setFileInputFiles', { files: [png], backendNodeId })
+}
+
+test('an image picked while the page moves the selection still lands in the editor, at the caret', async () => {
+	const { page, n } = await openNewTabEditor()
+	await page.type('beforeafter')
+	await addHostileField(page)
+	await selectIn(page, EDITOR_SEL, 6)
+	await pickWhile(page, { open: () => n.click('#insert-image-btn'), during: () => selectIn(page, '#hostile', 2) })
+	await waitFor(async () => (await imagesIn(page)).length, 'picked image in the editor')
+	assert.equal(await page.eval(`document.querySelector('#hostile').innerHTML`), 'page', 'the page field got nothing')
+	assert.match(await page.eval(`document.querySelector('${EDITOR_SEL}').innerHTML`), /^before<img [^>]*>after$/)
+})
+
+test('an image picked with the caret outside the editor goes to the end of the editor, not into the page', async () => {
+	const { page } = await openNewTabEditor()
+	await page.type('text')
+	await addHostileField(page)
+	await selectIn(page, '#hostile', 2)
+	await pickWhile(page, { open: () => page.eval(`document.querySelector('#insert-image-btn').click()`) })
+	await waitFor(async () => (await imagesIn(page)).length, 'picked image in the editor')
+	assert.equal(await page.eval(`document.querySelector('#hostile').innerHTML`), 'page')
+	assert.match(await page.eval(`document.querySelector('${EDITOR_SEL}').innerHTML`), /^text<img [^>]*>$/)
+})
+
+test('a picture that declares more than 40 million pixels is refused, one under the limit is not', async () => {
+	const { page } = await openNewTabEditor()
+	await sendFile(page, 'drop', svgFile(7000, 7000))
+	await sleep(1000)
+	assert.deepEqual(await imagesIn(page), [])
+	await sendFile(page, 'drop', svgFile(6000, 6000))
+	await waitFor(async () => (await imagesIn(page)).length, 'picture under the limit')
+})
+
+test('Enter at the start of a ticked item leaves the item with the text ticked', async () => {
+	const { page } = await openNewTabEditor()
+	const items = () => page.eval(`[...document.querySelectorAll('${EDITOR_SEL} li')].map((e) => [e.getAttribute('data-checked'), e.textContent])`)
+	await shortcutLine(page, '[ ]', 'keep')
+	await pressKey(page, 'Enter', { modifiers: CTRL })
+	await selectIn(page, `${EDITOR_SEL} li`, 0)
+	await pressKey(page, 'Enter')
+	const after = await items()
+	assert.equal(after.length, 2)
+	assert.deepEqual(after.find(([, text]) => text === 'keep'), ['true', 'keep'], JSON.stringify(after))
+	assert.deepEqual(after.find(([, text]) => text === ''), ['false', ''], JSON.stringify(after))
+})
+
+test('Ctrl+Enter is only cancelled when it ticks a checkbox item', async () => {
+	const { page } = await openNewTabEditor()
+	const press = () => page.eval(`(() => { const e = new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true }); document.querySelector('${EDITOR_SEL}').dispatchEvent(e); return e.defaultPrevented })()`)
+	await page.type('plain line')
+	assert.equal(await press(), false, 'not a checkbox item: the key is left alone')
+	await page.eval(`document.querySelector('${EDITOR_SEL}').innerHTML = ''`)
+	await shortcutLine(page, '[ ]', 'task')
+	assert.equal(await press(), true)
+	assert.equal(await page.eval(`document.querySelector('${EDITOR_SEL} li').getAttribute('data-checked')`), 'true')
+})
+
+test('a hostile drag cannot move a page element, or a picture outside the editor, into the editor', async () => {
+	const { page } = await openNewTabEditor()
+	await sendFile(page, 'drop', svgFile(40, 30))
+	await waitFor(async () => (await imagesIn(page)).length, 'picture in the editor')
+	await page.eval(`(() => { const d = document.createElement('img'); d.id = 'img-outside'; d.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACw='; document.body.append(d) })()`)
+	const drop = (id, html) => page.eval(`(() => { const dt = new DataTransfer(); dt.setData('text/html', ${JSON.stringify(html)}); dt.setData('text/plain', ${JSON.stringify(id)})
+		document.querySelector('${EDITOR_SEL}').dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })) })()`)
+	await drop('img-x', '<img id="save-btn">') // an id that is not a picture id
+	await drop('img-outside', '<img id="img-outside">') // a picture id, but the picture is not in the editor
+	await sleep(500)
+	assert.equal(await page.eval(`document.querySelectorAll('${EDITOR_SEL} #save-btn, ${EDITOR_SEL} #img-outside').length`), 0)
+	assert.equal(await page.eval(`!!document.querySelector('body #save-btn')`), true, 'the Save button stays where it is')
+	const [{ id }] = await imagesIn(page)
+	await page.eval(`document.querySelector('${EDITOR_SEL}').insertAdjacentHTML('afterbegin', '<p id="p1">one</p>')`)
+	await drop(id, `<img id="${id}">`) // a real reposition still works: it moves to the end
+	await waitFor(() => page.eval(`document.querySelector('${EDITOR_SEL}').lastElementChild === document.getElementById(${JSON.stringify(id)})`), 'picture moved')
+})
+
+test('a picture that WebP would not make smaller keeps its original bytes', async () => {
+	const { page } = await openNewTabEditor()
+	// Noise saved as a lower quality WebP, no wider than the limit: re-encoding it at the editor's quality can only make it bigger.
+	const lowWebp = `(async () => { const c = document.createElement('canvas'); c.width = 1600; c.height = 1600; const x = c.getContext('2d'), d = x.createImageData(1600, 1600)
+		for (let i = 0; i < d.data.length; i++) d.data[i] = i % 4 === 3 ? 255 : (i * 2654435761 >>> 24)
+		x.putImageData(d, 0, 0)
+		return new File([await new Promise((r) => c.toBlob(r, 'image/webp', 0.5))], 'low.webp', { type: 'image/webp' }) })()`
+	await page.eval(`(async () => { window.__orig = await ${lowWebp}; window.__origUrl = await new Promise((r) => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(window.__orig) }) })()`)
+	assert.ok(await page.eval(`window.__orig.size`) > 500 * 1024, 'big enough to be re-encoded')
+	await sendFile(page, 'drop', 'window.__orig')
+	await waitFor(async () => (await imagesIn(page)).length, 'picture in the editor')
+	assert.equal(await page.eval(`document.querySelector('${EDITOR_SEL} img').getAttribute('src') === window.__origUrl`), true, 'the original bytes are kept')
+	assert.equal(await page.eval(`document.querySelector('${EDITOR_SEL} img').dataset.naturalWidth`), '1600')
+})

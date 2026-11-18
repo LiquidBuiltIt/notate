@@ -166,28 +166,11 @@ export const textContent = (element) => {
 }
 
 
-export const imageAtCursor = (imgElement, root, ref, setText, dropTarget) => {
-	if (dropTarget.id === TEXT_EDITOR_ID) {
-		dropTarget.appendChild(imgElement)
-	} else if (dropTarget && dropTarget.parentNode) {
-        	// Insert after the drop target
-        	if (dropTarget.nextSibling) {
-            		dropTarget.parentNode.insertBefore(imgElement, dropTarget.nextSibling);
-        	} else {
-            		dropTarget.parentNode.appendChild(imgElement);
-        	}
-    	} else {
-        	// Fallback to original behavior if no drop target
-        	const selection = root.getSelection();
-        	if (selection.rangeCount > 0) {
-            		const range = selection.getRangeAt(0);
-            		range.deleteContents();
-            		range.insertNode(imgElement);
-            		range.collapse(false);
-        	} else {
-            		ref.current.appendChild(imgElement);
-        	}
-    	}
+// Puts a picture after the element it was dropped on. A target outside the editor, or none, means the end of the editor: never elsewhere.
+export const imageAtCursor = (imgElement, ref, setText, dropTarget) => {
+	const editor = ref.current
+	if (dropTarget === editor || !editor.contains(dropTarget)) editor.appendChild(imgElement)
+	else dropTarget.parentNode.insertBefore(imgElement, dropTarget.nextSibling)
 
     	setText(readClean(ref.current));
 };

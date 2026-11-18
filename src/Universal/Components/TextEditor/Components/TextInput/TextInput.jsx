@@ -3,7 +3,7 @@ import * as Format from './InputFormatters.js'
 import { TextInputContext, ShadowRootContext } from '../../TextEditor.jsx';
 import GhostEditor from './firefox.jsx';
 import { insertImageFile } from './images.js';
-import { blockShortcut, toggleCaretItem, toggleChecked, uncheckCaretItem } from './blocks.js';
+import { blockShortcut, toggleCaretItem, toggleChecked, checkboxItems, uncheckNewItems } from './blocks.js';
 
 
 export const TEXT_EDITOR_ID = 'input-text-display'
@@ -19,15 +19,17 @@ export default function TextInput() {
 
 
 	const textDisplayRef = React.useRef(null);
+	const itemsBeforeEnter = React.useRef(null)
 
 
 	const handleChange = (event) => {
 		const target = event.target
 
-		// Chrome copies data-checked when Enter splits an item: the new item starts unchecked.
-		if (event.nativeEvent.inputType === 'insertParagraph' && root) {
-			uncheckCaretItem(root)
+		// Chrome copies data-checked when Enter splits an item: the new item starts unchecked, the old one keeps its state.
+		if (event.nativeEvent.inputType === 'insertParagraph' && itemsBeforeEnter.current) {
+			uncheckNewItems(target, itemsBeforeEnter.current)
 		}
+		itemsBeforeEnter.current = null
 
 		// If the walker throws, the observer fails closed and sets the text; nothing unchecked is read here.
 		try { Format.sanitizeTree(target) } catch { return }
@@ -70,21 +72,24 @@ export default function TextInput() {
         		const img = doc.querySelector('img');
         
         		if (img) {
-            			const existingImg = root.getElementById(img.id);
+            			// The id comes from page-supplied drag data: only a picture that is already in the editor can be moved.
+            			const existingImg = /^img-/.test(img.id) && Array.from(textDisplayRef.current.querySelectorAll('img')).find((i) => i.id === img.id);
             			if (existingImg) {
-                			Format.imageAtCursor(existingImg, root, textDisplayRef, setText, target);
+                			Format.imageAtCursor(existingImg, textDisplayRef, setText, target);
             			}
         		}
     		} else {
         		const files = event.dataTransfer.files;
         		if (files && files.length > 0) {
-            			insertImageFile(files[0], (img) => Format.imageAtCursor(img, root, textDisplayRef, setText, target));
+            			insertImageFile(files[0], root, (img) => Format.imageAtCursor(img, textDisplayRef, setText, target));
         		}
     		}
 	};
 
 
   	const handleKeyDown = (event) => {
+		if (event.key === 'Enter') itemsBeforeEnter.current = checkboxItems(textDisplayRef.current)
+
 		if (event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing && root) {
 			try { if (blockShortcut(root)) event.preventDefault() } catch {}
 		}
@@ -96,8 +101,7 @@ export default function TextInput() {
       			event.preventDefault();
       			document.execCommand('undo', false, null);
     		} else if (event.ctrlKey && event.key === 'Enter') {
-			event.preventDefault()
-			if (root) toggleCaretItem(root)
+			if (root && toggleCaretItem(root)) event.preventDefault()
     		} else if (event.ctrlKey && event.key === 'y') {
       			event.preventDefault();
  			document.execCommand('redo', false, null);
@@ -120,7 +124,7 @@ export default function TextInput() {
 		const image = Array.from(event.clipboardData.files).find((file) => file.type.startsWith('image/'))
 
 		// A copied picture has no text with it. Text stays plain text, so a copied page does not bring its markup.
-		if (image && !pastedPlainText) insertImageFile(image)
+		if (image && !pastedPlainText && root) insertImageFile(image, root)
 		else document.execCommand('insertText', false, pastedPlainText)
 	}
 
