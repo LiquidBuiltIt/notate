@@ -62,6 +62,7 @@ export default function RelatedNotesHeader() {
 	}
 
 	const handleRelatedNotesUnfocus = (e) => {
+		if (!e.isTrusted) return
 		const target = e.target.id
 		if (target !== 'content-script-entry-point') {
 			setHeaderState(false)

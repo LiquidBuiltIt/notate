@@ -1,6 +1,7 @@
 import React from 'react'
 
 import { WebContentContext } from '@content/content.jsx'
+import { fromOurUI } from '@universal/Utils/trusted.js'
 
 
 export const ModalControllerContext = React.createContext()
@@ -54,12 +55,10 @@ export default function Modal({modal}) {
 
 
 	const handleContainerClick = (event) => {
-		const target = event.target.id
+		if (!event.isTrusted) return
 
-		// Checks if user clicked the outerbounds of the modal
-		// or clicked on a non-valid component
-		// if true, modal will exit
-		if (target !== 'content-script-entry-point') {
+		// A real click outside our own UI closes the modal. A page cannot fake being inside by giving an element our id.
+		if (!fromOurUI(event, shadow)) {
 			event.preventDefault()
 			exitModal()
 		}

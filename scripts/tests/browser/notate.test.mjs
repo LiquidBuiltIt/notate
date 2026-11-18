@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { launch, startFixture, openFixture, openContextMenu, ui, waitFor, sleep, EXT_ID, CONTENT_ROOT } from './helper.mjs'
+import { launch, startFixture, openFixture, openContextMenu, dragAndDrop, ui, waitFor, sleep, EXT_ID, CONTENT_ROOT } from './helper.mjs'
 
 const NEWTAB = `chrome-extension://${EXT_ID}/notate.html`
 let b, fx
@@ -491,10 +491,7 @@ test('a page capture listener that stops input events cannot keep markup in the 
 	await page.eval(`window.removeEventListener('input', window.__stop, true)`)
 	// Real typing, paste and bold keep working afterwards.
 	await page.type('typed ')
-	await page.eval(`(() => {
-		const dt = new DataTransfer(); dt.setData('text/plain', 'pasted ')
-		${EDITOR}.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }))
-	})()`, 'content')
+	await page.type('pasted ') // a scripted paste event is ignored now, so this is typed
 	await page.eval(`document.execCommand('selectAll')`, 'content')
 	await c.click('#bold-btn')
 	const saved = await assertHeld(page, c, 'capture-stop')
@@ -652,7 +649,7 @@ test('an image picked in the page editor with the caret outside it is appended t
 	const { page, c } = await openPageEditor()
 	await hostileField(page)
 	await selectHostile(page)
-	await pickInPage(page, () => page.eval(`${CROOT}.querySelector('#insert-image-btn').click()`, 'content'))
+	await pickInPage(page, () => c.click('#insert-image-btn')) // a real click: the toolbar keeps the selection where it is
 	await assertPageClean(page)
 	assert.match(await editorHtml(page), /^before(\s|&nbsp;)<img [^>]*>$/)
 })
@@ -670,16 +667,14 @@ test('scripted clicks cannot close the page editor window', async () => {
 test('scripted clicks cannot save the add-to-notebook modal', async () => {
 	await b.openPage(NEWTAB)
 	await waitFor(config, 'seeded config')
-	const note = await plantNote('body')
+	await plantNote('body', { origin: '127.0.0.1/' })
 	await b.post('notate', 'NOTEBOOKS', { id: 1, title: 'Book', description: 'd', collection: [], created: new Date().toISOString(), modified: new Date().toISOString() })
 	const { c, page } = await openFixture(b, fx)
 	await openContextMenu(c)
 	await c.click('#context-item-add-to-notebook')
 	await c.appear('#notebook-card-1')
-	await page.eval(`(() => {
-		const dt = new DataTransfer(); dt.setData('text/plain', ${JSON.stringify(JSON.stringify(note))})
-		${'chrome.dom.openOrClosedShadowRoot(document.querySelector("#content-script-entry-point"))'}.querySelector('#notebook-card-1').dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }))
-	})()`, 'content')
+	await dragAndDrop(b, page, await c.center('#related-note-heading-1'), await c.center('#notebook-card-1'))
+	await c.appear('#add-to-notebook-bottombar #save-btn:not([disabled])')
 	await c.scriptedClick('#add-to-notebook-bottombar #save-btn')
 	await sleep(1000)
 	assert.deepEqual((await notebooks())[0].collection, [], 'scripted click saved nothing')

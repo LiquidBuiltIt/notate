@@ -1,4 +1,5 @@
 import React from 'react';
+import { fromOurUI } from '@universal/Utils/trusted.js'
 import { WebContentContext } from '@content/content.jsx'
 import ContextMenuButton from '@content/Components/ContextMenu/ContextMenuButton.jsx'
 import ContextMenu from '@content/Components/ContextMenu/ContextMenu.jsx'
@@ -44,9 +45,7 @@ export default function ContextMenuHoverRegion() {
 	const hoverReginonRef = React.useRef(null)
 
 	const handleContextMenuUnfocus = (event) => {
-		const target = event.target.closest('#content-script-entry-point')
-
-		if (!target) {
+		if (event.isTrusted && !fromOurUI(event, shadow)) {
 			setContextMenuState(false)
 		}
 	}

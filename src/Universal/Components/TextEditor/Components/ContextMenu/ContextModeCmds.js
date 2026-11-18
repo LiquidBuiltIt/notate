@@ -11,12 +11,11 @@ export const NormalModeCmds = [
   	},{
     		type: 'selectAll',
 		name: 'Select All',
-    		action: () => {
+    		action: (root) => {
 			const range = document.createRange()
-			// The content script shadow root is closed: reach it through the extension API.
-			const host = document.getElementById('content-script-entry-point')
-			const shadow = host && (globalThis.chrome?.dom?.openOrClosedShadowRoot(host) ?? host.openOrClosedShadowRoot)
-			const target = document.getElementById('input-text-display') || shadow?.getElementById('input-text-display')
+			// `root` is the editor's own document or shadow root, so a page element with the same id is never picked.
+			const target = root.getElementById('input-text-display')
+			if (!target) return
 
 			range.selectNodeContents(target)
 

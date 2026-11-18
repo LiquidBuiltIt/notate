@@ -9,6 +9,7 @@ import NoteEditor, {NoteEditorContext} from './Components/NoteEditor/NoteEditor.
 import ContextMenuHoverRegion from './Components/HoverRegions/ContextMenuHoverRegion.jsx';
 import NotificationMsg, { NotificationContext } from '@universal/Components/NotificationMessenger.jsx';
 import NotificationHandler from '@universal/Handlers/NotificationHandler.js';
+import { guardShadowRoot } from '@universal/Utils/trusted.js'
 import notatecss from '@assets/tailwind.css'
 import globalcss from '@assets/global.css'
 
@@ -34,6 +35,7 @@ root.id = 'content-script-entry-point'
 
 
 const shadow = root.attachShadow({ mode: "closed" })
+guardShadowRoot(shadow)
 
 
 const style = document.createElement('style')
