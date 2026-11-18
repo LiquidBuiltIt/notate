@@ -73,7 +73,7 @@ export default function NoteCard({ note, stackClass=false, onClick, onDragStart,
 
 	  		<div 
 	  		 id={NOTE_CONTENT_ELEMENT} 
-	  		 className="mt-[6px] text-[15px] leading-[1.3] italic text-ink-soft line-clamp-3 break-words min-h-0"
+	  		 className="mt-[6px] text-[15px] leading-[1.3] italic text-ink-soft line-clamp-3 whitespace-pre-line break-words min-h-0"
 	  		>
 				<Marked text={text} tokens={tokens}/>
 			</div>

@@ -1799,3 +1799,16 @@ test('a page script cannot put a data-checked value other than true or false int
 	assert.match(html, /data-checked="true"/)
 	await assertHeld(page, c, 'data-checked')
 })
+
+test('note cards show lists, checkboxes, headings and quotes as plain lines, with no elements inside', async () => {
+	await b.openPage(NEWTAB)
+	await waitFor(config, 'seeded config')
+	await plantNote('<ul><li>one</li><li>two</li></ul><ol><li>x</li><li>y</li></ol><ul><li data-checked="false">todo</li><li data-checked="true">done</li></ul><h1>Head</h1><blockquote>q</blockquote><div>tail</div>')
+	const page = await b.openPage(NEWTAB)
+	await ui(page).appear('[id$="-content"]')
+	await sleep(500)
+	const r = await page.eval(`(() => { const c = document.querySelector('#note-1-content'); return { text: c.textContent, kids: c.querySelectorAll('*:not(mark)').length, pre: getComputedStyle(c).whiteSpace } })()`)
+	assert.equal(r.text.trim(), '• one\n• two\n1. x\n2. y\n☐ todo\n☑ done\nHead\n› q\ntail')
+	assert.equal(r.kids, 0, 'no element created in a note card')
+	assert.equal(r.pre, 'pre-line')
+})
