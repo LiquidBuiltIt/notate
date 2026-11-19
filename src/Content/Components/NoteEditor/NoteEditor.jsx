@@ -7,6 +7,8 @@ import SaveNoteButton from './Components/Buttons/SaveNoteButton.jsx';
 
 import { WebContentContext } from '@content/content.jsx'
 import noteSwatch from '@universal/Utils/noteSwatch.js'
+import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextInput/InputFormatters.js'
+import { EditorLinksContext, findByTitle } from '@universal/Components/TextEditor/linksContext.js'
 
 
 
@@ -14,7 +16,9 @@ export default function NoteEditor() {
 	const MAXIMIZED = true
 	const MINIMIZED = false
 
-	const { SHADOW_ROOT_ELEMENT, NOTE_CONTEXT, TEXT_BUFFER_CONTEXT } = React.useContext(WebContentContext)
+	const { SHADOW_ROOT_ELEMENT, NOTE_CONTEXT, TEXT_BUFFER_CONTEXT, NOTE_WINDOW_CONTEXT, NOTATE_DB_CONTEXT } = React.useContext(WebContentContext)
+	const [ , setNoteWindowState ] = NOTE_WINDOW_CONTEXT
+	const [ database ] = NOTATE_DB_CONTEXT
 	const [ note, setNote ] = NOTE_CONTEXT
 	const [shadowRootElement] = SHADOW_ROOT_ELEMENT
 	const [ buffer, setBuffer ] = TEXT_BUFFER_CONTEXT
@@ -45,6 +49,21 @@ export default function NoteEditor() {
 		}
 	},[ title, content ])
 
+	// Only the notes this page already has can be opened from a link; tags do nothing here. A note with unsaved changes stays open.
+	const pageNotes = database?.inventory?.NOTES ?? []
+	const EDITOR_LINKS = {
+		titles: pageNotes.map((n) => n.title),
+		openNote: (linkTitle) => {
+			const target = findByTitle(pageNotes, linkTitle)
+			if (!target || target.id === note?.id) return
+			const plain = (html) => sanitizeHtml(html ?? '').replace(/ style="[^"]*"/g, '') // the editor adds inline styles to what it loads
+			if (note?.id && (title !== note.title || plain(content) !== plain(note.content))) return
+			setNoteWindowState(false)
+			setTimeout(() => setNoteWindowState(true), 50)
+			setNote(target)
+		}
+	}
+
 	return (
 		<NoteEditorWindowDisplayContext.Provider value={[ displayState, updateDisplayState ]}>
 			<div 
@@ -68,14 +87,16 @@ export default function NoteEditor() {
 						<NoteEditorTopbar/>
 
 						<TextInputContext.Provider value={[ content, setContent ]}>
-							<
-							 TextEditor 
-							 ToolbarComponents={<SaveNoteButton/>} 
-							 TailwindClassNames={`
-								 fill-ink stroke-ink bg-transparent
-							 `}
-							 ShadowRootElement={shadowRootElement}
-							/>	
+							<EditorLinksContext.Provider value={EDITOR_LINKS}>
+								<
+								 TextEditor 
+								 ToolbarComponents={<SaveNoteButton/>} 
+								 TailwindClassNames={`
+									 fill-ink stroke-ink bg-transparent
+								 `}
+								 ShadowRootElement={shadowRootElement}
+								/>	
+							</EditorLinksContext.Provider>
 						</TextInputContext.Provider>
 					</NoteEditorTitleContext.Provider>
 				</div>

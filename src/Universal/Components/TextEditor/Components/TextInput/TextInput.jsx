@@ -3,6 +3,7 @@ import * as Format from './InputFormatters.js'
 import { TextInputContext, ShadowRootContext } from '../../TextEditor.jsx';
 import GhostEditor from './firefox.jsx';
 import { insertImageFile } from './images.js';
+import { EditorLinksContext, linkStyles } from '../../linksContext.js'
 import { inlineShortcut, enterShortcut, codeKey, tabKey, footnoteShortcut, pasteMarkdown } from './markdownTyping.js';
 import { blockShortcut, toggleCaretItem, toggleChecked, checkboxItems, uncheckNewItems } from './blocks.js';
 
@@ -22,6 +23,7 @@ export default function TextInput() {
 	const textDisplayRef = React.useRef(null);
 	const itemsBeforeEnter = React.useRef(null)
 	const plainPaste = React.useRef(false)
+	const links = React.useContext(EditorLinksContext)
 
 
 	const handleChange = (event) => {
@@ -139,6 +141,14 @@ export default function TextInput() {
 	const handleClick = (event) => {
 		const li = event.target instanceof Element && event.target.closest('li[data-checked]')
 		if (li && event.clientX < li.getBoundingClientRect().left) toggleChecked(li)
+
+		// A real click on a note link or a tag. A script's click does nothing.
+		if (links && event.isTrusted && event.target instanceof Element) {
+			const link = event.target.closest('[data-note-link]')
+			const tag = link ? null : event.target.closest('[data-tag]')
+			if (link) links.openNote?.(link.getAttribute('data-note-link'))
+			else if (tag) links.openTag?.(tag.getAttribute('data-tag'))
+		}
 	}
 
 	const handlePaste = (event) => {
@@ -204,8 +214,11 @@ export default function TextInput() {
 	},[ initializeTextInput, root ])
 
 
+	const css = linkStyles(links)
+
 	return (
 		<>
+			{ css && <style>{css}</style> }
 			<div
         		 id={TEXT_EDITOR_ID}
         		 ref={textDisplayRef}

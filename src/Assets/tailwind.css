@@ -344,8 +344,9 @@
 #input-text-display blockquote[data-callout="warning"], #input-text-display blockquote[data-callout="danger"], #input-text-display blockquote[data-callout="bug"], #input-text-display blockquote[data-callout="failure"] { border-left-width: 5px; }
 #input-text-display blockquote[data-callout="quote"] { font-style: italic; border-left-style: double; border-left-width: 5px; }
 #input-text-display blockquote[data-callout="tip"], #input-text-display blockquote[data-callout="success"], #input-text-display blockquote[data-callout="question"] { border-left-style: dashed; }
-#input-text-display [data-note-link] { color: #8F8778 !important; border-bottom: 1px dashed #8F8778; cursor: default; }
-#input-text-display [data-tag] { color: #B8321A !important; background: #F6D5C9; padding: 0 .3em; border-radius: 2px; }
+#input-text-display [data-note-link] { color: #8F8778 !important; border-bottom: 1px dashed #8F8778; cursor: default; position: relative; }
+#input-text-display [data-note-link]:hover::after { content: 'No note with this title here'; position: absolute; left: 0; top: 100%; z-index: 5; white-space: nowrap; font: 12px/1.5 sans-serif; font-style: normal; color: #5B554A; background: #F2ECE0; border: 1px solid #8F8778; padding: 0 6px; pointer-events: none; }
+#input-text-display [data-tag] { color: #B8321A !important; background: #F6D5C9; padding: 0 .3em; border-radius: 2px; cursor: default; }
 #input-text-display sup[data-fn]::before { content: '['; }
 #input-text-display sup[data-fn]::after { content: ']'; }
 #input-text-display sup[data-fn] { color: #B8321A !important; font-size: .75em; }

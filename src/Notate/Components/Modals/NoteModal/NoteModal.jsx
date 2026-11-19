@@ -6,6 +6,10 @@ import NoteModalTopbar from './Topbar.jsx'
 import NoteModalBottombar from './Bottombar.jsx'
 import NoteModalInput from './Input.jsx'
 import noteSwatch from '@universal/Utils/noteSwatch.js'
+import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextInput/InputFormatters.js'
+import { EditorLinksContext, findByTitle } from '@universal/Components/TextEditor/linksContext.js'
+import { ConfirmationMsgContext } from '../ConfirmationModal/ConfirmationMsg.jsx'
+import ConfirmationMsgHandler from '../ConfirmationModal/ConfimrationMsgHandler.js'
 
 
 
@@ -20,8 +24,12 @@ export default function NoteModal() {
 		NOTATE_DB_CONTEXT,
 		USER_CONFIGURATION_DB_CONTEXT,
 		SCROLL_STATE_CONTEXT,
-		MODAL_STATE_CONTEXT
+		MODAL_STATE_CONTEXT,
+		SEARCH_TERM_CONTEXT
 	} = React.useContext(NotateContext)
+	const [ , setConfMsgState ] = React.useContext(ConfirmationMsgContext)
+	const [ database ] = NOTATE_DB_CONTEXT
+	const [ , setSearchTerm ] = SEARCH_TERM_CONTEXT
 
   	const [note, setNote ] = NOTE_CONTEXT
 	const [ updateRecentNotesState, triggerRecentNotesUpdateState ] = RECENT_NOTES_STATE_CONTEXT
@@ -37,6 +45,24 @@ export default function NoteModal() {
 		COLOR_CONTEXT: React.useState(note?.color?.name || userconfigurationdb?.inventory?.USER_CONFIGURATION[0]?.Notate?.noteModal?.preferredColor?.value)
 	}
 
+
+	// Note links and tags in the text. A change that is not saved asks first, as Delete does.
+	const initial = React.useRef({ title: note.title, content: note.content })
+	// The editor adds inline styles to the text it loads, so the compare ignores style attributes. A false "changed" only asks once more.
+	const plain = (html) => sanitizeHtml(html ?? '').replace(/ style="[^"]*"/g, '')
+	const dirty = () => NOTE_MODAL_CONTEXT.TITLE_CONTEXT[0] !== initial.current.title || plain(NOTE_MODAL_CONTEXT.CONTENT_CONTEXT[0]) !== plain(initial.current.content)
+	const guarded = (go, handleScroll) => dirty()
+		? setConfMsgState(new ConfirmationMsgHandler('Leave this note?', 'Your changes to this note are not saved.', 'Leave', go, handleScroll))
+		: go()
+	const notes = database?.inventory?.NOTES ?? []
+	const EDITOR_LINKS = {
+		titles: notes.map((n) => n.title),
+		openNote: (title) => {
+			const target = findByTitle(notes, title)
+			if (target && target !== note && target.id !== note.id) guarded(() => setNote(target), false)
+		},
+		openTag: (tag) => guarded(async () => { await exitModal(); setSearchTerm('#' + tag) }, true)
+	}
 
 	const [transition, setTransition] = React.useState(false)
 	const [mouseDownTarget, setMouseDownTarget] = React.useState(null);
@@ -118,7 +144,9 @@ export default function NoteModal() {
 				<span id="modal-spine" className={`absolute left-0 top-0 bottom-0 w-[6px] ${swatch.bg}`} aria-hidden="true"></span>
 	  			<NoteModalContext.Provider value={NOTE_MODAL_CONTEXT}>
 					<NoteModalTopbar onExit={exitModal} />
-					<NoteModalInput onExit={exitModal}/>
+					<EditorLinksContext.Provider value={EDITOR_LINKS}>
+						<NoteModalInput onExit={exitModal}/>
+					</EditorLinksContext.Provider>
 					<NoteModalBottombar onExit={exitModal}/> 
 	  		</NoteModalContext.Provider>
 	  

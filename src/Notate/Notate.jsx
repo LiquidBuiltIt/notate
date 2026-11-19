@@ -211,7 +211,7 @@ export default function Notate(){
 						</> }
 						{ configReady && boardOn && <Board/> }
 
-						{selectedNote && !selectedNotebook && <NoteModal/>}
+						{selectedNote && !selectedNotebook && <NoteModal key={selectedNote.id ?? 'new'}/>}
 						{ confMsgState && <ConfirmationMsg/> }
 					  	{ selectedNotebook && !selectedNote && <NotebookModal/> }
 

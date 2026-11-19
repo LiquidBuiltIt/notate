@@ -43,7 +43,7 @@ export default function SearchBar() {
 		NOTE_CONTEXT, NOTEBOOK_CONTEXT, DRAG_TO_TRASH_STATE_CONTEXT, SETTINGS_OPEN_CONTEXT, WHATS_NEW_OPEN_CONTEXT, BOARD_API_CONTEXT
 	} = React.useContext(NotateContext)
 	const [ confMsgState ] = React.useContext(ConfirmationMsgContext)
-	const [ , setSearchTerm ] = SEARCH_TERM_CONTEXT
+	const [ searchTerm, setSearchTerm ] = SEARCH_TERM_CONTEXT
 	const [ database ] = NOTATE_DB_CONTEXT
 	const [ configuration ] = USER_CONFIGURATION_DB_CONTEXT
 	const [ , makeRequest ] = REQUEST_CONTEXT
@@ -119,6 +119,11 @@ export default function SearchBar() {
 		if (menuOpen) menuRef.current?.querySelector('[aria-selected="true"]')?.focus()
 	}, [menuOpen])
 
+
+	// A tag clicked in a note sets the term from outside; the bar follows it. A slash command is not a term.
+	React.useEffect(() => {
+		if (!value.startsWith('/') && searchTerm !== value) setValue(searchTerm)
+	}, [searchTerm])
 
 	const changeValue = (next) => {
 		setValue(next)
