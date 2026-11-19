@@ -78,6 +78,13 @@ test('round trip: shapes the parser produces from loose Markdown', async () => {
 	assert.equal(await round('Some _italic_ and __bold__ text\n* star item\n+ plus item'), 'Some *italic* and **bold** text\n\n- star item\n- plus item')
 })
 
+test('checklist items and a bare code fence become the elements the editor stores, and export writes them back', async () => {
+	assert.equal((await parse('- [ ] a\n- [x] b\n- [X] c')).html, '<ul><li data-checked="false">a</li><li data-checked="true">b</li><li data-checked="true">c</li></ul>')
+	assert.equal((await parse('```\nx\n```')).html, '<pre><code>x</code></pre>')
+	assert.equal(await toMd('<ul><li data-checked="false">a</li><li data-checked="true">b</li></ul>'), '- [ ] a\n- [x] b')
+	assert.equal(await toMd('<pre><code>x</code></pre>'), '```\nx\n```')
+})
+
 test('front matter: title and color are read, the body is the same as without it', async () => {
 	const fm = '---\nid: 7\ntitle: "Garden: plan"\ncolor: "green"\ncreated: "2026-01-02T03:04:05.000Z"\n---\n\n# Heading\n\ntext'
 	const r = await parse(fm, { front: true })

@@ -37,7 +37,7 @@ const drivers = {
 const KEYS = { Enter: { key: 'Enter', code: 'Enter', text: '\r', windowsVirtualKeyCode: 13 }, Tab: { key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 }, ArrowDown: { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 }, Space: { key: ' ', code: 'Space', text: ' ', windowsVirtualKeyCode: 32 }, z: { key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90 } }
 const press = async (d, name, modifiers = 0) => {
 	const { text, ...up } = KEYS[name]
-	await d.page.send('Input.dispatchKeyEvent', { type: 'keyDown', ...KEYS[name], modifiers, ...(modifiers ? { text: undefined } : {}) })
+	await d.page.send('Input.dispatchKeyEvent', { type: 'keyDown', ...KEYS[name], modifiers, ...(modifiers && name !== 'Enter' ? { text: undefined } : {}) })
 	await d.page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...up, modifiers })
 }
 const CTRL = 2, SHIFT = 8
@@ -45,6 +45,7 @@ const CTRL = 2, SHIFT = 8
 const type = async (d, text) => { for (const ch of text) await (ch === ' ' ? press(d, 'Space') : d.page.type(ch)) }
 const line = async (d, text) => { await type(d, text); await press(d, 'Enter') }
 const html = async (d) => (await d.page.eval(`${d.ed}.innerHTML`, d.world)).replace(/ style="[^"]*"/g, '').replace(/​/g, '').replace(/&nbsp;/g, ' ')
+const reset = (d) => d.page.eval(`${d.ed}.innerHTML = ''; ${d.ed}.focus()`, d.world)
 const saved = async (d) => { await d.save(); return (await waitFor(async () => { const n = await notes(); return n.length && n }, 'saved note'))[0] }
 
 for (const [where, open] of Object.entries(drivers)) {
@@ -153,6 +154,76 @@ for (const [where, open] of Object.entries(drivers)) {
 		assert.equal(await html(d), '<blockquote data-callout="tip"><div>Hi</div><div>body</div></blockquote>')
 	})
 
+	test(`${where}: [ ] [] -[ ] -[] - [ ] - [] with a space start a checklist item at the start of a line, and [x] forms start a ticked one`, async () => {
+		const d = await open()
+		for (const [prefix, state] of [['[ ]', 'false'], ['[]', 'false'], ['-[ ]', 'false'], ['-[]', 'false'], ['- [ ]', 'false'], ['- []', 'false'], ['[x]', 'true'], ['[X]', 'true'], ['-[x]', 'true'], ['- [x]', 'true'], ['- [X]', 'true']]) {
+			await reset(d)
+			await type(d, prefix); await press(d, 'Space'); await type(d, 'item')
+			assert.equal(await html(d), `<ul><li data-checked="${state}">item</li></ul>`, prefix)
+		}
+		await press(d, 'Enter'); await type(d, 'next')
+		assert.equal(await html(d), '<ul><li data-checked="true">item</li><li data-checked="false">next</li></ul>', 'a new item starts unticked')
+		assert.deepEqual(b.errors, [])
+	})
+
+	test(`${where}: Enter leaves a quote or callout into a new paragraph, and Shift+Enter adds a line inside it`, async () => {
+		const d = await open()
+		await type(d, '>'); await press(d, 'Space'); await type(d, 'one'); await press(d, 'Enter'); await type(d, 'two')
+		assert.equal(await html(d), '<blockquote>one</blockquote><div>two</div>')
+		await reset(d)
+		await type(d, '>'); await press(d, 'Space'); await type(d, 'one'); await press(d, 'Enter', SHIFT); await type(d, 'two')
+		assert.equal(await html(d), '<blockquote>one<br>two</blockquote>')
+		await reset(d)
+		await type(d, '>'); await press(d, 'Space'); await line(d, '[!tip] T')
+		await type(d, 'a'); await press(d, 'Enter', SHIFT); await type(d, 'b'); await press(d, 'Enter'); await type(d, 'after')
+		assert.equal(await html(d), '<blockquote data-callout="tip"><div>T</div><div>a<br>b</div></blockquote><div>after</div>')
+		assert.deepEqual(b.errors, [])
+	})
+
+	test(`${where}: Enter on an empty callout line leaves it, and Ctrl+Z after leaving steps back inside the callout`, async () => {
+		const d = await open()
+		await type(d, '>'); await press(d, 'Space'); await line(d, '[!tip] T')
+		await press(d, 'Enter'); await type(d, 'x')
+		assert.equal(await html(d), '<blockquote data-callout="tip"><div>T</div></blockquote><div>x</div>')
+		await reset(d)
+		await type(d, '>'); await press(d, 'Space'); await line(d, '[!tip] T')
+		await type(d, 'body'); await press(d, 'Enter'); await type(d, 'x')
+		await press(d, 'z', CTRL); await press(d, 'z', CTRL)
+		assert.equal(await html(d), '<blockquote data-callout="tip"><div>T</div><div>body</div></blockquote>')
+		await type(d, '!')
+		assert.equal(await html(d), '<blockquote data-callout="tip"><div>T</div><div>body!</div></blockquote>')
+		assert.deepEqual(b.errors, [])
+	})
+
+	test(`${where}: Enter in a list adds an item, Enter on an empty item leaves, Shift+Enter breaks the line inside the item; a heading is followed by a paragraph`, async () => {
+		const d = await open()
+		await type(d, '-'); await press(d, 'Space'); await type(d, 'a'); await press(d, 'Enter', SHIFT); await type(d, 'b')
+		assert.equal(await html(d), '<ul><li>a<br>b</li></ul>')
+		await press(d, 'Enter'); await type(d, 'c'); await press(d, 'Enter'); await press(d, 'Enter'); await type(d, 'out')
+		assert.equal(await html(d), '<ul><li>a<br>b</li><li>c</li></ul><div>out</div>')
+		await reset(d)
+		await type(d, '[ ]'); await press(d, 'Space'); await type(d, 'a'); await press(d, 'Enter', SHIFT); await type(d, 'b'); await press(d, 'Enter'); await press(d, 'Enter'); await type(d, 'out')
+		assert.equal(await html(d), '<ul><li data-checked="false">a<br>b</li></ul><div>out</div>')
+		await reset(d)
+		await type(d, '#'); await press(d, 'Space'); await type(d, 'Head'); await press(d, 'Enter'); await type(d, 'text')
+		assert.equal(await html(d), '<h1>Head</h1><div>text</div>')
+	})
+
+	test(`${where}: a bare code fence with Enter makes a code block without a language, also first in the note, after a quote line and after a list item`, async () => {
+		const d = await open()
+		await line(d, '```'); await type(d, 'x')
+		assert.equal(await html(d), '<pre><code>x</code></pre>')
+		await reset(d)
+		await type(d, '>'); await press(d, 'Space'); await line(d, 'q'); await line(d, '```'); await type(d, 'x')
+		assert.match(await html(d), /^<blockquote>q<\/blockquote>.*<pre><code>x<\/code><\/pre>/)
+		assert.doesNotMatch(await html(d), /```|data-lang/)
+		await reset(d)
+		await type(d, '-'); await press(d, 'Space'); await line(d, 'a'); await line(d, '```'); await type(d, 'x')
+		assert.match(await html(d), /^<ul><li>a<\/li><\/ul>.*<pre><code>x<\/code><\/pre>/)
+		assert.doesNotMatch(await html(d), /```|data-lang/)
+		assert.deepEqual(b.errors, [])
+	})
+
 	test(`${where}: [^1]: with a space starts a footnote definition, and a typed [^1] after text is a reference`, async () => {
 		const d = await open()
 		await type(d, 'claim[^1]'); await line(d, '')
@@ -205,6 +276,13 @@ test('new tab: pasted Markdown with raw HTML and unsafe links brings text only',
 	assert.equal(await d.page.eval(`window.__pwn`), undefined)
 	assert.deepEqual(await d.page.eval(`[...${d.ed}.querySelectorAll('a')].map((a) => a.getAttribute('href'))`), ['https://example.test/', 'https://127.0.0.1:1/beacon.png'], 'a remote picture is a plain link, never loaded')
 	assert.match(await d.page.eval(`${d.ed}.textContent`), /<img src=x/)
+})
+
+test('new tab: a pasted bare code fence becomes a code block without a language', async () => {
+	const d = await drivers['new tab']()
+	await paste(d, '```\nfoo\nbar\n```')
+	await sleep(200)
+	assert.equal(await html(d), '<pre><code>foo\nbar</code></pre>')
 })
 
 test('new tab: a paste of plain prose stays plain text', async () => {

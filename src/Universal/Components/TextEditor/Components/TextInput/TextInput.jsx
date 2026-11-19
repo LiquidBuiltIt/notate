@@ -4,7 +4,7 @@ import { TextInputContext, ShadowRootContext } from '../../TextEditor.jsx';
 import GhostEditor from './firefox.jsx';
 import { insertImageFile } from './images.js';
 import { EditorLinksContext, linkStyles } from '../../linksContext.js'
-import { inlineShortcut, enterShortcut, codeKey, tabKey, footnoteShortcut, pasteMarkdown } from './markdownTyping.js';
+import { inlineShortcut, enterShortcut, codeKey, quoteEnter, tabKey, footnoteShortcut, pasteMarkdown } from './markdownTyping.js';
 import { blockShortcut, toggleCaretItem, toggleChecked, checkboxItems, uncheckNewItems } from './blocks.js';
 
 
@@ -110,7 +110,7 @@ export default function TextInput() {
 		if (root && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing) {
 			try {
 				handled = ['Enter', 'Tab', 'ArrowDown'].includes(event.key) && codeKey(root, event)
-				|| event.key === 'Enter' && !event.shiftKey && enterShortcut(root)
+				|| event.key === 'Enter' && !event.shiftKey && (enterShortcut(root) || quoteEnter(root))
 				|| event.key === 'Tab' && tabKey(root, event)
 			} catch {}
 			if (handled) event.preventDefault()

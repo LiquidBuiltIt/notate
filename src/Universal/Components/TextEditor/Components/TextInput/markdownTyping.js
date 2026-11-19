@@ -6,6 +6,7 @@ import { CALLOUTS } from './InputFormatters.js'
 // The HTML always comes from the parser (DOM-built, sanitized), never from the typed text itself.
 const BLOCKS = new Set(['br', 'div', 'p', 'ul', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'table', 'hr'])
 const GAP = '\u200b'
+const FENCE = /^```([A-Za-z0-9+#-]{0,20})$/
 const MAX_LOOK = 1000
 const MARK_CHARS = '*_~=`%'
 const editorOf = (root) => root.getElementById(TEXT_EDITOR_ID)
@@ -114,6 +115,14 @@ const toStart = (sel, target) => collapseTo(sel, target, 0)
 
 // Returns true when the Enter was a conversion (the caller prevents the default).
 export const enterShortcut = (root) => {
+	// A fence typed in a list item: the item is emptied and left like an empty item, the fence text goes back in the new paragraph, and the code block is made as usual.
+	const item = lineAtCaret(root, ['li'])
+	if (item?.parent.localName === 'li' && FENCE.test(item.text)) {
+		selectLine(item)
+		document.execCommand('delete')
+		document.execCommand('insertParagraph')
+		document.execCommand('insertText', false, item.text)
+	}
 	const ctx = lineAtCaret(root, ['div', 'p', 'blockquote'])
 	if (!ctx) return false
 	const { text, parent } = ctx
@@ -125,7 +134,7 @@ export const enterShortcut = (root) => {
 			toStart(sel, line)
 		})
 	}
-	const fence = !inQuote && /^```([A-Za-z0-9+#-]{0,20})$/.exec(text)
+	const fence = !inQuote && FENCE.exec(text)
 	if (fence) {
 		const lang = fence[1].toLowerCase()
 		const pre = el('pre', lang ? { 'data-lang': lang } : {}, el('code', {}, el('br')))
@@ -156,6 +165,29 @@ export const enterShortcut = (root) => {
 		return true
 	}
 	return false
+}
+
+// ---- Quotes and callouts: Enter leaves the block (the text after the caret goes with it), Shift+Enter is the browser's own line break ----
+export const quoteEnter = (root) => {
+	const nearest = root.getSelection()?.isCollapsed && here(root, 'blockquote, li, td, th, pre')
+	if (nearest?.localName !== 'blockquote') return false
+	if (here(root, 'div, p, blockquote').textContent.replace(/\u200b/g, '') !== '') document.execCommand('insertParagraph')
+	const line = here(root, 'div, p, blockquote')
+	// A quote with the text in it directly: Chrome made a new quote for the line, and this makes it a paragraph.
+	if (line.localName === 'blockquote') return document.execCommand('formatBlock', false, 'div') || true
+	// shortcut: a line inside a quote or callout is moved in the DOM, so Ctrl+Z steps back through the typing but does not undo the move.
+	const quote = line.closest('blockquote')
+	const range = document.createRange()
+	range.setStartAfter(line)
+	range.setEndAfter(quote.lastChild)
+	const tail = quote.cloneNode(false) // lines below the caret stay quoted, as a plain quote
+	tail.removeAttribute('data-callout')
+	tail.append(range.extractContents())
+	quote.after(line)
+	if (tail.firstChild) line.after(tail)
+	if (!quote.textContent) quote.remove()
+	root.getSelection().collapse(line, 0)
+	return true
 }
 
 // ---- Code blocks ----
