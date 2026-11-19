@@ -191,6 +191,10 @@ test('cards: the old shapes are unchanged', async () => {
 	assert.equal(await p('<div>one</div><div>two</div>'), 'one two')
 })
 
+test('export: a list the browser nested as <ul> inside <ul> becomes a nested Markdown list', async () => {
+	assert.equal(await toMd('<ul><li>a</li><ul><li>b</li><ul><li>c</li></ul></ul><li>d</li></ul>'), '- a\n  - b\n    - c\n- d')
+})
+
 test('export escapes the new markers so typed text cannot become markup', async () => {
 	const e = (html) => toMd(html)
 	assert.equal(await e('<div>a == b ==c== %%x%% #tag [[x]] [^1] ~~y~~</div>'), 'a \\=\\= b \\=\\=c\\=\\= \\%\\%x\\%\\% \\#tag \\[\\[x\\]\\] \\[^1\\] \\~\\~y\\~\\~')

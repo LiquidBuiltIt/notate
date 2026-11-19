@@ -3,6 +3,7 @@ import * as Format from './InputFormatters.js'
 import { TextInputContext, ShadowRootContext } from '../../TextEditor.jsx';
 import GhostEditor from './firefox.jsx';
 import { insertImageFile } from './images.js';
+import { inlineShortcut, enterShortcut, codeKey, tabKey, footnoteShortcut, pasteMarkdown } from './markdownTyping.js';
 import { blockShortcut, toggleCaretItem, toggleChecked, checkboxItems, uncheckNewItems } from './blocks.js';
 
 
@@ -20,6 +21,7 @@ export default function TextInput() {
 
 	const textDisplayRef = React.useRef(null);
 	const itemsBeforeEnter = React.useRef(null)
+	const plainPaste = React.useRef(false)
 
 
 	const handleChange = (event) => {
@@ -30,6 +32,11 @@ export default function TextInput() {
 			uncheckNewItems(target, itemsBeforeEnter.current)
 		}
 		itemsBeforeEnter.current = null
+
+		// A closing marker typed as text (**, *, `, ], ...) turns the span into its element. Only typed text, never undo, paste or our own insert.
+		if (event.nativeEvent.inputType === 'insertText' && !event.nativeEvent.isComposing && root) {
+			try { inlineShortcut(root) } catch {}
+		}
 
 		// If the walker throws, the observer fails closed and sets the text; nothing unchecked is read here.
 		try { Format.sanitizeTree(target) } catch { return }
@@ -91,10 +98,24 @@ export default function TextInput() {
 		if (event.key === 'Enter') itemsBeforeEnter.current = checkboxItems(textDisplayRef.current)
 
 		if (event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing && root) {
-			try { if (blockShortcut(root)) event.preventDefault() } catch {}
+			try { if (blockShortcut(root) || footnoteShortcut(root)) event.preventDefault() } catch {}
 		}
 
-      		if (event.key === 'Tab') {
+		if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'v') plainPaste.current = true
+
+		// Markdown lines, code blocks, lists and tables. A handled key is not passed on.
+		let handled = false
+		if (root && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing) {
+			try {
+				handled = ['Enter', 'Tab', 'ArrowDown'].includes(event.key) && codeKey(root, event)
+				|| event.key === 'Enter' && !event.shiftKey && enterShortcut(root)
+				|| event.key === 'Tab' && tabKey(root, event)
+			} catch {}
+			if (handled) event.preventDefault()
+		}
+
+      		if (handled) {
+      		} else if (event.key === 'Tab') {
       			event.preventDefault();
       			document.execCommand('insertText', true, '\t');
     		} else if (event.ctrlKey && event.key === 'z') {
@@ -112,6 +133,8 @@ export default function TextInput() {
     		try { setText(Format.readClean(event.target)) } catch {}
 	};
 
+	const handleKeyUp = () => { plainPaste.current = false }
+
 	// A click in the box left of a checkbox item flips it.
 	const handleClick = (event) => {
 		const li = event.target instanceof Element && event.target.closest('li[data-checked]')
@@ -124,8 +147,14 @@ export default function TextInput() {
 		const image = Array.from(event.clipboardData.files).find((file) => file.type.startsWith('image/'))
 
 		// A copied picture has no text with it. Text stays plain text, so a copied page does not bring its markup.
+		const plain = plainPaste.current // set from Ctrl+Shift+V until the key comes up
 		if (image && !pastedPlainText && root) insertImageFile(image, root)
-		else document.execCommand('insertText', false, pastedPlainText)
+		else {
+			// Text that looks like Markdown becomes formatting; Ctrl+Shift+V pastes it as typed.
+			let done = false
+			if (!plain && pastedPlainText) { try { done = pasteMarkdown(pastedPlainText) } catch {} }
+			if (!done) document.execCommand('insertText', false, pastedPlainText)
+		}
 	}
 
 
@@ -190,6 +219,7 @@ export default function TextInput() {
         		 onInput={handleChange}
 			 onPaste={handlePaste}
 			 onKeyDown={handleKeyDown}
+			 onKeyUp={handleKeyUp}
 			 onClick={handleClick}
 			 onDragOver={handleDragOver}
 			 onDragStart={handleDragStart}

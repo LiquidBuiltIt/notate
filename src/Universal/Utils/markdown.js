@@ -128,10 +128,16 @@ export function toMarkdown(html, headingShift = 0) {
 			return lines.length > 1 || lines[0] !== '>' ? [lines.join('\n')] : []
 		}
 		if (tag === 'ul' || tag === 'ol') {
-			// shortcut: a child of a list that is not an <li> is dropped; the editor never makes one.
-			const items = Array.from(el.children).filter((c) => c.localName === 'li').map((li, i) => {
-				const mark = (tag === 'ol' ? `${i + 1}. ` : '- ') + (li.hasAttribute('data-checked') ? (li.getAttribute('data-checked') === 'true' ? '[x] ' : '[ ] ') : '')
-				const lines = blocks(li, depth + 1).join('\n').split('\n')
+			// The browser's indent puts a <ul> straight inside a <ul>; it counts as nested under the item before it.
+			const entries = []
+			for (const c of el.children) {
+				if (c.localName === 'li') entries.push({ li: c, nested: [] })
+				else if ((c.localName === 'ul' || c.localName === 'ol') && entries.length) entries[entries.length - 1].nested.push(c)
+				else if (c.localName === 'ul' || c.localName === 'ol') entries.push({ li: null, nested: [c] })
+			}
+			const items = entries.map(({ li, nested }, i) => {
+				const mark = (tag === 'ol' ? `${i + 1}. ` : '- ') + (li?.hasAttribute('data-checked') ? (li.getAttribute('data-checked') === 'true' ? '[x] ' : '[ ] ') : '')
+				const lines = [...(li ? blocks(li, depth + 1) : []), ...nested.flatMap((n) => block(n, depth + 1))].join('\n').split('\n')
 				const pad = ' '.repeat(tag === 'ol' ? String(i + 1).length + 2 : 2)
 				return (mark + lines.map((l, j) => (j ? pad + l : l)).join('\n')).trimEnd()
 			})

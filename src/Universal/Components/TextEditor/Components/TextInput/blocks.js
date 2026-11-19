@@ -3,9 +3,9 @@ import { TEXT_EDITOR_ID } from './TextInput.jsx'
 // Block formats (lists, checkbox, headings, quote). Making a block goes through execCommand, so Ctrl+Z undoes it.
 // A checkbox is a list item with data-checked; the box is drawn by CSS and is never an <input>.
 // Ticking or unticking sets the attribute directly, so it is not in the undo history.
-const TAGS = { h1: 'h1', h2: 'h2', quote: 'blockquote' }
-const SHORTCUTS = { '-': 'ul', '*': 'ul', '1.': 'ol', '[ ]': 'check', '#': 'h1', '##': 'h2', '>': 'quote' }
-const BLOCK_TAGS = new Set(['br', 'div', 'p', 'ul', 'ol', 'h1', 'h2', 'blockquote'])
+const TAGS = { h1: 'h1', h2: 'h2', h3: 'h3', h4: 'h4', h5: 'h5', h6: 'h6', quote: 'blockquote' }
+const SHORTCUTS = { '-': 'ul', '*': 'ul', '1.': 'ol', '[ ]': 'check', '#': 'h1', '##': 'h2', '###': 'h3', '####': 'h4', '#####': 'h5', '######': 'h6', '>': 'quote' }
+const BLOCK_TAGS = new Set(['br', 'div', 'p', 'ul', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'table', 'hr'])
 
 // The element of the caret, if it is inside the editor.
 const caretIn = (root, selector) => {

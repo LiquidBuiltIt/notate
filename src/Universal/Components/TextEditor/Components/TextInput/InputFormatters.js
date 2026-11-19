@@ -115,24 +115,27 @@ export const detach = (node) => {
 	if (parent) Node.prototype.removeChild.call(parent, node)
 }
 
+// Marks the caret spot after a typed Markdown element. Never stored.
+const GAP = /\u200b/g
+
 // The editor's HTML, read only after the walker has run on it.
 export const readClean = (editor) => {
 	sanitizeTree(editor)
-	return editor.innerHTML
+	return editor.innerHTML.replace(GAP, '')
 }
 
 // Last gate before a note is stored: the HTML string is cleaned again in an inert document. Throws on failure, so nothing is stored.
 export const sanitizeHtml = (html) => {
 	const body = bodyOf.call(new DOMParser().parseFromString(html, 'text/html'))
 	sanitizeTree(body)
-	return body.innerHTML
+	return body.innerHTML.replace(GAP, '')
 }
 
 
 export const links = (text) => {
 	const urlRegex = /https?:\/\/\S+/g
 	// DOMParser documents are inert; text nodes outside an anchor get their URLs wrapped through the DOM API.
-	const doc = new DOMParser().parseFromString(text, 'text/html')
+	const doc = new DOMParser().parseFromString(text.replace(GAP, ''), 'text/html')
 	const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
 	const textNodes = []
 
