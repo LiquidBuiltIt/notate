@@ -160,6 +160,25 @@ test('security: pathological input finishes fast', async () => {
 	}
 })
 
+test('performance: input made of unmatched marks is parsed in linear time', async () => {
+	const lim = 100 // ms, for input under 100 KB
+	const inputs = {
+		'unmatched *': '*a '.repeat(25000), 'unmatched _': '_a _'.repeat(20000), 'unmatched ~~': '~~a '.repeat(20000), 'unmatched ==': '==a '.repeat(20000),
+		'unmatched %%': '%%a '.repeat(20000), 'mixed runs': '*a **b ***c '.repeat(8000), 'angle links without >': '[a](<'.repeat(18000),
+		'image starts with one ")"': '![a](data:image/'.repeat(5000) + ')',
+	}
+	const best = async (text) => { let ms = Infinity; for (let k = 0; k < 3; k++) ms = Math.min(ms, (await call(`M.time(() => M.parse(${JSON.stringify(text)}))`)).ms); return ms }
+	for (const [name, text] of Object.entries(inputs)) {
+		assert.ok(text.length < 100000, name)
+		const ms = await best(text)
+		assert.ok(ms < lim, `${name}: ${Math.round(ms)} ms`)
+	}
+	// A 200 KB paste on one line goes through looksLikeMarkdown and parseMarkdown.
+	const paste = '# t\n' + '*a '.repeat(66000)
+	const ms = (await call(`M.time(() => { if (M.looks(${JSON.stringify(paste)})) M.parse(${JSON.stringify(paste)}, { max: 200000 }) })`)).ms
+	assert.ok(ms < 200, `200 KB paste: ${Math.round(ms)} ms`)
+})
+
 test('a file at the size cap parses in a few seconds', async () => {
 	const prose = 'word '.repeat(570000)
 	const mixed = '# T\n\nSome **bold** and *it* with `code` and [a](https://x.test/) and #tag.\n\n- a\n- b\n\n'.repeat(30000)

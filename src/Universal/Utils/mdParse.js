@@ -51,7 +51,7 @@ const safeUrl = (raw) => {
 const destination = (t, start) => {
 	let k = start, depth = 0
 	const lim = Math.min(t.length, start + 2048)
-	if (t[k] === '<') { const e = t.indexOf('>', k); if (e === -1 || e > lim) return null; k = e + 1; return t[k] === ')' ? { url: t.slice(start + 1, e), end: k + 1 } : null }
+	if (t[k] === '<') { const at = t.slice(k, lim + 1).indexOf('>'); if (at === -1) return null; const e = k + at; k = e + 1; return t[k] === ')' ? { url: t.slice(start + 1, e), end: k + 1 } : null }
 	for (; k < lim; k++) {
 		const ch = t[k]
 		if (ch === '\\') k++
@@ -66,8 +66,11 @@ const destination = (t, start) => {
 }
 
 // Finds the partner of an opening run of `c` (length `run`). A run of exactly `run` wins; else the first longer run, whose last `run` characters close.
-const closer = (t, c, run, from, wordEdge) => {
-	let fallback = -1, k = t.indexOf(c, from)
+// `miss` remembers, per marker, where a scan with no partner stopped. The next opener of that kind resumes there, so a line of unmatched openers is scanned once, not once each.
+const closer = (t, c, run, from, wordEdge, miss) => {
+	const key = c + run
+	let fallback = -1, k = miss[key] > from ? miss[key] : t.indexOf(c, from)
+	if (k === Infinity) return -1
 	const lim = Math.min(t.length, from + WINDOW)
 	while (k !== -1 && k < lim) {
 		let e = k
@@ -81,6 +84,7 @@ const closer = (t, c, run, from, wordEdge) => {
 		}
 		k = t.indexOf(c, e)
 	}
+	if (fallback === -1) miss[key] = k === -1 ? Infinity : k
 	return fallback
 }
 
@@ -93,6 +97,8 @@ function inline(doc, text, parent, depth = 0, noLink = false) {
 	let brackets = null
 	const matching = () => (brackets ??= bracketMap(text))
 	let noImageEnd = false
+	const miss = {}
+	let imgEnd = -2
 	const n = text.length
 	let i = 0
 	while (i < n) {
@@ -125,7 +131,7 @@ function inline(doc, text, parent, depth = 0, noLink = false) {
 			const kinds = run < 4 ? MARKS[c][run] : null
 			const next = text[j]
 			const opens = kinds && depth < MAX_INLINE && next !== undefined && (c === '%' || (next !== ' ' && next !== '\t')) && (c !== '_' || !WORD.test(text[i - 1] ?? ''))
-			const end = opens ? closer(text, c, run, j, c === '_') : -1
+			const end = opens ? closer(text, c, run, j, c === '_', miss) : -1
 			const inner = end > j ? text.slice(j, end) : ''
 			if (inner && (c === '%' ? !inner.includes('%%') && inner.trim() : true)) {
 				if (kinds[0] === 'comment') make('span', { 'data-comment': '' }).textContent = inner
@@ -169,7 +175,8 @@ function inline(doc, text, parent, depth = 0, noLink = false) {
 		} else if (c === '!' && text[i + 1] === '[' && !noImageEnd) {
 			const close = matching().get(i + 1)
 			if (close !== undefined && text.startsWith('(data:image/', close + 1)) {
-				const e = text.indexOf(')', close + 2)
+				if (imgEnd < close + 2) imgEnd = text.indexOf(')', close + 2) // the same ")" ends every later "![" up to it
+				const e = imgEnd
 				if (e === -1) noImageEnd = true
 				else if (IMAGE_DATA.test(text.slice(close + 2, e))) {
 					make('img', { src: text.slice(close + 2, e), id: uniqueId('img') })
