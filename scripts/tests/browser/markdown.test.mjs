@@ -12,10 +12,10 @@ const here = dirname(fileURLToPath(import.meta.url))
 const SRC = resolve(process.env.MD_SRC ?? join(here, '../../../src'))
 const PAGE = `<!doctype html><title>md</title><script type="module">
 const load = (p) => import(p).catch(() => ({}))
-const [fmt, md, parser, plain] = await Promise.all([
+const [fmt, md, parser, plain, imp] = await Promise.all([
 	load('/src/Universal/Components/TextEditor/Components/TextInput/InputFormatters.js'), load('/src/Universal/Utils/markdown.js'),
-	load('/src/Universal/Utils/mdParse.js'), load('/src/Universal/Utils/plainText.js')])
-window.M = { sanitize: fmt.sanitizeHtml, toMarkdown: md.toMarkdown, parse: parser.parseMarkdown, inline: parser.parseInline, looks: parser.looksLikeMarkdown, plain: plain.default, MAX: parser.MAX_MD,
+	load('/src/Universal/Utils/mdParse.js'), load('/src/Universal/Utils/plainText.js'), load('/src/Notate/importNotes.js')])
+window.M = { sanitize: fmt.sanitizeHtml, toMarkdown: md.toMarkdown, parse: parser.parseMarkdown, inline: parser.parseInline, looks: parser.looksLikeMarkdown, plain: plain.default, MAX: parser.MAX_MD, readFiles: imp.readMarkdownFiles, noteFrom: imp.noteFromMarkdown, FILE: imp.MAX_FILE, TOTAL: imp.MAX_TOTAL, FILES: imp.MAX_FILES,
 	time(fn) { const t = performance.now(); const r = fn(); return { ms: performance.now() - t, len: String(r?.html ?? r).length } } }
 window.ready = true
 </script>`
@@ -158,6 +158,30 @@ test('security: pathological input finishes fast', async () => {
 		const exported = await call(`M.time(() => M.toMarkdown(M.parse(${JSON.stringify(text)}).html))`)
 		assert.ok(exported.ms < 3000, `${name} export: ${Math.round(exported.ms)} ms`)
 	}
+})
+
+test('a file at the size cap parses in a few seconds', async () => {
+	const prose = 'word '.repeat(570000)
+	const mixed = '# T\n\nSome **bold** and *it* with `code` and [a](https://x.test/) and #tag.\n\n- a\n- b\n\n'.repeat(30000)
+	for (const [name, text] of Object.entries({ prose, mixed })) {
+		const r = await call(`M.time(() => M.parse(${JSON.stringify(text)}))`)
+		assert.ok(r.ms < 8000, `${name}: ${Math.round(r.ms)} ms`)
+	}
+})
+
+test('import: per-file, total and file-count caps, and nothing but text', async () => {
+	const r = await call(`(async () => {
+		const mk = (n, size, type = 'text/markdown') => new File(['a'.repeat(size)], n, { type })
+		const big = M.FILE - 1000
+		const out = await M.readFiles([mk('big.md', M.FILE + 1), ...Array.from({ length: 12 }, (_, i) => mk('f' + i + '.md', big))], {})
+		const many = await M.readFiles(Array.from({ length: M.FILES + 3 }, (_, i) => mk('s' + i + '.md', 3)), {})
+		return { notes: out.notes.length, skipped: out.skipped.map((s) => s.join(': ')), many: many.notes.length, manySkipped: many.skipped.length, total: M.TOTAL, file: M.FILE }
+	})()`)
+	assert.equal(r.skipped[0], 'big.md: file is too large')
+	assert.equal(r.notes, Math.floor(r.total / (r.file - 1000)), 'files are taken until the total would be passed')
+	assert.ok(r.skipped.slice(1).every((s) => /over the total size limit/.test(s)))
+	assert.equal(r.many, 500)
+	assert.equal(r.manySkipped, 3)
 })
 
 test('security: input is capped, and the cap is a parameter', async () => {
