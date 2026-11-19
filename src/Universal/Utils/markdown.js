@@ -1,19 +1,33 @@
 // Note HTML to Markdown. The HTML is cleaned by the note sanitizer first, then read from an inert document.
 // All text is escaped, so a typed "[x](javascript:...)" or "<img onerror>" stays literal in the output.
-import { sanitizeHtml } from '@universal/Components/TextEditor/Components/TextInput/InputFormatters.js'
+import { sanitizeHtml, TAG } from '@universal/Components/TextEditor/Components/TextInput/InputFormatters.js'
 
-const BLOCK_TAGS = new Set(['div', 'p', 'ul', 'ol', 'li', 'h1', 'h2', 'blockquote'])
-const HAS_BLOCK = 'div, p, ul, ol, li, h1, h2, blockquote, br'
-const IMAGE = /^data:image\/(?!svg)[a-z0-9.+-]+;base64,[A-Za-z0-9+\/]+={0,2}$/i
+import { IMAGE_DATA as IMAGE } from '@universal/Utils/mdParse.js'
+
+const BLOCK_TAGS = new Set(['div', 'p', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'hr', 'pre', 'table'])
+const HAS_BLOCK = 'div, p, ul, ol, li, h1, h2, h3, h4, h5, h6, blockquote, hr, pre, table, br'
 const MAX_DEPTH = 100 // deeper than this, an element is written as its plain text
 
 // Inline text: control characters and line breaks become one space, then Markdown and HTML specials are escaped.
 export const esc = (s) => String(s ?? '')
 	.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ')
 	.replace(/[\\`*_[\]<>&~]/g, '\\$&')
+	.replace(/=(?==)|(?<==)=/g, '\\=').replace(/%(?=%)|(?<=%)%/g, '\\%')
+	.replace(/(^|[\s(\[{"'])#(?=[\p{L}\p{N}_\/-]*[\p{L}_])/gu, '$1\\#')
 
 // One line of plain text: trimmed, and a leading "#", ">", "-", "1." ... cannot start a block.
-export const mdText = (s) => esc(s).trim().replace(/^([#>+=-])/, '\\$1').replace(/^(\d+)([.)])/, '$1\\$2')
+export const mdText = (s) => esc(s).trim().replace(/^([>+=-])/, '\\$1').replace(/^#(?=#*(?:\s|$))/, '\\#').replace(/^(\d+)([.)])/, '$1\\$2')
+
+// Text of a code block: line breaks are kept.
+const preText = (el) => {
+	let out = ''
+	for (const w = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT); w.nextNode();) {
+		const n = w.currentNode
+		if (n.nodeType === Node.TEXT_NODE) out += n.data
+		else if (n.localName === 'br' || ((n.localName === 'div' || n.localName === 'p') && out && !out.endsWith('\n'))) out += '\n'
+	}
+	return out
+}
 
 const head = (level, escaped) => `${'#'.repeat(Math.min(6, level))} ${escaped.replace(/#+$/, '\\$&')}`
 export const mdTitle = (level, s) => head(level, esc(s).trim() || 'Untitled')
@@ -34,6 +48,22 @@ export function toMarkdown(html, headingShift = 0) {
 			case 'i': return wrap('*', inline(el, depth + 1))
 			case 's': case 'strike': return wrap('~~', inline(el, depth + 1))
 			case 'br': return ' '
+			case 'mark': return wrap('==', inline(el, depth + 1))
+			case 'code': {
+				const t = el.textContent.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ')
+				if (!t.trim()) return ''
+				const fence = '`'.repeat(Math.max(0, ...(t.match(/`+/g) ?? []).map((r) => r.length)) + 1)
+				return fence + (/^[ `]|[ `]$/.test(t) ? ` ${t} ` : t) + fence
+			}
+			case 'sup': return el.hasAttribute('data-fn') ? `[^${el.getAttribute('data-fn')}]` : inline(el, depth + 1)
+			case 'span': {
+				if (el.hasAttribute('data-comment')) { const t = el.textContent.replace(/%+/g, '').replace(/\s+/g, ' ').trim(); return t ? `%%${t}%%` : '' }
+				const link = el.getAttribute('data-note-link')
+				if (link !== null) { const alias = el.textContent.replace(/[\[\]|]/g, ' ').replace(/\s+/g, ' ').trim(); return alias && alias !== link ? `[[${link}|${alias}]]` : `[[${link}]]` }
+				const tag = el.getAttribute('data-tag')
+				if (tag !== null && TAG.test(tag)) return '#' + tag
+				return inline(el, depth + 1)
+			}
 			case 'img': { const src = el.getAttribute('src') ?? ''; return IMAGE.test(src) ? `![](${src})` : '' }
 			case 'a': {
 				const text = inline(el, depth + 1).trim()
@@ -47,15 +77,16 @@ export function toMarkdown(html, headingShift = 0) {
 	}
 
 	// Returns the blocks of `parent` as strings, to be joined by blank lines.
-	const blocks = (parent, depth) => {
+	const blocks = (parent, depth, skip = null) => {
 		const out = []
 		let run = ''
 		const flush = () => {
 			const t = run.trim()
-			if (t) out.push(t.replace(/^([#>+=-])/, '\\$1').replace(/^(\d+)([.)])/, '$1\\$2'))
+			if (t) out.push(t.replace(/^([>+=-])/, '\\$1').replace(/^#(?=#*(?:\s|$))/, '\\#').replace(/^(\d+)([.)])/, '$1\\$2'))
 			run = ''
 		}
 		for (const c of parent.childNodes) {
+			if (c === skip) continue
 			if (c.nodeType === Node.TEXT_NODE) run += esc(c.data)
 			else if (c.nodeType !== Node.ELEMENT_NODE) continue
 			else if (depth > MAX_DEPTH) run += esc(c.textContent)
@@ -69,12 +100,31 @@ export function toMarkdown(html, headingShift = 0) {
 
 	const block = (el, depth) => {
 		const tag = el.localName
-		if (tag === 'h1' || tag === 'h2') {
+		if (/^h[1-6]$/.test(tag)) {
 			const text = inline(el, depth + 1).replace(/\s+/g, ' ').trim()
 			return text ? [head(Number(tag[1]) + headingShift, text)] : []
 		}
+		if (tag === 'hr') return ['---']
+		if (tag === 'pre') {
+			const text = preText(el).replace(/\n+$/, '')
+			const fence = '`'.repeat(Math.max(2, ...(text.match(/`+/g) ?? []).map((r) => r.length)) + 1)
+			const lang = el.getAttribute('data-lang') ?? ''
+			return [`${fence}${lang}\n${text}\n${fence}`]
+		}
+		if (tag === 'div' && el.hasAttribute('data-fn-def')) return [`[^${el.getAttribute('data-fn-def')}]: ${inline(el, depth + 1).replace(/\s+/g, ' ').trim()}`]
+		if (tag === 'table') {
+			const rows = Array.from(el.querySelectorAll('tr'), (tr) => Array.from(tr.children).filter((c) => c.localName === 'td' || c.localName === 'th'))
+			const cols = Math.max(0, ...rows.map((r) => r.length))
+			if (!cols) return []
+			const line = (r) => '| ' + Array.from({ length: cols }, (_, i) => (r[i] ? inline(r[i], depth + 1).replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim() : '')).join(' | ') + ' |'
+			return [[line(rows[0]), '| ' + Array(cols).fill('---').join(' | ') + ' |', ...rows.slice(1).map(line)].join('\n')]
+		}
 		if (tag === 'blockquote') {
-			const lines = blocks(el, depth + 1).join('\n\n').split('\n').map((l) => (l ? `> ${l}` : '>'))
+			const type = el.getAttribute('data-callout')
+			const first = type && ['div', 'p'].includes(el.firstElementChild?.localName) ? el.firstElementChild : null
+			const title = first ? inline(first, depth + 1).replace(/\s+/g, ' ').trim() : ''
+			const body = blocks(el, depth + 1, first).join('\n\n')
+			const lines = (type ? [`[!${type}]${title && title !== esc(type[0].toUpperCase() + type.slice(1)) ? ' ' + title : ''}`] : []).concat(body ? body.split('\n') : []).map((l) => (l ? `> ${l}` : '>'))
 			return lines.length > 1 || lines[0] !== '>' ? [lines.join('\n')] : []
 		}
 		if (tag === 'ul' || tag === 'ol') {

@@ -1,5 +1,3 @@
-import { TEXT_EDITOR_ID } from './TextInput.jsx'
-
 export const uniqueId = (prefix) => {
      	return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
@@ -15,14 +13,26 @@ const [bodyOf, childNodesOf, nodeTypeOf, dataOf, localNameOf, namespaceOf, owner
 	getter(Node, 'parentNode'), getter(Node, 'firstChild'), getter(Element, 'outerHTML'),
 ]
 const IS_VALUE = /^<[^\s>]+ is=/
-const KEEP_TAGS = new Set(['b', 'i', 'u', 'strike', 's', 'p', 'span', 'font', 'div', 'br', 'a', 'img', 'ul', 'ol', 'li', 'h1', 'h2', 'blockquote'])
+const KEEP_TAGS = new Set(['b', 'i', 'u', 'strike', 's', 'p', 'span', 'font', 'div', 'br', 'a', 'img', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'hr', 'mark', 'code', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'sup'])
 const DROP_TAGS = new Set(['script', 'style', 'template', 'iframe', 'object', 'embed', 'svg', 'math', 'form'])
 const KEEP_STYLES = ['text-align', 'width', 'height', 'max-width', 'white-space', 'color', 'font-weight', 'font-style', 'text-decoration', 'font-size']
+export const CALLOUTS = ['note', 'tip', 'info', 'warning', 'danger', 'success', 'question', 'quote', 'example', 'bug', 'abstract', 'failure']
+export const TAG = /^[\p{L}\p{N}_\/-]{1,100}$/u
+export const FOOTNOTE = /^[\w-]{1,20}$/
 const KEEP_ATTRS = {
 	a: { href: (v) => URL.canParse(v) && ['http:', 'https:'].includes(new URL(v).protocol) },
 	img: { src: (v) => v.startsWith('data:image/'), id: (v) => /^img-/.test(v), draggable: () => true, 'data-natural-width': () => true, 'data-natural-height': () => true },
 	font: { size: (v) => /^[1-7]$/.test(v) },
 	li: { 'data-checked': (v) => v === 'true' || v === 'false' },
+	pre: { 'data-lang': (v) => /^[a-z0-9+#-]{1,20}$/.test(v) },
+	blockquote: { 'data-callout': (v) => CALLOUTS.includes(v) },
+	span: {
+		'data-tag': (v) => TAG.test(v) && /[\p{L}_]/u.test(v),
+		'data-note-link': (v) => v.length >= 1 && v.length <= 200 && !/[\[\]|\u0000-\u001f]/.test(v) && v.trim() === v,
+		'data-comment': (v) => v === '',
+	},
+	sup: { 'data-fn': (v) => FOOTNOTE.test(v) },
+	div: { 'data-fn-def': (v) => FOOTNOTE.test(v) },
 }
 
 const cleanStyle = (value, doc) => {
@@ -127,7 +137,7 @@ export const links = (text) => {
 	const textNodes = []
 
 	while (walker.nextNode()) {
-		if (!walker.currentNode.parentElement.closest('a') && urlRegex.test(walker.currentNode.data)) {
+		if (!walker.currentNode.parentElement.closest('a, pre, code, [data-note-link], [data-tag], [data-comment]') && urlRegex.test(walker.currentNode.data)) {
 			textNodes.push(walker.currentNode)
 		}
 		urlRegex.lastIndex = 0
