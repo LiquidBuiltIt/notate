@@ -26,11 +26,18 @@ export const noteFromMarkdown = (text, fileName, colors = {}) => {
 }
 
 // Returns { notes, skipped: [[name, reason]] }. Non-text files, invalid UTF-8, NUL bytes and files over the limits are skipped.
-export const readMarkdownFiles = async (files, colors) => {
+// `onProgress(done, count)` is called between files, and the page gets a turn at least every 50 ms, so it can repaint and stay usable.
+export const readMarkdownFiles = async (files, colors, onProgress) => {
 	const notes = [], skipped = []
-	let total = 0
+	let total = 0, turn = performance.now()
 	const list = Array.from(files)
-	for (const file of list.slice(0, MAX_FILES)) {
+	const count = Math.min(list.length, MAX_FILES)
+	for (const [done, file] of list.slice(0, MAX_FILES).entries()) {
+		if (performance.now() - turn > 50) {
+			onProgress?.(done, count)
+			await new Promise((resolve) => setTimeout(resolve))
+			turn = performance.now()
+		}
 		try {
 			if (!NAME.test(file.name) || !TYPE.test(file.type)) throw 'not a Markdown or text file'
 			if (file.size > MAX_FILE) throw 'file is too large'

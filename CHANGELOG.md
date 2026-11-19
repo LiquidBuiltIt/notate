@@ -38,7 +38,7 @@ All notable changes to Notate are documented in this file.
 - **Tables, callouts and nested lists.** Type a header row such as `| a | b |` and press Enter to start a table. Use Tab and Shift+Tab to move between cells and list levels. A quote that starts with `> [!note] Title` becomes a callout.
 - **Note links, tags and footnotes.** Type `[[Note title]]` to link to another note. Click the link to open that note. A link to a note that does not exist is shown dashed. Type `#tag` and click it to search for it. Footnotes `[^1]` and `%%comments%%` are kept too.
 - **Paste Markdown.** Pasted Markdown turns into formatted text. Press Ctrl+Shift+V to paste it as plain text. Raw HTML in the text stays as text, and only http and https links are kept.
-- **Import Markdown.** In Settings, Import Markdown adds `.md` files as notes. The title comes from the front matter, the first heading, or the file name. Files that are not text, or are too large, are skipped and listed.
+- **Import Markdown.** In Settings, Import Markdown adds `.md` files as notes. The title comes from the front matter, the first heading, or the file name. Files that are not text, or are too large, are skipped and listed. The Import row shows its progress while it reads and saves.
 - **Markdown export.** Export writes tables, callouts, links, tags, footnotes and nested lists in Obsidian style.
 
 ## 2.0.0 — 2026-11-16

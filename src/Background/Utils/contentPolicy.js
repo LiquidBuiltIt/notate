@@ -47,6 +47,7 @@ const walkConfig = (tpl, patch, host, path) => plain(patch) && Object.entries(pa
 const configOk = (data, host) => plain(data) && Object.keys(data).length > 0 && walkConfig(ConfigurationTemplate, data, host, '')
 
 // Checks the shape of a request. Returns what to do, or null to refuse it. `host` is the sender's site.
+// Only the types below are allowed. Everything else is refused, including POST_DATABASE_BATCH, which is for extension pages.
 export const vetContentRequest = (message, host) => {
 	const { type, content } = message ?? {}
 	if (host === null || !plain(content)) return null

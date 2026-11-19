@@ -197,6 +197,25 @@ export default class CoreService {
 		
 						break;
 					
+					case 'POST_DATABASE_BATCH':
+						// Extension pages only (contentPolicy refuses it for content scripts). One transaction, one reply.
+						data = message?.content?.data
+						store = message?.content?.store
+
+						if ( Array.isArray(data) && data.length && store && typeof db.insertMany === 'function' ) {
+							await db.insertMany(data, store)
+
+							// A short reply: the sender asks for the inventory itself if it needs it, and a big inventory could be too large to send.
+							this.sendMessage({
+								type: 'DATABASE',
+								content: { data: { saved: data.length }, database: target }
+							}, port)
+						} else {
+							this.sendMessage({ type: 'DATABASE', content: {} }, port)
+						}
+
+						break;
+
 					case 'PATCH_DATABASE':
 						// Applies only what the sender changed to the stored record, so a sender
 						// with an out-of-date copy cannot overwrite newer changes.
@@ -297,6 +316,8 @@ export default class CoreService {
 
 		} catch (error) {
 			await this.generateErrorLog(error, { function: 'sendMessage' })
+			// A reply too big for the port is lost, so say so: the sender gets a reply without data instead of waiting forever.
+			if (obj?.content?.data !== undefined) await this.sendMessage({ type: 'DATABASE', content: {} }, port)
 		}
 	}
 

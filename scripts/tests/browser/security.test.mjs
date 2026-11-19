@@ -125,6 +125,21 @@ test('a content script cannot change anything by asking for what it is not allow
 	assert.equal(await stores(), before, 'every store is as it was')
 })
 
+test('only the new tab page may use the batch insert: a content script is refused', async () => {
+	await seed()
+	const { page } = await openFixture(b, fx)
+	const before = await stores()
+	const batch = (title) => op('POST_DATABASE_BATCH', 'notate', 'NOTES', [{ title, content: 'x', origin: `${HOST}/`, created: now(), modified: now() }], undefined)
+	const refused = await asContent(page, batch('from a page'))
+	assert.equal(refused.content?.data, undefined, 'nothing is sent back')
+	assert.equal(refused.content?.database, undefined)
+	await sleep(500)
+	assert.equal(await stores(), before, 'every store is as it was')
+	const allowed = await asNewTab(batch('from the new tab'))
+	assert.equal(allowed.content?.data?.saved, 1)
+	assert.deepEqual((await notes()).filter((n) => /^from /.test(n.title)).map((n) => n.title), ['from the new tab'])
+})
+
 test('a content script can still create and edit notes of its site, file them, and hide the menu on its site', async () => {
 	await seed()
 	const { page } = await openFixture(b, fx)

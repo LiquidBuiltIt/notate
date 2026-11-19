@@ -173,6 +173,27 @@ export default class DatabaseAdapter {
     
 
 
+    // Stores every item in one transaction: all of them are saved, or none. Rebuilds the inventory once.
+    async insertMany(items, target_store) {
+        const db = await this.connection
+
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([target_store], 'readwrite')
+            const store = transaction.objectStore(target_store)
+
+            for (const item of items) store.put(item)
+
+            transaction.oncomplete = async () => {
+                await this.cleanup()
+                resolve('Items added to DB')
+            }
+
+            transaction.onabort = () => {reject(console.error(`Error adding data: ${transaction.error}`))}
+        })
+    }
+
+
+
     // Reads the store's record, lets `update` change it, and writes it back inside one readwrite
     // transaction, so no other writer can slip in between. `update` returns the record to store, or nothing to skip the write.
     // Without `id` it reads the store's first record (the configuration); with `id` it reads that record (a note or notebook).

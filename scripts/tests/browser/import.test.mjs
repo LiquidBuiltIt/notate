@@ -16,6 +16,16 @@ async function importFiles(files) {
 	await n.click('#settings-widget')
 	await n.appear('#import-markdown-button')
 	await n.center('#save-settings-button')
+	// Records what the page sends to the background.
+	await page.eval(`(() => {
+		window.__sent = []
+		const connect = chrome.runtime.connect.bind(chrome.runtime)
+		chrome.runtime.connect = (...args) => {
+			const port = connect(...args), post = port.postMessage.bind(port)
+			port.postMessage = (message) => { window.__sent.push(message.type); return post(message) }
+			return port
+		}
+	})()`)
 	await page.eval(`(() => {
 		const dt = new DataTransfer()
 		for (const f of ${files}) dt.items.add(f)
@@ -63,4 +73,21 @@ test('Import Markdown: non-text files, NUL bytes, invalid UTF-8 and oversized fi
 	await waitFor(async () => (await notes()).length >= 1, 'the good note')
 	await sleep(1500)
 	assert.deepEqual((await notes()).map((x) => x.title), ['Good'])
+})
+
+test('Import Markdown: 300 notes into a database that already holds 50 go in one request and finish quickly', async () => {
+	await b.serviceWorker()
+	await waitFor(async () => (await b.idb()).USER_CONFIGURATION_DB?.USER_CONFIGURATION?.length, 'seeded config')
+	const stamp = new Date().toString()
+	await b.request('POST_DATABASE_BATCH', { database: 'notate', store: 'NOTES', data: Array.from({ length: 50 }, (_, i) => ({ title: `old ${i + 1}`, content: `<p>${'old note text '.repeat(100)}</p>`, origin: null, created: stamp, modified: stamp })) })
+	const started = Date.now()
+	const page = await importFiles(`Array.from({ length: 300 }, (_, i) => new File(['# New ' + i + '\\n\\nsome **text** ' + 'word '.repeat(50)], 'new' + i + '.md', { type: 'text/markdown' }))`)
+	const all = await waitFor(async () => { const n = await notes(); return n.length === 350 && n }, '350 notes', 30000)
+	const took = Date.now() - started
+	assert.ok(took < 10000, `300 notes took ${took} ms`)
+	assert.equal(all.filter((x) => /^New \d+$/.test(x.title)).length, 300)
+	const posts = (await page.eval('window.__sent')).filter((type) => type.startsWith('POST_DATABASE'))
+	assert.deepEqual(posts, ['POST_DATABASE_BATCH'], 'one write request for all 300 notes')
+	await waitFor(async () => /Imported 300 notes/.test(await ui(page).text()), 'the done message')
+	assert.deepEqual(b.errors, [])
 })
