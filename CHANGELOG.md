@@ -34,6 +34,12 @@ All notable changes to Notate are documented in this file.
 - **Formats on note cards.** Cards show lists, checkboxes, headings and quotes as plain lines such as `• item` and `☐ task`.
 - **Lists, headings and quotes.** The editor has new buttons for bullet lists, numbered lists, checklists, two heading sizes and quotes. You can also type `- `, `1. `, `[ ] `, `# `, `## ` or `> ` at the start of a line. Click a box to tick it, or press Ctrl + Enter.
 - **Safer web pages.** A web page can no longer read your notes from other sites, or change, delete or export them. The Notate menu on a site now gets only that site's notes. Fake clicks and keys made by a page are ignored.
+- **Markdown as you type.** Type `**bold**`, `*italic*`, `~~strike~~`, `==highlight==`, backtick code or `[text](https://link)` and the text turns into that format when you type the last mark. Press Undo right after to get your typing back. Type `#` to `######` and a space for headings, `---` and Enter for a line, and a code fence with Enter for a code block.
+- **Tables, callouts and nested lists.** Type a header row such as `| a | b |` and press Enter to start a table. Use Tab and Shift+Tab to move between cells and list levels. A quote that starts with `> [!note] Title` becomes a callout.
+- **Note links, tags and footnotes.** Type `[[Note title]]` to link to another note. Click the link to open that note. A link to a note that does not exist is shown dashed. Type `#tag` and click it to search for it. Footnotes `[^1]` and `%%comments%%` are kept too.
+- **Paste Markdown.** Pasted Markdown turns into formatted text. Press Ctrl+Shift+V to paste it as plain text. Raw HTML in the text stays as text, and only http and https links are kept.
+- **Import Markdown.** In Settings, Import Markdown adds `.md` files as notes. The title comes from the front matter, the first heading, or the file name. Files that are not text, or are too large, are skipped and listed.
+- **Markdown export.** Export writes tables, callouts, links, tags, footnotes and nested lists in Obsidian style.
 
 ## 2.0.0 — 2026-11-16
 
