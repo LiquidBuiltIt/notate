@@ -26,6 +26,10 @@ All notable changes to Notate are documented in this file.
 
 ## Unreleased
 
+## 2.1.0 — 2026-11-20
+
+*Markdown in your notes: type, paste, import and export it, with tables, callouts and note links.*
+
 - **Notes from this site.** The bar at the top of web pages is gone, so it no longer covers site menus. When a site has notes, the Notate menu shows "Notes From This Site" with a count. Click it to pick a note and open it.
 - **Export a note.** The note window has an Export note button. It saves the note as a Markdown file you can share. Pictures are kept inside the file. The button is off until the note is saved.
 - **Export a notebook.** The notebook window has an Export notebook button. It saves the notebook and all its notes as one Markdown file.
