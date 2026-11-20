@@ -1,6 +1,27 @@
 {
   "sections": [
     {
+      "version": "2.1.0",
+      "date": "2026-11-20",
+      "blurb": "Markdown in your notes: type, paste, import and export it, with tables, callouts and note links.",
+      "bullets": [
+        "**Notes from this site.** The bar at the top of web pages is gone, so it no longer covers site menus. When a site has notes, the Notate menu shows \"Notes From This Site\" with a count. Click it to pick a note and open it.",
+        "**Export a note.** The note window has an Export note button. It saves the note as a Markdown file you can share. Pictures are kept inside the file. The button is off until the note is saved.",
+        "**Export a notebook.** The notebook window has an Export notebook button. It saves the notebook and all its notes as one Markdown file.",
+        "**Export all notes.** Settings has an Export all notes button. It saves a backup file named `.notate` with a folder for each notebook, one Markdown file for each note, and all your data for a future restore. Export is only on the new tab page, never on a web page.",
+        "**Smaller pictures.** A picture you drop, paste or pick is shrunk to fit 1600 pixels. It is saved as WebP when that makes it smaller, and kept as it is otherwise. The editor has a new button to insert a picture, and you can paste a copied picture. Files over 25 MB and files that are not pictures are refused.",
+        "**Formats on note cards.** Cards show lists, checkboxes, headings and quotes as plain lines such as `• item` and `☐ task`.",
+        "**Lists, headings and quotes.** The editor has new buttons for bullet lists, numbered lists, checklists, two heading sizes and quotes. You can also type `- `, `1. `, `[ ] `, `# `, `## ` or `> ` at the start of a line. A checklist item can also start with `- [ ] `, `- [] `, `-[ ] `, `-[] ` or `[] `, and `[x] ` or `- [x] ` starts a ticked one. Click a box to tick it, or press Ctrl + Enter. Enter adds a list item, Enter on an empty item ends the list, and Shift+Enter adds a line inside the item. Enter ends a quote, and Shift+Enter adds a line inside it.",
+        "**Safer web pages.** A web page can no longer read your notes from other sites, or change, delete or export them. The Notate menu on a site now gets only that site's notes. Fake clicks and keys made by a page are ignored.",
+        "**Markdown as you type.** Type `**bold**`, `*italic*`, `~~strike~~`, `==highlight==`, backtick code or `[text](https://link)` and the text turns into that format when you type the last mark. Press Undo right after to get your typing back. Type `#` to `######` and a space for headings, `---` and Enter for a line, and a code fence with Enter for a code block, with or without a language. A fence typed in a list item leaves the list.",
+        "**Tables, callouts and nested lists.** Type a header row such as `| a | b |` and press Enter to start a table. Use Tab and Shift+Tab to move between cells and list levels. A quote that starts with `> [!note] Title` becomes a callout. Enter ends a callout, and Shift+Enter adds a line inside it.",
+        "**Note links, tags and footnotes.** Type `[[Note title]]` to link to another note. Click the link to open that note. A link to a note that does not exist is shown dashed. Type `#tag` and click it to search for it. Footnotes `[^1]` and `%%comments%%` are kept too.",
+        "**Paste Markdown.** Pasted Markdown turns into formatted text. Press Ctrl+Shift+V to paste it as plain text. Raw HTML in the text stays as text, and only http and https links are kept.",
+        "**Import Markdown.** In Settings, Import Markdown adds `.md` files as notes. The title comes from the front matter, the first heading, or the file name. Files that are not text, or are too large, are skipped and listed. The Import row shows its progress while it reads and saves.",
+        "**Markdown export.** Export writes tables, callouts, links, tags, footnotes and nested lists in Obsidian style."
+      ]
+    },
+    {
       "version": "2.0.0",
       "date": "2026-11-16",
       "blurb": "A new printed-paper look, a search bar with commands, and a board layout to try.",

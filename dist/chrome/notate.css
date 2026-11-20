@@ -1308,6 +1308,10 @@ video {
   max-height: 170px !important;
 }
 
+.max-h-\[30\%\] {
+  max-height: 30% !important;
+}
+
 .max-h-\[70\%\] {
   max-height: 70% !important;
 }
@@ -1517,12 +1521,24 @@ video {
   flex-shrink: 1 !important;
 }
 
+.flex-shrink-0 {
+  flex-shrink: 0 !important;
+}
+
 .shrink-0 {
   flex-shrink: 0 !important;
 }
 
 .flex-grow {
   flex-grow: 1 !important;
+}
+
+.basis-0 {
+  flex-basis: 0px !important;
+}
+
+.border-collapse {
+  border-collapse: collapse !important;
 }
 
 .origin-bottom-left {
@@ -1931,6 +1947,11 @@ video {
   gap: 7px !important;
 }
 
+.gap-x-2 {
+  -moz-column-gap: 0.5rem !important;
+       column-gap: 0.5rem !important;
+}
+
 .gap-x-3 {
   -moz-column-gap: 0.75rem !important;
        column-gap: 0.75rem !important;
@@ -2032,6 +2053,10 @@ video {
 
 .whitespace-nowrap {
   white-space: nowrap !important;
+}
+
+.whitespace-pre-line {
+  white-space: pre-line !important;
 }
 
 .break-words {
@@ -3956,6 +3981,7 @@ video {
 
 .bd-b {
   margin: 0 0 12px;
+  white-space: pre-line;
   font-style: italic;
   font-size: 16px;
   line-height: 1.4;
@@ -4290,6 +4316,265 @@ video {
     transition-duration: .01ms !important;
     transition-delay: 0s !important;
   }
+}
+
+/* Note editor: Preflight strips list, heading and quote styles, so the block formats are drawn here. */
+
+#input-text-display ul, #input-text-display ol {
+  margin: .3em 0;
+  padding-left: 1.5em;
+}
+
+#input-text-display ul {
+  list-style: disc;
+}
+
+#input-text-display ol {
+  list-style: decimal;
+}
+
+#input-text-display li::marker {
+  color: #B8321A;
+}
+
+#input-text-display li[data-checked] {
+  list-style: none;
+  position: relative;
+}
+
+#input-text-display li[data-checked]::before {
+  content: '\2610';
+  position: absolute;
+  left: -1.5em;
+  width: 1.5em;
+  text-align: center;
+  color: #B8321A;
+  cursor: pointer;
+}
+
+#input-text-display li[data-checked="true"]::before {
+  content: '\2611';
+}
+
+#input-text-display li[data-checked="true"] {
+  text-decoration: line-through;
+  opacity: .55;
+}
+
+#input-text-display h1 {
+  margin: .5em 0 .2em;
+  font-size: 1.6em;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+#input-text-display h2 {
+  margin: .5em 0 .2em;
+  font-size: 1.3em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+#input-text-display blockquote {
+  margin: .4em 0;
+  padding-left: 1em;
+  border-left: 3px solid #E0451F;
+  font-style: italic;
+}
+
+#input-text-display h3 {
+  margin: .5em 0 .2em;
+  font-size: 1.15em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+#input-text-display h4, #input-text-display h5, #input-text-display h6 {
+  margin: .5em 0 .2em;
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+#input-text-display h5 {
+  font-style: italic;
+}
+
+#input-text-display h6 {
+  font-weight: 500;
+  font-variant: small-caps;
+  letter-spacing: .04em;
+}
+
+#input-text-display hr {
+  margin: .8em 0;
+  border: 0;
+  border-top: 1px solid #8F8778;
+}
+
+#input-text-display mark {
+  background: #F6D5C9;
+  color: inherit;
+  padding: 0 .15em;
+  border-radius: 2px;
+}
+
+#input-text-display code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: .88em;
+  background: #E8DFCE;
+  padding: .05em .3em;
+  border-radius: 2px;
+}
+
+#input-text-display pre {
+  margin: .5em 0;
+  padding: .6em .8em;
+  position: relative;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #E8DFCE;
+  border: 1px solid #D9CDB6;
+  border-radius: 2px;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: .88em;
+  line-height: 1.5;
+}
+
+#input-text-display pre code {
+  background: none;
+  padding: 0;
+  font-size: 1em;
+}
+
+#input-text-display pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0;
+  right: .5em;
+  font-size: .75em;
+  font-variant: small-caps;
+  letter-spacing: .06em;
+  color: #8F8778 !important;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+  pointer-events: none;
+}
+
+#input-text-display table {
+  margin: .5em 0;
+  border-collapse: collapse;
+  max-width: 100%;
+}
+
+#input-text-display th, #input-text-display td {
+  min-width: 3em;
+  padding: .25em .6em;
+  border: 1px solid #8F8778;
+  text-align: left;
+  vertical-align: top;
+}
+
+#input-text-display th {
+  background: #E8DFCE;
+  font-weight: 600;
+}
+
+#input-text-display blockquote[data-callout] {
+  padding: .4em .8em;
+  font-style: normal;
+  background: #E8DFCE;
+  border-left: 3px solid #E0451F;
+  border-radius: 0 2px 2px 0;
+}
+
+#input-text-display blockquote[data-callout] > :first-child {
+  font-variant: small-caps;
+  letter-spacing: .05em;
+  font-weight: 600;
+  color: #B8321A !important;
+}
+
+#input-text-display blockquote[data-callout="warning"], #input-text-display blockquote[data-callout="danger"], #input-text-display blockquote[data-callout="bug"], #input-text-display blockquote[data-callout="failure"] {
+  border-left-width: 5px;
+}
+
+#input-text-display blockquote[data-callout="quote"] {
+  font-style: italic;
+  border-left-style: double;
+  border-left-width: 5px;
+}
+
+#input-text-display blockquote[data-callout="tip"], #input-text-display blockquote[data-callout="success"], #input-text-display blockquote[data-callout="question"] {
+  border-left-style: dashed;
+}
+
+#input-text-display [data-note-link] {
+  color: #8F8778 !important;
+  border-bottom: 1px dashed #8F8778;
+  cursor: default;
+  position: relative;
+}
+
+#input-text-display [data-note-link]:hover::after {
+  content: 'No note with this title here';
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 5;
+  white-space: nowrap;
+  font: 12px/1.5 sans-serif;
+  font-style: normal;
+  color: #5B554A;
+  background: #F2ECE0;
+  border: 1px solid #8F8778;
+  padding: 0 6px;
+  pointer-events: none;
+}
+
+#input-text-display [data-tag] {
+  color: #B8321A !important;
+  background: #F6D5C9;
+  padding: 0 .3em;
+  border-radius: 2px;
+  cursor: default;
+}
+
+#input-text-display sup[data-fn]::before {
+  content: '[';
+}
+
+#input-text-display sup[data-fn]::after {
+  content: ']';
+}
+
+#input-text-display sup[data-fn] {
+  color: #B8321A !important;
+  font-size: .75em;
+}
+
+#input-text-display div[data-fn-def] {
+  font-size: .88em;
+  color: #5B554A !important;
+}
+
+#input-text-display div[data-fn-def]::before {
+  content: '[' attr(data-fn-def) ']: ';
+  color: #B8321A !important;
+}
+
+#input-text-display [data-comment] {
+  opacity: .45;
+  font-style: italic;
+}
+
+#input-text-display [data-comment]::before {
+  content: '%%';
+}
+
+#input-text-display [data-comment]::after {
+  content: '%%';
 }
 
 .selection\:bg-vermilion-wash *::-moz-selection {
